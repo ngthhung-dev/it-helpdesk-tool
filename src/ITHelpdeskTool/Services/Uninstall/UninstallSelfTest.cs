@@ -44,7 +44,7 @@ public static class UninstallSelfTest
         var desktopLnk = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "HD Test.lnk");
         var exe = Path.Combine(loc, "hdapp.exe");
 
-        await Do("parse.names", () =>
+        await Do("parse.names", async () =>
         {
             Check(UninstallService.CleanName("HD Test App 1.2.3 (x64)") == "HD Test App", UninstallService.CleanName("HD Test App 1.2.3 (x64)"));
             Check(UninstallService.CleanName("Foo Editor v2.0 build 77") == "Foo Editor", UninstallService.CleanName("Foo Editor v2.0 build 77"));
@@ -52,10 +52,11 @@ public static class UninstallSelfTest
             var p = UninstallService.PublisherNames("HDTest Corp, Inc.");
             Check(p.Contains("HDTest Corp") && p.Contains("HDTest"), string.Join(",", p));
             Check(UninstallService.CleanPublisher("Mozilla Corporation") == "Mozilla", UninstallService.CleanPublisher("Mozilla Corporation"));
+            await Task.CompletedTask;
             return string.Join(" / ", p);
         });
 
-        await Do("parse.commands", () =>
+        await Do("parse.commands", async () =>
         {
             const string guid = "{12345678-ABCD-ABCD-ABCD-1234567890AB}";
             var msi = Fake("MsiExec.exe /I" + guid);
@@ -74,6 +75,7 @@ public static class UninstallSelfTest
             Check(f3 == @"C:\X\un.exe" && a3 == "/remove /silent" && s3, $"{f3} {a3}");
             var (_, a4, s4) = UninstallService.BuildCommand(q, false);
             Check(a4 == "/remove" && !s4, a4);
+            await Task.CompletedTask;
             return "msi, inno, quiet string ok";
         });
 
@@ -128,13 +130,14 @@ public static class UninstallSelfTest
             });
 
             InstalledApp? app = null;
-            await Do("list.find", () =>
+            await Do("list.find", async () =>
             {
                 var all = UninstallService.ReadApps();
                 app = all.FirstOrDefault(a => a.KeyName == Key);
                 Check(app is not null, "không thấy trong danh sách");
                 Check(app!.Name == AppName + " 1.2.3" && app.InstallLocation == loc && app.Scope == AppScope.Machine64 && app.SizeKb == 300, app.Detail);
                 Check(!app.IsMsi && app.HasUninstaller, "kiểu trình gỡ sai");
+                await Task.CompletedTask;
                 return $"{all.Count} phần mềm · {app.Detail} · icon {(app.Icon is null ? "không" : "có")}";
             });
             if (app is null) return steps;
