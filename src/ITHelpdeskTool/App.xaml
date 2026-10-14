@@ -29,6 +29,9 @@
             <DataTemplate DataType="{x:Type vm:PowerViewModel}">
                 <v:PowerPage/>
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:TweaksViewModel}">
+                <v:TweaksPage/>
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:AboutViewModel}">
                 <v:AboutPage/>
             </DataTemplate>

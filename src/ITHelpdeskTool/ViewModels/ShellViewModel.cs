@@ -42,7 +42,7 @@ public sealed partial class ShellViewModel : ObservableObject
             ]),
             new("TỐI ƯU",
             [
-                Item("tweaks", "Tweaks Windows", "\uE713", 1),
+                Item("tweaks", "Tweaks Windows", "\uE713", 1, () => new TweaksViewModel()),
                 Item("cleanup", "Dọn rác", "\uE894", 1),
                 Item("uninstall", "Gỡ app sạch", "\uE74D", 2),
             ]),
