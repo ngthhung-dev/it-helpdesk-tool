@@ -58,7 +58,7 @@ jobs:
             [U]::SetForegroundWindow($p.MainWindowHandle) | Out-Null
             Start-Sleep -Seconds ($(if ($page -eq 'report') { 14 } else { 5 }))
             Shot "$page-1"
-            if ($page -eq 'report') {
+            if ($page -notin 'dashboard','about') {
               # cuộn xuống từng trang để chụp phần dưới
               [U]::SetCursorPos([int]($b.Width * 0.6), [int]($b.Height * 0.6)) | Out-Null
               foreach ($i in 2..6) {

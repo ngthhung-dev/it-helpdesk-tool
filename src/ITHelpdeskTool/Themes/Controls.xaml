@@ -454,6 +454,7 @@
                         <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
                                           ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
                                           ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
+                                          ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
                                           Margin="11,0,30,0" VerticalAlignment="Center" HorizontalAlignment="Left"
                                           IsHitTestVisible="False" TextBlock.Foreground="{TemplateBinding Foreground}"/>
                         <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True"

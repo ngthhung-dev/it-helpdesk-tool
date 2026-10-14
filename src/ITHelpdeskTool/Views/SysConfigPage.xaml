@@ -186,8 +186,11 @@
                                     <TextBlock Text="Múi giờ" Style="{StaticResource Label}"/>
                                     <DockPanel>
                                         <Button DockPanel.Dock="Right" Content="Áp dụng" Margin="8,0,0,0" Command="{Binding ApplyTimeZoneCommand}"/>
-                                        <ComboBox ItemsSource="{Binding TimeZones}" SelectedItem="{Binding SelectedTimeZone}"
-                                                  DisplayMemberPath="DisplayName" MaxDropDownHeight="360"/>
+                                        <ComboBox ItemsSource="{Binding TimeZones}" SelectedItem="{Binding SelectedTimeZone}" MaxDropDownHeight="360">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate><TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis"/></DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
                                     </DockPanel>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
@@ -202,8 +205,11 @@
                             <TextBlock Text="Định dạng ngày, giờ, số (cho tài khoản đang dùng)" Style="{StaticResource Label}" Margin="0,16,0,6"/>
                             <DockPanel>
                                 <Button DockPanel.Dock="Right" Content="Áp dụng" Margin="8,0,0,0" Command="{Binding ApplyCultureCommand}"/>
-                                <ComboBox ItemsSource="{Binding Cultures}" SelectedValuePath="Key" DisplayMemberPath="Value"
-                                          SelectedValue="{Binding SelectedCulture}"/>
+                                <ComboBox ItemsSource="{Binding Cultures}" SelectedValuePath="Key" SelectedValue="{Binding SelectedCulture}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate><TextBlock Text="{Binding Value}"/></DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
                             </DockPanel>
                             <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0" Text="{Binding CurrentCulture, StringFormat='Đang dùng: {0}'}"/>
                         </StackPanel>
