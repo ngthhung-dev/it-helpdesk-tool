@@ -176,7 +176,7 @@ public sealed partial class CleanupViewModel : PageViewModel
             return;
         IsBusy = true;
         var sw = Stopwatch.StartNew();
-        using var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         timer.Tick += (_, _) => BusyText = $"DISM đang dọn WinSxS… {sw.Elapsed:mm\\:ss}";
         timer.Start();
         OpResult r;
