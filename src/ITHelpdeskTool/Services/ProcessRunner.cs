@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Text;
 
 namespace ITHelpdeskTool.Services;
@@ -49,6 +50,11 @@ public static class ProcessRunner
             StandardOutputEncoding = encoding ?? Encoding.UTF8,
             StandardErrorEncoding = encoding ?? Encoding.UTF8,
         };
+        // Windows PowerShell 5.1 mở từ một tiến trình PowerShell 7 sẽ thừa hưởng PSModulePath của bản 7
+        // và nạp nhầm module (lỗi "ConvertTo-SecureString ... module could not be loaded").
+        // Xoá đi để 5.1 tự dựng lại đường dẫn module mặc định.
+        if (Path.GetFileName(fileName).Equals("powershell.exe", StringComparison.OrdinalIgnoreCase))
+            psi.Environment.Remove("PSModulePath");
         if (env is not null)
             foreach (var (k, v) in env) psi.Environment[k] = v;
 
