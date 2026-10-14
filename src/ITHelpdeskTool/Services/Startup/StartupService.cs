@@ -212,7 +212,8 @@ public static class StartupService
             using (var a = ar.OpenSubKey($@"{Approved}\{sub}", writable: true)) a?.DeleteValue(e.RawName, throwOnMissingValue: false);
 
             Log.Info($"Startup: đã xoá \"{e.RawName}\" [{e.Source}] lệnh: {e.Command} · sao lưu: {backup}");
-            return OpResult.Success($"Đã xoá {e.Name} khỏi khởi động. Bản sao lưu: {Path.GetFileName(backup)} (nhấp đúp để khôi phục).");
+            var how = backup.EndsWith(".reg") ? "nhấp đúp file để khôi phục" : "chép lại vào thư mục Startup để khôi phục";
+            return OpResult.Success($"Đã xoá {e.Name} khỏi khởi động. Bản sao lưu: {Path.GetFileName(backup)} ({how}).");
         }
         catch (UnauthorizedAccessException) { return OpResult.Fail("Không có quyền — cần chạy app bằng quyền Administrator."); }
         catch (Exception ex) { return OpResult.Fail($"Không xoá được: {ex.Message}"); }
