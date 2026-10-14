@@ -83,7 +83,6 @@ public static class FontService
         var face = Name(g.Win32FaceNames);
         if (family.Length == 0) family = Name(g.FamilyNames);
         if (face.Length == 0) face = Name(g.FaceNames);
-        var full = Name(g.FullFaceNames);
 
         var map = g.CharacterToGlyphMap;
         var vn = VnChars.All(c => map.ContainsKey(c));
@@ -92,7 +91,7 @@ public static class FontService
                      || family.StartsWith("VN-", StringComparison.OrdinalIgnoreCase);
 
         var type = ext == ".otf" && !g.Symbol ? "OpenType" : "TrueType";
-        var regBase = full.Length > 0 ? full : face is "Regular" or "Normal" or "" ? family : $"{family} {face}";
+        var regBase = face is "Regular" or "Normal" or "" ? family : $"{family} {face}";
         if (faces > 1) regBase = $"{family} (bộ {faces} kiểu)";
         return new FontFileInfo(path, family, face, $"{regBase} ({type})", vn, legacy, faces);
     }
