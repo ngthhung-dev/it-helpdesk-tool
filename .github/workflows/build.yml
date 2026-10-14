@@ -35,16 +35,24 @@ jobs:
           } elseif ($env:GITHUB_REF -like 'refs/tags/v*') {
             $v = $env:GITHUB_REF_NAME.TrimStart('v')
           } else {
-            $v = "0.1.$env:GITHUB_RUN_NUMBER"
+            # mặc định lấy <Version> trong .csproj
+            $v = ([xml](Get-Content src/ITHelpdeskTool/ITHelpdeskTool.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
           }
           "version=$v" >> $env:GITHUB_OUTPUT
           Write-Host "Version: $v"
 
       - name: Build
-        run: dotnet build src/DeskMate/DeskMate.csproj -c Debug
+        run: dotnet build src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Debug
 
       - name: Publish (single-file, self-contained)
-        run: dotnet publish src/DeskMate/DeskMate.csproj -c Release -o publish -p:Version=${{ steps.ver.outputs.version }}
+        run: dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o publish -p:Version=${{ steps.ver.outputs.version }}
+
+      - name: Kiểm tra thông tin file .exe
+        shell: pwsh
+        run: |
+          $f = (Get-Item publish\ITHelpdeskTool.exe).VersionInfo
+          $f | Format-List FileDescription, FileVersion, ProductName, ProductVersion, CompanyName, LegalCopyright
+          if ($f.ProductName -ne 'IT Helpdesk Tool') { throw 'Sai ProductName' }
 
       - name: Cài Inno Setup
         shell: pwsh
@@ -56,14 +64,14 @@ jobs:
       - name: Đóng gói installer
         shell: pwsh
         run: |
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=${{ steps.ver.outputs.version }}" installer\DeskMate.iss
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=${{ steps.ver.outputs.version }}" installer\ITHelpdeskTool.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Compress-Archive -Path publish\* -DestinationPath "dist\DeskMate-${{ steps.ver.outputs.version }}-portable.zip"
+          Compress-Archive -Path publish\* -DestinationPath "dist\ITHelpdeskTool-${{ steps.ver.outputs.version }}-portable.zip"
           Get-ChildItem dist | Format-Table Name, Length
 
       - uses: actions/upload-artifact@v5
         with:
-          name: DeskMate-${{ steps.ver.outputs.version }}
+          name: ITHelpdeskTool-${{ steps.ver.outputs.version }}
           path: dist/*
 
       - name: Tạo Release (tag v* hoặc chạy tay có nhập phiên bản)
@@ -71,7 +79,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.ver.outputs.version }}
-          name: DeskMate v${{ steps.ver.outputs.version }}
+          name: IT Helpdesk Tool v${{ steps.ver.outputs.version }}
           target_commitish: ${{ github.sha }}
           files: dist/*
           generate_release_notes: true
