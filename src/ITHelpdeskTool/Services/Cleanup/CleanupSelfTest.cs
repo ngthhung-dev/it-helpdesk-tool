@@ -63,9 +63,14 @@ public static class CleanupSelfTest
         await Do("temp.windows", async () =>
         {
             var f = Make(Path.Combine(win, @"Temp\hdtest_clean\a.tmp"), 256);
+            // Thư mục rỗng cũ bị xoá; thư mục vừa có thay đổi (vừa xoá file bên trong) được giữ tới lần dọn sau
+            var emptyOld = Path.Combine(win, @"Temp\hdtest_empty");
+            Directory.CreateDirectory(emptyOld);
+            Directory.SetLastWriteTime(emptyOld, DateTime.Now.AddDays(-3));
             var r = await CleanupService.CleanAsync(Def("temp.windows"));
             Check(!File.Exists(f), "chưa xoá");
-            Check(!Directory.Exists(Path.Combine(win, @"Temp\hdtest_clean")), "thư mục rỗng chưa được dọn");
+            Check(!Directory.Exists(emptyOld), "thư mục rỗng cũ chưa được dọn");
+            try { Directory.Delete(Path.Combine(win, @"Temp\hdtest_clean"), true); } catch { }
             return $"dọn {Fmt.Size(r.Freed)}, bỏ qua {r.Skipped}";
         });
 
