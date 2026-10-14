@@ -2,7 +2,7 @@
 
 <img src="src/ITHelpdeskTool/Assets/app.png" width="96" align="right"/>
 
-Công cụ hỗ trợ IT cho Windows 10/11, viết bằng **C# / .NET 10 / WPF**.
+Công cụ hỗ trợ kỹ thuật CNTT cho Windows 10/11, viết bằng **C# / .NET 10 / WPF**.
 
 - Tác giả: **ngthhung**
 
