@@ -1,0 +1,68 @@
+name: Report test
+
+# Chạy quét Báo cáo cấu hình thật trên máy Windows của GitHub (chế độ --report)
+# và in kết quả từng mục ra annotation để kiểm tra.
+on:
+  workflow_dispatch:
+
+jobs:
+  report:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish
+        run: dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o publish
+
+      - name: Chạy quét
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory out -Force | Out-Null
+          $sw = [Diagnostics.Stopwatch]::StartNew()
+          $p = Start-Process publish\ITHelpdeskTool.exe -ArgumentList '--report', "$PWD\out\report" -PassThru -Wait
+          Write-Host "::notice title=run::exit=$($p.ExitCode) sau $($sw.ElapsedMilliseconds) ms; files: $((Get-ChildItem out | ForEach-Object { '{0} {1:N0}KB' -f $_.Name, ($_.Length/1KB) }) -join ', ')"
+          $log = "$env:LOCALAPPDATA\ITHelpdeskTool\logs\app.log"
+          if (Test-Path $log) {
+            $lines = Get-Content $log | Where-Object { $_ -match 'WARN|ERR|Báo cáo:|CLI' }
+            Write-Host "::notice title=log::$(($lines | Select-Object -Last 40) -join '%0A')"
+          }
+
+      - name: Kết quả mục 1-6
+        shell: pwsh
+        run: |
+          $j = Get-Content out\report.json -Raw | ConvertFrom-Json
+          function Show($s) {
+            $lines = @("[$($s.state)] $($s.message)")
+            if ($s.fields) { $s.fields.PSObject.Properties | ForEach-Object { $lines += "$($_.Name) = $($_.Value)" } }
+            foreach ($t in $s.tables) {
+              $lines += "-- $($t.title): $(@($t.rows).Count) dòng"
+              @($t.rows) | Select-Object -First 4 | ForEach-Object { $lines += '   ' + (($_.PSObject.Properties | ForEach-Object { $_.Value }) -join ' | ') }
+            }
+            Write-Host "::notice title=$($s.title)::$($lines -join '%0A')"
+          }
+          $j.sections | Select-Object -First 6 | ForEach-Object { Show $_ }
+
+      - name: Kết quả mục 7-12
+        shell: pwsh
+        run: |
+          $j = Get-Content out\report.json -Raw | ConvertFrom-Json
+          function Show($s) {
+            $lines = @("[$($s.state)] $($s.message)")
+            if ($s.fields) { $s.fields.PSObject.Properties | ForEach-Object { $lines += "$($_.Name) = $($_.Value)" } }
+            foreach ($t in $s.tables) {
+              $lines += "-- $($t.title): $(@($t.rows).Count) dòng"
+              @($t.rows) | Select-Object -First 4 | ForEach-Object { $lines += '   ' + (($_.PSObject.Properties | ForEach-Object { $_.Value }) -join ' | ') }
+            }
+            Write-Host "::notice title=$($s.title)::$($lines -join '%0A')"
+          }
+          $j.sections | Select-Object -Skip 6 | ForEach-Object { Show $_ }
+          Write-Host "::notice title=issues::$((@($j.issues) | ForEach-Object { "[$($_.level)] $($_.section): $($_.what)" }) -join '%0A')"
+
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: report-output
+          path: out/*

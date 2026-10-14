@@ -1,0 +1,302 @@
+<UserControl x:Class="ITHelpdeskTool.Views.ReportPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:c="clr-namespace:ITHelpdeskTool.Controls"
+             xmlns:core="clr-namespace:ITHelpdeskTool.Core"
+             xmlns:vm="clr-namespace:ITHelpdeskTool.ViewModels"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:ReportViewModel}"
+             d:DesignWidth="1000" d:DesignHeight="800">
+
+    <UserControl.Resources>
+        <core:BoolToVisibility x:Key="BoolVis"/>
+        <core:BoolToVisibility x:Key="NotBoolVis" Invert="True"/>
+
+        <!-- Màu chữ theo mức độ -->
+        <Style x:Key="ToneValue" TargetType="TextBox" BasedOn="{StaticResource SelectableValue}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Tone}" Value="Good">
+                    <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Tone}" Value="Warn">
+                    <Setter Property="Foreground" Value="{StaticResource WarnBrush}"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Tone}" Value="Bad">
+                    <Setter Property="Foreground" Value="{StaticResource BadBrush}"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Tone}" Value="Muted">
+                    <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Chấm trạng thái của mục -->
+        <Style x:Key="StateDot" TargetType="Ellipse">
+            <Setter Property="Width" Value="7"/>
+            <Setter Property="Height" Value="7"/>
+            <Setter Property="Fill" Value="{StaticResource FaintBrush}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding State}" Value="Loading">
+                    <Setter Property="Fill" Value="{StaticResource AccentBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding State}" Value="Done">
+                    <Setter Property="Fill" Value="{StaticResource GoodBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding State}" Value="Error">
+                    <Setter Property="Fill" Value="{StaticResource BadBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Dòng chữ trạng thái ở góc thẻ -->
+        <Style x:Key="StateText" TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding State}" Value="Loading">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Setter Property="Text" Value="Đang quét…"/>
+                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding State}" Value="Waiting">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Setter Property="Text" Value="Chờ quét"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding State}" Value="Skipped">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Setter Property="Text" Value="{Binding Message}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding State}" Value="Error">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Setter Property="Text" Value="{Binding Message}"/>
+                    <Setter Property="Foreground" Value="{StaticResource BadBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ToolButton" TargetType="Button" BasedOn="{StaticResource BtnBase}">
+            <Setter Property="Margin" Value="8,0,0,0"/>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" Padding="28,4,22,28">
+        <StackPanel>
+
+            <!-- ===== Đầu trang ===== -->
+            <DockPanel Margin="0,0,0,14">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource ToolButton}" Command="{Binding ScanCommand}" ToolTip="Quét lại toàn bộ">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" FontSize="13"/>
+                            <TextBlock Text="Quét lại" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ToolButton}" Command="{Binding CopyTextCommand}" ToolTip="Chép toàn bộ báo cáo dạng văn bản">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8C8;" Style="{StaticResource Icon}" FontSize="13"/>
+                            <TextBlock Text="Chép" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ToolButton}" Command="{Binding ExportCommand}" CommandParameter="txt" Content="TXT"
+                            ToolTip="Xuất file văn bản"/>
+                    <Button Style="{StaticResource ToolButton}" Command="{Binding ExportCommand}" CommandParameter="json" Content="JSON"
+                            ToolTip="Xuất JSON (để đưa vào phần mềm khác)"/>
+                    <Button Style="{StaticResource BtnPrimary}" Margin="8,0,0,0" Command="{Binding ExportCommand}" CommandParameter="html"
+                            ToolTip="Xuất trang HTML đẹp, mở bằng trình duyệt, in ra PDF được">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xEDE1;" Style="{StaticResource Icon}" FontSize="13"/>
+                            <TextBlock Text="Xuất HTML" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Báo cáo cấu hình" Style="{StaticResource H1}"/>
+                    <TextBlock Text="{Binding StatusText}" Style="{StaticResource Muted}" Margin="0,4,0,0" FontSize="13"/>
+                </StackPanel>
+            </DockPanel>
+
+            <!-- Thông báo đã lưu -->
+            <Border CornerRadius="8" Background="#1A34D399" Padding="12,8" Margin="0,0,0,12">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Toast}" Value="">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Mở thư mục"
+                            Command="{Binding OpenExportFolderCommand}"/>
+                    <TextBlock Text="{Binding Toast}" Foreground="{StaticResource GoodBrush}"/>
+                </DockPanel>
+            </Border>
+
+            <!-- ===== Mục lục ===== -->
+            <ItemsControl ItemsSource="{Binding Sections}" Margin="0,0,0,8">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Style="{StaticResource Chip}" Click="Chip_Click" ToolTip="Đến mục này">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Style="{StaticResource StateDot}" Margin="0,0,7,0"/>
+                                <TextBlock Text="{Binding Title}"/>
+                            </StackPanel>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- ===== Điểm cần chú ý ===== -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,10">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <Border CornerRadius="6" Padding="8,2" Background="#1AF87171" Margin="6,0,0,0">
+                                <TextBlock Foreground="{StaticResource BadBrush}" FontSize="11.5">
+                                    <Run Text="{Binding BadCount, Mode=OneWay}"/><Run Text=" nghiêm trọng"/>
+                                </TextBlock>
+                            </Border>
+                            <Border CornerRadius="6" Padding="8,2" Background="#1AFBBF24" Margin="6,0,0,0">
+                                <TextBlock Foreground="{StaticResource WarnBrush}" FontSize="11.5">
+                                    <Run Text="{Binding WarnCount, Mode=OneWay}"/><Run Text=" cần xem"/>
+                                </TextBlock>
+                            </Border>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE7BA;" Style="{StaticResource Icon}" Foreground="{StaticResource WarnBrush}" Margin="0,0,10,0"/>
+                            <TextBlock Text="Điểm cần chú ý" Style="{StaticResource H2}"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <TextBlock Text="Đang quét, chờ chút…" Style="{StaticResource Muted}"
+                               Visibility="{Binding IsScanning, Converter={StaticResource BoolVis}}"/>
+
+                    <TextBlock Text="✓  Không phát hiện vấn đề nào." Foreground="{StaticResource GoodBrush}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding IsScanning}" Value="False"/>
+                                            <Condition Binding="{Binding HasScanned}" Value="True"/>
+                                            <Condition Binding="{Binding Issues.Count}" Value="0"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <ItemsControl ItemsSource="{Binding Issues}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <DockPanel Margin="0,3">
+                                    <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Margin="2,0,12,0" VerticalAlignment="Center">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="{StaticResource WarnBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Tone}" Value="Bad">
+                                                        <Setter Property="Fill" Value="{StaticResource BadBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                    <TextBlock TextWrapping="Wrap" Foreground="{StaticResource TextBrush}">
+                                        <Run Text="{Binding Section, Mode=OneWay}" Foreground="{StaticResource MutedBrush}"/>
+                                        <Run Text="·" Foreground="{StaticResource FaintBrush}"/>
+                                        <Run Text="{Binding What, Mode=OneWay}"/>
+                                    </TextBlock>
+                                </DockPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- ===== Các mục ===== -->
+            <ItemsControl x:Name="SectionList" ItemsSource="{Binding Sections}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <!-- Tiêu đề mục -->
+                                <DockPanel>
+                                    <Border Width="30" Height="30" CornerRadius="8" Background="{StaticResource AccentSoftBrush}" Margin="0,0,12,0">
+                                        <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="14"
+                                                   Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource StateText}" VerticalAlignment="Center"
+                                               MaxWidth="420" TextAlignment="Right"/>
+                                    <TextBlock Text="{Binding Title}" Style="{StaticResource H2}" VerticalAlignment="Center"/>
+                                </DockPanel>
+
+                                <!-- Thông tin dạng nhãn : giá trị (2 cột) -->
+                                <ItemsControl ItemsSource="{Binding Fields}" Margin="0,12,0,0">
+                                    <ItemsControl.Style>
+                                        <Style TargetType="ItemsControl">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Fields.Count}" Value="0">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ItemsControl.Style>
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel Margin="0,0,24,8">
+                                                <TextBlock Text="{Binding Key}" Style="{StaticResource Muted}" Width="170"
+                                                           VerticalAlignment="Top" TextWrapping="Wrap" TextTrimming="None"/>
+                                                <TextBox Text="{Binding Value, Mode=OneWay}" Style="{StaticResource ToneValue}"/>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <!-- Bảng -->
+                                <ItemsControl ItemsSource="{Binding Tables}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="0,14,0,0">
+                                                <DockPanel Margin="0,0,0,8">
+                                                    <TextBox DockPanel.Dock="Right" Width="240" Style="{StaticResource SearchBox}" Tag="Tìm trong bảng…"
+                                                             Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged, Delay=200}"
+                                                             Visibility="{Binding Filterable, Converter={StaticResource BoolVis}}"/>
+                                                    <TextBlock Style="{StaticResource Caption}" VerticalAlignment="Center">
+                                                        <Run Text="{Binding Title, Mode=OneWay}"/>
+                                                        <Run Text="{Binding Rows.Count, Mode=OneWay, StringFormat='({0})'}" Foreground="{StaticResource FaintBrush}"/>
+                                                    </TextBlock>
+                                                </DockPanel>
+                                                <c:SimpleTable Table="{Binding}"/>
+                                                <Button Style="{StaticResource LinkButton}" HorizontalAlignment="Left" Margin="0,8,0,0"
+                                                        Content="{Binding ExpandText}" Click="Expand_Click">
+                                                    <Button.Visibility>
+                                                        <Binding Path="CanExpand" Converter="{StaticResource BoolVis}"/>
+                                                    </Button.Visibility>
+                                                </Button>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
