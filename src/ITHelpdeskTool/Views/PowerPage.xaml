@@ -1,0 +1,367 @@
+<UserControl x:Class="ITHelpdeskTool.Views.PowerPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:core="clr-namespace:ITHelpdeskTool.Core"
+             xmlns:vm="clr-namespace:ITHelpdeskTool.ViewModels"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:PowerViewModel}"
+             d:DesignWidth="1000" d:DesignHeight="900">
+
+    <UserControl.Resources>
+        <core:BoolToVisibility x:Key="BoolVis"/>
+        <core:BoolToVisibility x:Key="NotBoolVis" Invert="True"/>
+
+        <Style x:Key="CardIcon" TargetType="Border">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+            <Setter Property="Margin" Value="0,0,12,0"/>
+        </Style>
+        <Style x:Key="Hint" TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="TextTrimming" Value="None"/>
+        </Style>
+        <Style x:Key="Cmd" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="Foreground" Value="{StaticResource FaintBrush}"/>
+        </Style>
+        <Style x:Key="Badge" TargetType="Border">
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="6,1"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Background" Value="#14FFFFFF"/>
+        </Style>
+        <Style x:Key="BadgeText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+        </Style>
+        <Style x:Key="Row" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="Padding" Value="0,10"/>
+        </Style>
+        <Style x:Key="ValueCombo" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="SelectedValuePath" Value="Key"/>
+            <Setter Property="MaxDropDownHeight" Value="320"/>
+            <Setter Property="ItemTemplate">
+                <Setter.Value>
+                    <DataTemplate><TextBlock Text="{Binding Value}"/></DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,4,22,28">
+            <StackPanel>
+
+                <!-- ===== Đầu trang ===== -->
+                <DockPanel Margin="0,0,0,14">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="Power Options" Margin="0,0,8,0" Command="{Binding OpenPowerOptionsCommand}" ToolTip="Mở powercfg.cpl của Windows"/>
+                        <Button Command="{Binding LoadAllCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" FontSize="13"/>
+                                <TextBlock Text="Đọc lại" Margin="8,0,0,0"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="Power Plan" Style="{StaticResource H1}"/>
+                        <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" FontSize="13" TextWrapping="Wrap">
+                            <Run Text="Đang dùng:"/>
+                            <Run Text="{Binding ActiveName, Mode=OneWay}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                            <Run Text="· gói nguồn, hẹn giờ tắt màn hình/ngủ, CPU, thiết bị đánh thức máy và báo cáo pin."/>
+                        </TextBlock>
+                    </StackPanel>
+                </DockPanel>
+
+                <!-- ===== Gói nguồn ===== -->
+                <Border Style="{StaticResource Card}" Margin="0,0,0,12" IsEnabled="{Binding IsIdle}">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,6">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Style="{StaticResource BtnSmall}" Content="+ Ultimate Performance" Margin="6,0,0,0"
+                                        Command="{Binding AddPlanCommand}" CommandParameter="ultimate"
+                                        ToolTip="Gói hiệu năng cao nhất (ẩn sẵn trong Windows)"/>
+                                <Button Style="{StaticResource BtnSmall}" Content="+ High Performance" Margin="6,0,0,0"
+                                        Command="{Binding AddPlanCommand}" CommandParameter="high"
+                                        ToolTip="Laptop đời mới thường chỉ hiện Balanced — thêm lại gói High performance"/>
+                                <Button Style="{StaticResource BtnSmall}" Content="Nhập file .pow" Margin="6,0,0,0" Command="{Binding ImportPlanCommand}"/>
+                                <Button Content="Khôi phục mặc định" Margin="6,0,0,0" Padding="10,4" FontSize="12" Style="{StaticResource BtnDanger}"
+                                        Command="{Binding RestoreDefaultsCommand}"/>
+                            </StackPanel>
+                            <Border Style="{StaticResource CardIcon}">
+                                <TextBlock Text="&#xE945;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Gói nguồn" Style="{StaticResource H2}" VerticalAlignment="Center"/>
+                        </DockPanel>
+
+                        <ItemsControl ItemsSource="{Binding Plans}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource Row}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button Style="{StaticResource BtnPrimary}" Padding="12,4" FontSize="12" Content="Dùng gói này" Margin="6,0,0,0"
+                                                        Visibility="{Binding IsActive, Converter={StaticResource NotBoolVis}}"
+                                                        Command="{Binding DataContext.ActivateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                <Button Style="{StaticResource BtnSmall}" Content="Đổi tên" Margin="6,0,0,0"
+                                                        Command="{Binding DataContext.RenamePlanCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                <Button Style="{StaticResource BtnSmall}" Content="Xuất" Margin="6,0,0,0" ToolTip="Lưu ra file .pow để mang sang máy khác"
+                                                        Command="{Binding DataContext.ExportPlanCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                <Button Content="Xoá" Margin="6,0,0,0" Padding="10,4" FontSize="12"
+                                                        Command="{Binding DataContext.DeletePlanCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button" BasedOn="{StaticResource BtnDanger}">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Hidden"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsBalanced}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Hidden"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
+                                            </StackPanel>
+                                            <TextBlock Text="&#xE945;" Style="{StaticResource Icon}" Margin="0,0,12,0" VerticalAlignment="Top">
+                                                <TextBlock.Foreground>
+                                                    <SolidColorBrush Color="{StaticResource FaintColor}"/>
+                                                </TextBlock.Foreground>
+                                            </TextBlock>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Name}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                                                    <Border Style="{StaticResource Badge}" Background="#1A34D399" Visibility="{Binding IsActive, Converter={StaticResource BoolVis}}">
+                                                        <TextBlock Text="Đang dùng" Style="{StaticResource BadgeText}" Foreground="{StaticResource GoodBrush}"/>
+                                                    </Border>
+                                                    <Border Style="{StaticResource Badge}" Visibility="{Binding IsBuiltIn, Converter={StaticResource BoolVis}}">
+                                                        <TextBlock Text="Có sẵn của Windows" Style="{StaticResource BadgeText}"/>
+                                                    </Border>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Guid}" Style="{StaticResource Cmd}" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- ===== Thiết lập ===== -->
+                <Border Style="{StaticResource Card}" Margin="0,0,0,12" IsEnabled="{Binding IsIdle}">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,12">
+                            <Border Style="{StaticResource CardIcon}">
+                                <TextBlock Text="&#xE713;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                            </Border>
+                            <ComboBox DockPanel.Dock="Right" Width="260" ItemsSource="{Binding Plans}" SelectedItem="{Binding EditPlan}" VerticalAlignment="Center">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate><TextBlock Text="{Binding Name}"/></DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <TextBlock DockPanel.Dock="Right" Text="Chỉnh cho gói:" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="Thiết lập nguồn" Style="{StaticResource H2}" VerticalAlignment="Center"/>
+                        </DockPanel>
+
+                        <WrapPanel Margin="0,0,0,8">
+                            <TextBlock Text="Mẫu nhanh:" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="0,0,6,6"/>
+                            <Button Style="{StaticResource BtnSmall}" Content="Văn phòng tiết kiệm" Margin="0,0,6,6" Command="{Binding ApplyPresetCommand}" CommandParameter="office"
+                                    ToolTip="Tắt màn hình 10 phút, ngủ sau 30 phút"/>
+                            <Button Style="{StaticResource BtnSmall}" Content="Luôn bật (camera, chấm công, máy chủ)" Margin="0,0,6,6" Command="{Binding ApplyPresetCommand}" CommandParameter="alwayson"
+                                    ToolTip="Không bao giờ ngủ, không tạm ngắt USB/PCIe, gập máy không làm gì"/>
+                            <Button Style="{StaticResource BtnSmall}" Content="Hiệu năng" Margin="0,0,6,6" Command="{Binding ApplyPresetCommand}" CommandParameter="performance"/>
+                            <Button Style="{StaticResource BtnSmall}" Content="Laptop mát (tắt Turbo)" Margin="0,0,6,6" Command="{Binding ApplyPresetCommand}" CommandParameter="cool"/>
+                        </WrapPanel>
+
+                        <!-- Tiêu đề cột -->
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="200"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <TextBlock Text="&#xE945;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="0,0,6,0"/>
+                                <TextBlock Text="Khi cắm điện" Style="{StaticResource Caption}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="3" Orientation="Horizontal" Visibility="{Binding HasBattery, Converter={StaticResource BoolVis}}">
+                                <TextBlock Text="&#xE83F;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="0,0,6,0"/>
+                                <TextBlock Text="Khi dùng pin" Style="{StaticResource Caption}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <ItemsControl ItemsSource="{Binding SettingRows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource Row}" Visibility="{Binding IsAvailable, Converter={StaticResource BoolVis}}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="200"/>
+                                                <ColumnDefinition Width="12"/>
+                                                <ColumnDefinition Width="200"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Title}" Foreground="{StaticResource TextBrush}"/>
+                                                    <Border Style="{StaticResource Badge}" Background="#1AFBBF24" Visibility="{Binding IsChanged, Converter={StaticResource BoolVis}}">
+                                                        <TextBlock Text="Chưa lưu" Style="{StaticResource BadgeText}" Foreground="{StaticResource WarnBrush}"/>
+                                                    </Border>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Hint}" Style="{StaticResource Hint}" Margin="0,2,0,0"
+                                                           Visibility="{Binding HasHint, Converter={StaticResource BoolVis}}"/>
+                                            </StackPanel>
+                                            <ComboBox Grid.Column="1" Style="{StaticResource ValueCombo}" VerticalAlignment="Center"
+                                                      ItemsSource="{Binding Options}" SelectedValue="{Binding Ac}"/>
+                                            <ComboBox Grid.Column="3" Style="{StaticResource ValueCombo}" VerticalAlignment="Center"
+                                                      ItemsSource="{Binding Options}" SelectedValue="{Binding Dc}"
+                                                      Visibility="{Binding DataContext.HasBattery, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <DockPanel Margin="0,14,0,0">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <Button Content="Hoàn tác" Margin="0,0,8,0" Command="{Binding UndoSettingsCommand}" IsEnabled="{Binding HasChanges}"/>
+                                <Button Style="{StaticResource BtnPrimary}" Content="Lưu thiết lập" Command="{Binding SaveSettingsCommand}" IsEnabled="{Binding HasChanges}"/>
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center"
+                                       Text="Chọn giá trị (hoặc bấm mẫu nhanh) rồi bấm Lưu. Gói đang dùng có hiệu lực ngay."/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- ===== Thiết bị đánh thức ===== -->
+                <Border Style="{StaticResource Card}" Margin="0,0,0,12" IsEnabled="{Binding IsIdle}">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,6">
+                            <Border Style="{StaticResource CardIcon}">
+                                <TextBlock Text="&#xE708;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                            </Border>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Thiết bị được đánh thức máy" Style="{StaticResource H2}"/>
+                                <TextBlock Text="{Binding WakeSummary}" Style="{StaticResource Hint}"/>
+                            </StackPanel>
+                        </DockPanel>
+                        <ItemsControl ItemsSource="{Binding WakeDevices}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource Row}" Padding="0,7">
+                                        <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding IsOn}"
+                                                  Command="{Binding DataContext.ToggleWakeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                            <TextBlock Text="{Binding Item.Name}" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                                        </CheckBox>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Style="{StaticResource Hint}" Margin="0,10,0,0"
+                                   Text="Máy tự bật dậy ban đêm? Tắt card mạng và chuột ở đây, rồi xem “Lần đánh thức gần nhất” bên dưới để biết thủ phạm."/>
+                    </StackPanel>
+                </Border>
+
+                <!-- ===== Chẩn đoán ===== -->
+                <Border Style="{StaticResource Card}" Margin="0,0,0,12" IsEnabled="{Binding IsIdle}">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,12">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Thư mục báo cáo" VerticalAlignment="Center"
+                                    Command="{Binding OpenReportsCommand}"/>
+                            <Border Style="{StaticResource CardIcon}">
+                                <TextBlock Text="&#xE9D9;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Chẩn đoán pin &amp; điện năng" Style="{StaticResource H2}" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <WrapPanel>
+                            <Button Margin="0,0,8,8" Command="{Binding DiagnoseCommand}" CommandParameter="battery"
+                                    Visibility="{Binding HasBattery, Converter={StaticResource BoolVis}}"
+                                    ToolTip="Dung lượng thiết kế, dung lượng thực tế, lịch sử sạc — mở bằng trình duyệt">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE83F;" Style="{StaticResource Icon}" FontSize="13"/>
+                                    <TextBlock Text="Báo cáo pin" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Margin="0,0,8,8" Command="{Binding DiagnoseCommand}" CommandParameter="energy"
+                                    ToolTip="powercfg /energy — tìm driver, thiết lập làm hao pin / không cho máy ngủ">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE9D9;" Style="{StaticResource Icon}" FontSize="13"/>
+                                    <TextBlock Text="Báo cáo năng lượng" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Margin="0,0,8,8" Content="Cái gì đang chặn máy ngủ" Command="{Binding DiagnoseCommand}" CommandParameter="requests"/>
+                            <Button Margin="0,0,8,8" Content="Lần đánh thức gần nhất" Command="{Binding DiagnoseCommand}" CommandParameter="lastwake"/>
+                            <Button Margin="0,0,8,8" Content="Chế độ ngủ máy hỗ trợ" Command="{Binding DiagnoseCommand}" CommandParameter="states"/>
+                        </WrapPanel>
+                        <Border Background="{StaticResource Surface2Brush}" CornerRadius="8" Padding="14,10" Margin="0,6,0,0">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding DiagText}" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock Text="{Binding DiagTitle}" Style="{StaticResource Caption}" Margin="0,0,0,6"/>
+                                <TextBox Text="{Binding DiagText, Mode=OneWay}" Style="{StaticResource SelectableValue}"
+                                         FontFamily="{StaticResource MonoFont}" FontSize="12"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- ===== Nhật ký ===== -->
+                <Border Style="{StaticResource Card}" Visibility="{Binding ActionLog.Count, Converter={x:Static core:Converters.CountVis}}">
+                    <StackPanel>
+                        <TextBlock Text="Nhật ký thao tác" Style="{StaticResource H2}" Margin="0,0,0,10"/>
+                        <ItemsControl ItemsSource="{Binding ActionLog}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel Margin="0,3">
+                                        <TextBlock Text="{Binding Time}" Style="{StaticResource Hint}" Width="64" FontFamily="{StaticResource MonoFont}"/>
+                                        <TextBlock Width="18" FontSize="12" VerticalAlignment="Top" Margin="0,2,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource Icon}">
+                                                    <Setter Property="Text" Value="&#xE73E;"/>
+                                                    <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Ok}" Value="False">
+                                                            <Setter Property="Text" Value="&#xE711;"/>
+                                                            <Setter Property="Foreground" Value="{StaticResource BadBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding Text}" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20" CornerRadius="20" Padding="18,9"
+                Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource TextBrush}"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

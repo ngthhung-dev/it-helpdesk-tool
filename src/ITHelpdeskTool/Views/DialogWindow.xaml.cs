@@ -7,6 +7,7 @@ public partial class DialogWindow : Window
 {
     private bool _askPassword;
     private bool _allowEmptyPassword;
+    private bool _askText;
 
     public string Password { get; private set; } = "";
 
@@ -33,6 +34,17 @@ public partial class DialogWindow : Window
         d.PasswordPanel.Visibility = Visibility.Visible;
         d.Loaded += (_, _) => d.Pw1.Focus();
         return d.ShowDialog() == true ? d.Password : null;
+    }
+
+    /// <summary>Hỏi một dòng chữ. Trả null nếu huỷ.</summary>
+    public static string? AskText(string title, string message, string initial = "")
+    {
+        var d = new DialogWindow { _askText = true };
+        d.Setup(title, message, "Lưu", "\uE70F", false);
+        d.TextInput.Text = initial;
+        d.TextInput.Visibility = Visibility.Visible;
+        d.Loaded += (_, _) => { d.TextInput.Focus(); d.TextInput.SelectAll(); };
+        return d.ShowDialog() == true ? d.TextInput.Text.Trim() : null;
     }
 
     /// <summary>Thông báo đơn giản (một nút).</summary>
@@ -68,6 +80,7 @@ public partial class DialogWindow : Window
             if (!_allowEmptyPassword && Pw1.Password.Length == 0) { ShowError("Vui lòng nhập mật khẩu."); return; }
             Password = Pw1.Password;
         }
+        if (_askText && TextInput.Text.Trim().Length == 0) { ShowError("Vui lòng nhập nội dung."); return; }
         DialogResult = true;
     }
 

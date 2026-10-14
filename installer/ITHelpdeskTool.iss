@@ -3,7 +3,7 @@
 ; Bước 2: mở file này bằng Inno Setup Compiler rồi Build (Ctrl+F9)
 
 #ifndef AppVersion
-  #define AppVersion "1.4.0"
+  #define AppVersion "1.5.0"
 #endif
 #define AppName "IT Helpdesk Tool"
 #define AppExe "ITHelpdeskTool.exe"

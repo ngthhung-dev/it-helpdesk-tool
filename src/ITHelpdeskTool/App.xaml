@@ -26,6 +26,9 @@
             <DataTemplate DataType="{x:Type vm:StartupViewModel}">
                 <v:StartupPage/>
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:PowerViewModel}">
+                <v:PowerPage/>
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:AboutViewModel}">
                 <v:AboutPage/>
             </DataTemplate>

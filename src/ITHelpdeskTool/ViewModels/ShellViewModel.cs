@@ -38,7 +38,7 @@ public sealed partial class ShellViewModel : ObservableObject
                 Item("sysconfig", "Cấu hình hệ thống", "\uE770", 1, () => new SysConfigViewModel()),
                 Item("policy", "Policy", "\uE8D7", 1, () => new PolicyViewModel()),
                 Item("startup", "Startup & Boot", "\uE7E8", 1, () => new StartupViewModel()),
-                Item("power", "Power Plan", "\uE945", 2),
+                Item("power", "Power Plan", "\uE945", 1, () => new PowerViewModel()),
             ]),
             new("TỐI ƯU",
             [
