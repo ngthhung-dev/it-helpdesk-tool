@@ -11,7 +11,7 @@ public partial class MainWindow : Window
         StateChanged += (_, _) =>
         {
             AppState.IsMinimized = WindowState == WindowState.Minimized;
-            MaxButton.Content = WindowState == WindowState.Maximized ? "" : "";
+            MaxButton.Content = WindowState == WindowState.Maximized ? "\uE923" : "\uE922";
             MaxButton.ToolTip = WindowState == WindowState.Maximized ? "Thu về" : "Phóng to";
         };
         ContentRendered += (_, _) =>
