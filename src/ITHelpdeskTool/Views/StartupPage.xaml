@@ -355,7 +355,7 @@
                                 </Border>
                                 <StackPanel VerticalAlignment="Center">
                                     <TextBlock Text="Safe Mode &amp; khởi động lại đặc biệt" Style="{StaticResource H2}"/>
-                                    <TextBlock Style="{StaticResource Hint}">
+                                    <TextBlock>
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock" BasedOn="{StaticResource Hint}">
                                                 <Setter Property="Text" Value="Lần khởi động sau: bình thường."/>
