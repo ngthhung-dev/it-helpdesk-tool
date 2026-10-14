@@ -148,14 +148,13 @@ public static class StartupSelfTest
             await Do($"delete.{src}", () => Task.Run(() =>
             {
                 var e = Find(raw, src) ?? throw new InvalidOperationException("không thấy để xoá");
-                var before = Directory.Exists(StartupService.BackupFolder) ? Directory.GetFiles(StartupService.BackupFolder).Length : 0;
+                var before = Directory.Exists(StartupService.BackupFolder) ? Directory.GetFiles(StartupService.BackupFolder) : [];
                 var m = Need(StartupService.Delete(e));
                 Check(Find(raw, src) is null, "vẫn còn sau khi xoá");
-                var after = Directory.GetFiles(StartupService.BackupFolder);
-                Check(after.Length == before + 1, "không có file sao lưu");
-                var newest = after.OrderByDescending(File.GetLastWriteTime).First();
-                if (newest.EndsWith(".reg"))
-                    Check(File.ReadAllText(newest).Contains(raw), "file .reg không chứa tên mục");
+                var added = Directory.GetFiles(StartupService.BackupFolder).Except(before).ToList();
+                Check(added.Count == 1, $"có {added.Count} file sao lưu mới");
+                var file = added[0];
+                Check(file.EndsWith(".reg") ? File.ReadAllText(file).Contains(raw) : file.EndsWith(raw), $"sao lưu sai: {Path.GetFileName(file)}");
                 return $"{m}";
             }));
         }
