@@ -1,0 +1,37 @@
+name: SysConfig selftest
+
+# Chạy thật các thao tác của trang Cấu hình hệ thống trên máy Windows dùng một lần của GitHub
+# (tạo/xoá user, múi giờ, RDP, tường lửa, hosts, DNS, đổi tên máy...) rồi in kết quả.
+on:
+  workflow_dispatch:
+
+jobs:
+  selftest:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish
+        run: dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o publish
+
+      - name: Chạy selftest
+        shell: pwsh
+        run: |
+          $sw = [Diagnostics.Stopwatch]::StartNew()
+          $p = Start-Process publish\ITHelpdeskTool.exe -ArgumentList '--selftest', 'sysconfig', "$PWD\selftest.json" -PassThru -Wait
+          $steps = Get-Content selftest.json -Raw | ConvertFrom-Json
+          $fail = @($steps | Where-Object { -not $_.Ok }).Count
+          Write-Host "::notice title=tổng::exit=$($p.ExitCode) · $(@($steps).Count) bước · lỗi $fail · $([int]$sw.Elapsed.TotalSeconds)s"
+          $lines = $steps | ForEach-Object { "{0} {1} ({2} ms): {3}" -f $(if ($_.Ok) { 'OK ' } else { 'ERR' }), $_.Name, $_.Ms, $_.Detail }
+          for ($i = 0; $i -lt $lines.Count; $i += 6) {
+            $chunk = $lines[$i..([Math]::Min($i + 5, $lines.Count - 1))] -join '%0A'
+            Write-Host "::notice title=bước $($i+1)+::$chunk"
+          }
+          $log = "$env:LOCALAPPDATA\ITHelpdeskTool\logs\app.log"
+          if (Test-Path $log) {
+            $w = Get-Content $log | Where-Object { $_ -match 'WARN|ERR' } | Select-Object -Last 15
+            if ($w) { Write-Host "::notice title=log::$($w -join '%0A')" }
+          }

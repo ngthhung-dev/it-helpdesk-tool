@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 
 namespace ITHelpdeskTool.Services;
@@ -6,18 +7,38 @@ namespace ITHelpdeskTool.Services;
 public sealed record ProcessResult(int ExitCode, string Output, string Error)
 {
     public bool Success => ExitCode == 0;
+
+    /// <summary>Output + lỗi gộp lại, bỏ dòng trống — để hiển thị cho người dùng.</summary>
+    public string Text => string.Join(Environment.NewLine,
+        (Output + Environment.NewLine + Error).Split('\n').Select(l => l.TrimEnd('\r')).Where(l => l.Trim().Length > 0));
 }
 
 /// <summary>
-/// Chạy lệnh ngoài (PowerShell, DISM, winget, reg...) ẩn cửa sổ, đọc output dạng UTF-8.
-/// Dùng chung cho các module giai đoạn sau.
+/// Chạy lệnh ngoài (PowerShell, DISM, winget, netsh...) ẩn cửa sổ.
 /// </summary>
 public static class ProcessRunner
 {
+    static ProcessRunner() => Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+    /// <summary>
+    /// Bảng mã của các lệnh console cũ (netsh, ipconfig, w32tm...): chúng in theo code page OEM
+    /// của máy chứ không phải UTF-8, đọc sai bảng mã thì tiếng Việt bị lỗi font.
+    /// </summary>
+    public static Encoding Oem
+    {
+        get
+        {
+            try { return Encoding.GetEncoding(CultureInfo.CurrentCulture.TextInfo.OEMCodePage); }
+            catch { return Encoding.UTF8; }
+        }
+    }
+
     public static async Task<ProcessResult> RunAsync(
         string fileName, string arguments,
         Action<string>? onOutput = null,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        Encoding? encoding = null,
+        IDictionary<string, string>? env = null)
     {
         var psi = new ProcessStartInfo(fileName, arguments)
         {
@@ -25,9 +46,11 @@ public static class ProcessRunner
             CreateNoWindow = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8,
+            StandardOutputEncoding = encoding ?? Encoding.UTF8,
+            StandardErrorEncoding = encoding ?? Encoding.UTF8,
         };
+        if (env is not null)
+            foreach (var (k, v) in env) psi.Environment[k] = v;
 
         using var p = new Process { StartInfo = psi, EnableRaisingEvents = true };
         var stdout = new StringBuilder();
@@ -52,11 +75,25 @@ public static class ProcessRunner
         return new ProcessResult(p.ExitCode, stdout.ToString(), stderr.ToString());
     }
 
-    /// <summary>Chạy một đoạn PowerShell (mã hoá Base64 để khỏi lo escape).</summary>
-    public static Task<ProcessResult> PowerShellAsync(string script, Action<string>? onOutput = null, CancellationToken ct = default)
+    /// <summary>Chạy lệnh console cũ của Windows, đọc output theo bảng mã OEM.</summary>
+    public static Task<ProcessResult> ConsoleAsync(string fileName, string arguments, CancellationToken ct = default) =>
+        RunAsync(fileName, arguments, ct: ct, encoding: Oem);
+
+    /// <summary>
+    /// Chạy một đoạn Windows PowerShell 5.1 (mã hoá Base64 để khỏi lo escape).
+    /// Dữ liệu nhạy cảm (mật khẩu) truyền qua <paramref name="env"/> thay vì nhúng vào script.
+    /// Lỗi trong script làm lệnh dừng và trả ExitCode = 1.
+    /// </summary>
+    public static Task<ProcessResult> PowerShellAsync(string script, Action<string>? onOutput = null,
+        CancellationToken ct = default, IDictionary<string, string>? env = null)
     {
-        var full = "[Console]::OutputEncoding=[Text.Encoding]::UTF8;$ProgressPreference='SilentlyContinue';" + script;
+        var full = "[Console]::OutputEncoding=[Text.Encoding]::UTF8;$ProgressPreference='SilentlyContinue';" +
+                   "$ErrorActionPreference='Stop';try{" + script + "}catch{[Console]::Error.WriteLine($_.Exception.Message);exit 1}";
         var encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(full));
-        return RunAsync("powershell.exe", $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand {encoded}", onOutput, ct);
+        return RunAsync("powershell.exe", $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand {encoded}",
+            onOutput, ct, env: env);
     }
+
+    /// <summary>Đặt chuỗi vào dấu nháy đơn của PowerShell an toàn.</summary>
+    public static string PsQuote(string s) => "'" + s.Replace("'", "''") + "'";
 }

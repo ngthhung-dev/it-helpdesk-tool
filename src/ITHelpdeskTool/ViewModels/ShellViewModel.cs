@@ -32,7 +32,7 @@ public sealed partial class ShellViewModel : ObservableObject
             [
                 Item("dashboard", "Tổng quan", "\uE80F", 1, () => new DashboardViewModel()),
                 Item("report", "Báo cáo cấu hình", "\uE8A5", 1, () => new ReportViewModel()),
-                Item("sysconfig", "Cấu hình hệ thống", "\uE770", 2),
+                Item("sysconfig", "Cấu hình hệ thống", "\uE770", 1, () => new SysConfigViewModel()),
                 Item("policy", "Policy", "\uE8D7", 2),
                 Item("startup", "Startup & Boot", "\uE7E8", 1),
                 Item("power", "Power Plan", "\uE945", 2),

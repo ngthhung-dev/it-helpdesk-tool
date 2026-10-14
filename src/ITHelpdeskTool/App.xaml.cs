@@ -33,6 +33,22 @@ public partial class App : Application
             return;
         }
 
+        // Tự kiểm tra trên máy test: ITHelpdeskTool.exe --selftest sysconfig <kết quả.json>
+        var ti = Array.FindIndex(e.Args, a => a.Equals("--selftest", StringComparison.OrdinalIgnoreCase));
+        if (ti >= 0 && ti + 2 < e.Args.Length && e.Args[ti + 1] == "sysconfig")
+        {
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            var outPath = e.Args[ti + 2];
+            _ = Task.Run(async () =>
+            {
+                int code;
+                try { code = await Services.SysConfig.SysConfigSelfTest.RunToFileAsync(outPath); }
+                catch (Exception ex) { Log.Error("Selftest lỗi", ex); code = 1; }
+                await Dispatcher.InvokeAsync(() => Shutdown(code));
+            });
+            return;
+        }
+
         var pi = Array.FindIndex(e.Args, a => a.Equals("--page", StringComparison.OrdinalIgnoreCase));
         if (pi >= 0 && pi + 1 < e.Args.Length) ViewModels.ShellViewModel.StartPage = e.Args[pi + 1];
 

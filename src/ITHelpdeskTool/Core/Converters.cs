@@ -40,6 +40,19 @@ public sealed class Thresholds(double limit) : IValueConverter
         throw new NotSupportedException();
 }
 
+/// <summary>Đảo bool.</summary>
+public sealed class NotConverter : IValueConverter
+{
+    public object Convert(object? value, Type t, object? p, CultureInfo c) => value is not true;
+    public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => value is not true;
+}
+
+/// <summary>Các converter dùng chung qua x:Static.</summary>
+public static class Converters
+{
+    public static readonly NotConverter Not = new();
+}
+
 /// <summary>Chuỗi rỗng → "—".</summary>
 public sealed class EmptyToDash : IValueConverter
 {
