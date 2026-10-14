@@ -95,24 +95,27 @@
                         </StackPanel>
                     </DockPanel>
 
-                    <DockPanel DockPanel.Dock="Bottom" Margin="18,10,18,14" Visibility="{Binding NewFonts.Count, Converter={x:Static core:Converters.CountVis}}">
-                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                            <Button Content="Xoá danh sách" Margin="0,0,8,0" Command="{Binding ClearNewCommand}"/>
-                            <Button Style="{StaticResource BtnPrimary}" Command="{Binding InstallNewCommand}">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE896;" Style="{StaticResource Icon}" FontSize="13"/>
-                                    <TextBlock Text="Cài font đã chọn" Margin="8,0,0,0"/>
-                                </StackPanel>
-                            </Button>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <CheckBox IsChecked="{Binding AllUsers}" Content="Cài cho mọi tài khoản" Margin="0,0,16,0"/>
-                            <Button Style="{StaticResource LinkButton}" Content="Chọn tất cả" Margin="0,0,10,0" Command="{Binding SelectNewCommand}" CommandParameter="all"/>
-                            <Button Style="{StaticResource LinkButton}" Content="Chưa cài" Margin="0,0,10,0" Command="{Binding SelectNewCommand}" CommandParameter="new"/>
-                            <Button Style="{StaticResource LinkButton}" Content="Có dấu tiếng Việt" Margin="0,0,10,0" Command="{Binding SelectNewCommand}" CommandParameter="vn"/>
+                    <StackPanel DockPanel.Dock="Bottom" Margin="18,10,18,14" Visibility="{Binding NewFonts.Count, Converter={x:Static core:Converters.CountVis}}">
+                        <WrapPanel Margin="0,0,0,10">
+                            <TextBlock Text="Chọn:" Style="{StaticResource Hint}" Margin="0,0,10,0"/>
+                            <Button Style="{StaticResource LinkButton}" Content="Tất cả" Margin="0,0,12,0" Command="{Binding SelectNewCommand}" CommandParameter="all"/>
+                            <Button Style="{StaticResource LinkButton}" Content="Chưa cài" Margin="0,0,12,0" Command="{Binding SelectNewCommand}" CommandParameter="new"/>
+                            <Button Style="{StaticResource LinkButton}" Content="Có dấu tiếng Việt" Margin="0,0,12,0" Command="{Binding SelectNewCommand}" CommandParameter="vn"/>
                             <Button Style="{StaticResource LinkButton}" Content="Bỏ chọn" Command="{Binding SelectNewCommand}" CommandParameter="none"/>
-                        </StackPanel>
-                    </DockPanel>
+                        </WrapPanel>
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <Button Content="Xoá danh sách" Margin="0,0,8,0" Command="{Binding ClearNewCommand}"/>
+                                <Button Style="{StaticResource BtnPrimary}" Command="{Binding InstallNewCommand}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE896;" Style="{StaticResource Icon}" FontSize="13"/>
+                                        <TextBlock Text="Cài font đã chọn" Margin="8,0,0,0"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                            <CheckBox IsChecked="{Binding AllUsers}" Content="Cài cho mọi tài khoản" VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </StackPanel>
 
                     <Grid>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="{Binding NewFonts.Count, Converter={x:Static core:Converters.ZeroVis}}">

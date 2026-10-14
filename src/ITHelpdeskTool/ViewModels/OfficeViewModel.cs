@@ -200,6 +200,7 @@ public sealed partial class OfficeViewModel : PageViewModel
     [RelayCommand]
     private Task RemoveAllAsync()
     {
+        if (NoOffice) { DialogWindow.Info("Không có Office", "Máy này không có bản Office nào để gỡ."); return Task.CompletedTask; }
         if (!DialogWindow.Confirm("Gỡ toàn bộ Office?",
                 "Gỡ mọi sản phẩm Office Click-to-Run trên máy" + (RemoveMsi ? " và cả bản MSI cũ (2010/2013/2016)" : "") +
                 ". Tài liệu của bạn không bị ảnh hưởng.", "Gỡ", danger: true))

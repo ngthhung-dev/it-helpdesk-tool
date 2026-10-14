@@ -86,7 +86,7 @@
                                             ToolTip="Sửa lỗi “Unlicensed Product”, đăng nhập lỗi, đổi tài khoản"/>
                                 </WrapPanel>
                                 <DockPanel Margin="0,4,0,0">
-                                    <Button DockPanel.Dock="Right" Content="Đổi kênh" Command="{Binding ChangeChannelCommand}" Margin="8,0,0,0"/>
+                                    <Button DockPanel.Dock="Right" Content="Đổi kênh" Command="{Binding ChangeChannelCommand}" Margin="8,0,0,0" VerticalAlignment="Center"/>
                                     <ComboBox ItemsSource="{Binding SwitchChannels}" SelectedItem="{Binding TargetChannel}" DisplayMemberPath="Name"/>
                                 </DockPanel>
                             </StackPanel>
@@ -154,7 +154,7 @@
                                          Tag="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX" CharacterCasing="Upper" MaxLength="29"/>
                             </DockPanel>
                             <DockPanel Margin="0,10,0,0">
-                                <Button DockPanel.Dock="Right" Content="Kích hoạt lại" Command="{Binding ActivateCommand}" Margin="8,0,0,0"/>
+                                <Button DockPanel.Dock="Right" Content="Kích hoạt lại" Command="{Binding ActivateCommand}" Margin="8,0,0,0" VerticalAlignment="Center"/>
                                 <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center"
                                            Text="Key bán lẻ / MAK do bạn hoặc tổ chức mua. Bản Microsoft 365: chỉ cần đăng nhập tài khoản trong Word."/>
                             </DockPanel>

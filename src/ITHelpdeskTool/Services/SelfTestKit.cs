@@ -18,6 +18,8 @@ public sealed class SelfTestKit
         Log.Info($"selftest: {name} …");
         try { Steps.Add(new Step(name, true, await body(), sw.ElapsedMilliseconds)); }
         catch (Exception ex) { Steps.Add(new Step(name, false, ex.Message, sw.ElapsedMilliseconds)); }
+        var last = Steps[^1];
+        Log.Info($"selftest: {name} → {(last.Ok ? "OK" : "ERR")} {last.Detail}");
     }
 
     public static void Check(bool cond, string msg) { if (!cond) throw new InvalidOperationException(msg); }

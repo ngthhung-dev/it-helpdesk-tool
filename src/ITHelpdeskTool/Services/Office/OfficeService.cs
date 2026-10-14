@@ -259,11 +259,28 @@ public static class OfficeService
         await File.WriteAllTextAsync(cfg, xml, new UTF8Encoding(false), ct);
         status?.Invoke(mode == "download" ? "Đang tải bộ cài Office (vài GB, có thể mất lâu)…" : "Đang chạy bộ cài Office — xem tiến độ trên cửa sổ của Microsoft…");
         Log.Info($"ODT /{mode} {cfg}");
-        var r = await ProcessRunner.RunAsync(setup, $"/{mode} \"{cfg}\"", ct: ct, env: null);
-        // Thư mục làm việc của setup.exe: nơi đặt file cấu hình (để SourcePath tương đối hoạt động)
+        var started = DateTime.Now;
+        var r = await ProcessRunner.RunAsync(setup, $"/{mode} \"{cfg}\"", ct: ct);
         return r.ExitCode == 0
             ? OpResult.Success(mode == "download" ? "Đã tải xong bộ cài Office." : "Bộ cài Office đã chạy xong.")
-            : OpResult.Fail($"Bộ cài Office kết thúc với mã {r.ExitCode}{OdtHint(r.ExitCode)}. Nhật ký: %TEMP%\\{Environment.MachineName}-*.log");
+            : OpResult.Fail($"Bộ cài Office kết thúc với mã {r.ExitCode}{OdtHint(r.ExitCode)}. {OdtLogError(started)}".Trim());
+    }
+
+    /// <summary>Dòng lỗi trong nhật ký của bộ cài Office (%TEMP%\MÁY-ngày-giờ.log).</summary>
+    public static string OdtLogError(DateTime since)
+    {
+        try
+        {
+            var log = new DirectoryInfo(Path.GetTempPath()).GetFiles($"{Environment.MachineName}-*.log")
+                .Where(f => f.LastWriteTime >= since.AddMinutes(-1)).OrderByDescending(f => f.LastWriteTime).FirstOrDefault();
+            if (log is null) return "";
+            var lines = File.ReadLines(log.FullName)
+                .Where(l => l.Contains("Error", StringComparison.OrdinalIgnoreCase) || l.Contains("failed", StringComparison.OrdinalIgnoreCase))
+                .Select(l => Regex.Replace(l, @"^.*?\t(Medium|Unexpected|Monitorable)\t", "").Trim())
+                .Distinct().TakeLast(3).ToList();
+            return lines.Count == 0 ? $"Nhật ký: {log.FullName}" : $"Nhật ký {log.Name}: " + string.Join(" | ", lines.Select(l => l.Length > 220 ? l[..220] : l));
+        }
+        catch { return ""; }
     }
 
     private static string OdtHint(int code) => code switch
@@ -276,10 +293,10 @@ public static class OfficeService
     };
 
     /// <summary>File cấu hình gỡ toàn bộ Office Click-to-Run (và bản MSI cũ nếu chọn).</summary>
-    public static string RemoveAllXml(bool removeMsi) =>
+    public static string RemoveAllXml(bool removeMsi, bool showUi = true) =>
         new XDocument(new XElement("Configuration",
             new XElement("Remove", new XAttribute("All", "TRUE")),
             removeMsi ? new XElement("RemoveMSI") : null,
             new XElement("Property", new XAttribute("Name", "FORCEAPPSHUTDOWN"), new XAttribute("Value", "TRUE")),
-            new XElement("Display", new XAttribute("Level", "Full"), new XAttribute("AcceptEULA", "TRUE")))).ToString();
+            new XElement("Display", new XAttribute("Level", showUi ? "Full" : "None"), new XAttribute("AcceptEULA", "TRUE")))).ToString();
 }

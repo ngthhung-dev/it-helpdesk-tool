@@ -230,7 +230,7 @@
             <Border Grid.Row="3" Style="{StaticResource Card}" Padding="0" Visibility="{Binding TabUpdates, Converter={StaticResource BoolVis}}">
                 <DockPanel>
                     <DockPanel DockPanel.Dock="Top" Margin="18,14,18,8">
-                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                             <Button Style="{StaticResource BtnSmall}" Content="Kiểm tra lại" Margin="6,0,0,0" Command="{Binding LoadUpgradesCommand}"/>
                             <Button Style="{StaticResource BtnPrimary}" Content="Cập nhật mục đã chọn" Margin="8,0,0,0" Command="{Binding UpgradeSelectedCommand}"
                                     Visibility="{Binding Upgrades.Count, Converter={x:Static core:Converters.CountVis}}"/>

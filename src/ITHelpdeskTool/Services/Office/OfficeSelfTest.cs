@@ -116,7 +116,7 @@ public static class OfficeSelfTest
 
         await t.Do("remove.all", async () =>
         {
-            var r = await OfficeService.RunOdtAsync(OfficeService.RemoveAllXml(false), "configure");
+            var r = await OfficeService.RunOdtAsync(OfficeService.RemoveAllXml(false, showUi: false), "configure");
             Check(r.Ok, r.Message);
             Check(OfficeService.ReadC2R() is null, "Office vẫn còn");
             return r.Message;
