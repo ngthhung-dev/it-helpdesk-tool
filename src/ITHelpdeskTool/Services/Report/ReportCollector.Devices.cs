@@ -149,6 +149,7 @@ public static partial class ReportCollector
         foreach (var x in phys.OrderBy(x => x.Str("DeviceId")))
         {
             var health = (int)x.Long("HealthStatus");
+            var isSsd = x.Long("MediaType") == 4;
             rel.TryGetValue(x.Str("DeviceId"), out var r);
             p.Add(
                 x.Str("FriendlyName"),
@@ -157,7 +158,7 @@ public static partial class ReportCollector
                 new ReportCell(health switch { 0 => "Tốt", 1 => "Cảnh báo", 2 => "Hỏng", _ => "Không rõ" },
                     health switch { 0 => Tone.Good, 1 => Tone.Warn, 2 => Tone.Bad, _ => Tone.Muted }),
                 r.Temp > 0 ? new ReportCell($"{r.Temp} °C", r.Temp >= 70 ? Tone.Bad : r.Temp >= 60 ? Tone.Warn : Tone.Normal) : "",
-                r.Wear is { } w ? new ReportCell($"{w}%", w >= 90 ? Tone.Bad : w >= 70 ? Tone.Warn : Tone.Normal) : "",
+                isSsd && r.Wear is { } w ? new ReportCell($"{w}%", w >= 90 ? Tone.Bad : w >= 70 ? Tone.Warn : Tone.Normal) : "",
                 r.Hours > 0 ? Fmt.Num(r.Hours) : "",
                 Clean(x.Str("SerialNumber")));
         }

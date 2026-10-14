@@ -86,6 +86,7 @@ jobs:
           Copy-Item shots $env:RUNNER_TEMP\shots -Recurse
           git checkout --orphan ci-screens
           git rm -rf . -q
+          git clean -fdxq
           Copy-Item $env:RUNNER_TEMP\shots\* .
           Remove-Item *.json, *.txt -ErrorAction SilentlyContinue
           git add -A

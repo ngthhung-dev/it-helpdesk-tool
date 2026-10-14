@@ -40,7 +40,7 @@ public static partial class ReportCollector
         var fw = FirmwareType();
         d.F("Chế độ khởi động", fw, fw == "Legacy BIOS" ? Tone.Warn : Tone.Normal);
         var sb = SecureBoot();
-        d.F("Secure Boot", Fmt.YesNo(sb, "Bật", "Tắt"), sb == true ? Tone.Good : sb == false ? Tone.Warn : Tone.Muted);
+        d.F("Secure Boot", Fmt.YesNo(sb, "Bật", "Tắt"), sb == true ? Tone.Good : Tone.Normal);   // cảnh báo nằm ở mục Bảo mật
         d.F("Thời gian chạy liên tục", Fmt.Duration(TimeSpan.FromMilliseconds(Environment.TickCount64)));
         return d;
     }

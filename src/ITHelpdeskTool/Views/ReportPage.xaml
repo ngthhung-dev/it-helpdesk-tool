@@ -254,12 +254,12 @@
                                         </Style>
                                     </ItemsControl.Style>
                                     <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate>
+                                        <ItemsPanelTemplate><c:TwoColumnPanel/></ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <DockPanel Margin="0,0,24,8">
-                                                <TextBlock Text="{Binding Key}" Style="{StaticResource Muted}" Width="170"
+                                            <DockPanel Margin="0,0,0,8">
+                                                <TextBlock Text="{Binding Key}" Style="{StaticResource Muted}" Width="150" Margin="0,0,12,0"
                                                            VerticalAlignment="Top" TextWrapping="Wrap" TextTrimming="None"/>
                                                 <TextBox Text="{Binding Value, Mode=OneWay}" Style="{StaticResource ToneValue}"/>
                                             </DockPanel>

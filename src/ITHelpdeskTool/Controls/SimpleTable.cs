@@ -74,7 +74,8 @@ public sealed class SimpleTable : ContentControl
                 FontSize = 11.5,
                 FontWeight = FontWeights.SemiBold,
                 Margin = new Thickness(c == 0 ? 0 : 8, 0, 8, 6),
-                TextTrimming = TextTrimming.CharacterEllipsis,
+                TextWrapping = TextWrapping.Wrap,
+                VerticalAlignment = VerticalAlignment.Bottom,
             };
             Grid.SetColumn(h, c);
             g.Children.Add(h);
