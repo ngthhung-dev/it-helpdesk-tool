@@ -39,8 +39,27 @@ public static class FileOps
     private const uint FO_DELETE = 3;
     private const ushort FOF_SILENT = 0x4, FOF_NOCONFIRMATION = 0x10, FOF_ALLOWUNDO = 0x40, FOF_NOERRORUI = 0x400;
 
+    /// <summary>
+    /// Hàm Shell (SHFileOperation, Thùng rác) cần luồng STA; gọi từ luồng nền MTA có thể treo.
+    /// Chạy trên một luồng STA riêng, chờ tối đa <paramref name="timeoutSec"/> giây.
+    /// </summary>
+    private static T Sta<T>(Func<T> f, T onTimeout, int timeoutSec = 120)
+    {
+        if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA) return f();
+        T result = onTimeout;
+        Exception? error = null;
+        var t = new Thread(() => { try { result = f(); } catch (Exception ex) { error = ex; } }) { IsBackground = true, Name = "ShellSta" };
+        t.SetApartmentState(ApartmentState.STA);
+        t.Start();
+        if (!t.Join(TimeSpan.FromSeconds(timeoutSec))) { Log.Warn("Thao tác Shell quá thời gian chờ"); return onTimeout; }
+        if (error is not null) throw error;
+        return result;
+    }
+
     /// <summary>Đưa file/thư mục vào Thùng rác (khôi phục được). Trả true nếu không còn trên đĩa.</summary>
-    public static bool SendToRecycleBin(string path)
+    public static bool SendToRecycleBin(string path) => Sta(() => SendToRecycleBinCore(path), false);
+
+    private static bool SendToRecycleBinCore(string path)
     {
         if (!File.Exists(path) && !Directory.Exists(path)) return true;
         var op = new SHFILEOPSTRUCT
@@ -53,17 +72,21 @@ public static class FileOps
         return r == 0 && !op.fAnyOperationsAborted && !File.Exists(path) && !Directory.Exists(path);
     }
 
-    public static (long Bytes, long Items) QueryRecycleBin()
+    public static (long Bytes, long Items) QueryRecycleBin() => Sta(QueryRecycleBinCore, (0L, 0L), 30);
+
+    private static (long Bytes, long Items) QueryRecycleBinCore()
     {
         var info = new SHQUERYRBINFO { cbSize = Marshal.SizeOf<SHQUERYRBINFO>() };
         return SHQueryRecycleBin(null, ref info) == 0 ? (info.i64Size, info.i64NumItems) : (0, 0);
     }
 
-    public static bool EmptyRecycleBin()
+    public static bool EmptyRecycleBin() => Sta(EmptyRecycleBinCore, false);
+
+    private static bool EmptyRecycleBinCore()
     {
         const uint noConfirm = 0x1, noProgress = 0x2, noSound = 0x4;
         var hr = SHEmptyRecycleBin(IntPtr.Zero, null, noConfirm | noProgress | noSound);
         // 0x8000FFFF (E_UNEXPECTED) khi thùng rác vốn đã trống
-        return hr == 0 || QueryRecycleBin().Items == 0;
+        return hr == 0 || QueryRecycleBinCore().Items == 0;
     }
 }

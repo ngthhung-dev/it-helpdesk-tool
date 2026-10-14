@@ -21,6 +21,7 @@ public static class PolicySelfTest
         async Task Do(string name, Func<Task<string>> body)
         {
             var sw = Stopwatch.StartNew();
+            Log.Info($"selftest: {name} …");
             try { steps.Add(new Step(name, true, await body(), sw.ElapsedMilliseconds)); }
             catch (Exception ex) { steps.Add(new Step(name, false, ex.Message, sw.ElapsedMilliseconds)); }
         }

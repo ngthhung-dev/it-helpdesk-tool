@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       suite:
-        description: 'Bộ test: sysconfig hoặc policy'
+        description: 'Bộ test: sysconfig, policy, startup, power, tweaks, cleanup, uninstall'
         default: 'sysconfig'
 
 jobs:
@@ -23,9 +23,19 @@ jobs:
 
       - name: Chạy selftest
         shell: pwsh
+        timeout-minutes: 20
         run: |
           $sw = [Diagnostics.Stopwatch]::StartNew()
-          $p = Start-Process publish\ITHelpdeskTool.exe -ArgumentList '--selftest', '${{ github.event.inputs.suite }}', "$PWD\selftest.json" -PassThru -Wait
+          $p = Start-Process publish\ITHelpdeskTool.exe -ArgumentList '--selftest', '${{ github.event.inputs.suite }}', "$PWD\selftest.json" -PassThru
+          if (-not $p.WaitForExit(15 * 60 * 1000)) {
+            Write-Host "::error title=treo::selftest chạy quá 15 phút"
+            $log = "$env:LOCALAPPDATA\ITHelpdeskTool\logs\app.log"
+            if (Test-Path $log) { Write-Host "::notice title=log cuối::$((Get-Content $log -Tail 25) -join '%0A')" }
+            Get-Process | Sort-Object StartTime -Descending -ErrorAction SilentlyContinue | Select-Object -First 15 Name, Id |
+              ForEach-Object { Write-Host "proc: $($_.Name) $($_.Id)" }
+            Stop-Process $p -Force
+            exit 1
+          }
           $steps = Get-Content selftest.json -Raw | ConvertFrom-Json
           $fail = @($steps | Where-Object { -not $_.Ok }).Count
           Write-Host "::notice title=tổng::exit=$($p.ExitCode) · $(@($steps).Count) bước · lỗi $fail · $([int]$sw.Elapsed.TotalSeconds)s"
