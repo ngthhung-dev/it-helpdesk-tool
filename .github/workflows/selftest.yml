@@ -6,8 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       suite:
-        description: 'Bộ test: sysconfig, policy, startup, power, tweaks, cleanup, uninstall'
+        description: 'Bộ test: sysconfig, policy, startup, power, tweaks, cleanup, uninstall, store, fonts, office'
         default: 'sysconfig'
+      minutes:
+        description: 'Thời gian chờ tối đa (phút)'
+        default: '15'
 
 jobs:
   selftest:
@@ -23,12 +26,13 @@ jobs:
 
       - name: Chạy selftest
         shell: pwsh
-        timeout-minutes: 20
+        timeout-minutes: 75
         run: |
           $sw = [Diagnostics.Stopwatch]::StartNew()
           $p = Start-Process publish\ITHelpdeskTool.exe -ArgumentList '--selftest', '${{ github.event.inputs.suite }}', "$PWD\selftest.json" -PassThru
-          if (-not $p.WaitForExit(15 * 60 * 1000)) {
-            Write-Host "::error title=treo::selftest chạy quá 15 phút"
+          $min = [int]'${{ github.event.inputs.minutes || '15' }}'
+          if (-not $p.WaitForExit($min * 60 * 1000)) {
+            Write-Host "::error title=treo::selftest chạy quá $min phút"
             $log = "$env:LOCALAPPDATA\ITHelpdeskTool\logs\app.log"
             if (Test-Path $log) { Write-Host "::notice title=log cuối::$((Get-Content $log -Tail 25) -join '%0A')" }
             Get-Process | Sort-Object StartTime -Descending -ErrorAction SilentlyContinue | Select-Object -First 15 Name, Id |

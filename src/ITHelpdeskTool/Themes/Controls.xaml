@@ -591,4 +591,47 @@
         <Setter Property="Padding" Value="10,4"/>
         <Setter Property="FontSize" Value="12"/>
     </Style>
+    <!-- Chip chọn một (lọc theo nhóm) -->
+    <Style x:Key="ChipRadio" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Margin" Value="0,0,6,6"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Bd" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1" CornerRadius="14" Padding="11,4">
+                        <ContentPresenter VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Ô chữ cái đại diện phần mềm, màu theo Hue (0-5) -->
+    <Style x:Key="Avatar" TargetType="Border">
+        <Setter Property="Width" Value="40"/>
+        <Setter Property="Height" Value="40"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Background" Value="#2A5B8CFF"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Hue}" Value="1"><Setter Property="Background" Value="#2AA78BFA"/></DataTrigger>
+            <DataTrigger Binding="{Binding Hue}" Value="2"><Setter Property="Background" Value="#2A34D399"/></DataTrigger>
+            <DataTrigger Binding="{Binding Hue}" Value="3"><Setter Property="Background" Value="#2AFBBF24"/></DataTrigger>
+            <DataTrigger Binding="{Binding Hue}" Value="4"><Setter Property="Background" Value="#2AF87171"/></DataTrigger>
+            <DataTrigger Binding="{Binding Hue}" Value="5"><Setter Property="Background" Value="#2A38BDF8"/></DataTrigger>
+        </Style.Triggers>
+    </Style>
 </ResourceDictionary>

@@ -48,10 +48,10 @@ public sealed partial class ShellViewModel : ObservableObject
             ]),
             new("CÀI ĐẶT",
             [
-                Item("store", "App Store", "\uE719", 1),
-                Item("fonts", "Cài font", "\uE8D2", 2),
-                Item("postinstall", "App sau cài Win", "\uE896", 2),
-                Item("office", "Office", "\uE7C3", 2),
+                Item("store", "App Store", "\uE719", 1, () => new StoreViewModel()),
+                Item("fonts", "Cài font", "\uE8D2", 1, () => new FontsViewModel()),
+                Item("postinstall", "App sau cài Win", "\uE896", 1, () => new PostInstallViewModel()),
+                Item("office", "Office", "\uE7C3", 1, () => new OfficeViewModel()),
             ]),
             new("WINDOWS",
             [

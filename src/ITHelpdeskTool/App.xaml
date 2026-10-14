@@ -38,6 +38,18 @@
             <DataTemplate DataType="{x:Type vm:UninstallViewModel}">
                 <v:UninstallPage/>
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:StoreViewModel}">
+                <v:StorePage/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:FontsViewModel}">
+                <v:FontsPage/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:PostInstallViewModel}">
+                <v:PostInstallPage/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:OfficeViewModel}">
+                <v:OfficePage/>
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:AboutViewModel}">
                 <v:AboutPage/>
             </DataTemplate>

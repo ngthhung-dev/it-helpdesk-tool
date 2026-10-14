@@ -60,6 +60,25 @@ public static class Converters
 {
     public static readonly NotConverter Not = new();
     public static readonly CountToVisibility CountVis = new();
+    public static readonly NonEmptyToVisibility NonEmptyVis = new();
+    public static readonly ZeroToVisibility ZeroVis = new();
+    public static readonly AllFalseToVisibility AllFalseVis = new();
+}
+
+/// <summary>Chuỗi khác rỗng → Visible.</summary>
+public sealed class NonEmptyToVisibility : IValueConverter
+{
+    public object Convert(object? value, Type t, object? p, CultureInfo c) =>
+        value is string s && s.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => throw new NotSupportedException();
+}
+
+/// <summary>Tất cả giá trị bool đều false → Visible.</summary>
+public sealed class AllFalseToVisibility : IMultiValueConverter
+{
+    public object Convert(object?[] values, Type t, object? p, CultureInfo c) =>
+        values.All(v => v is not true) ? Visibility.Visible : Visibility.Collapsed;
+    public object[] ConvertBack(object? value, Type[] t, object? p, CultureInfo c) => throw new NotSupportedException();
 }
 
 /// <summary>Chuỗi rỗng → "—".</summary>
@@ -70,4 +89,12 @@ public sealed class EmptyToDash : IValueConverter
 
     public object ConvertBack(object? value, Type t, object? p, CultureInfo c) =>
         throw new NotSupportedException();
+}
+
+/// <summary>Số = 0 → Visible (màn hình trống).</summary>
+public sealed class ZeroToVisibility : IValueConverter
+{
+    public object Convert(object? value, Type t, object? p, CultureInfo c) =>
+        value is int n && n == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => throw new NotSupportedException();
 }

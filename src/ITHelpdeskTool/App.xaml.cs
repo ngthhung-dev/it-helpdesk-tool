@@ -35,7 +35,7 @@ public partial class App : Application
 
         // Tự kiểm tra trên máy test: ITHelpdeskTool.exe --selftest sysconfig <kết quả.json>
         var ti = Array.FindIndex(e.Args, a => a.Equals("--selftest", StringComparison.OrdinalIgnoreCase));
-        if (ti >= 0 && ti + 2 < e.Args.Length && e.Args[ti + 1] is "sysconfig" or "policy" or "startup" or "power" or "tweaks" or "cleanup" or "uninstall")
+        if (ti >= 0 && ti + 2 < e.Args.Length && e.Args[ti + 1] is "sysconfig" or "policy" or "startup" or "power" or "tweaks" or "cleanup" or "uninstall" or "store" or "fonts" or "office")
         {
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
             var which = e.Args[ti + 1];
@@ -53,6 +53,9 @@ public partial class App : Application
                         "tweaks" => await Services.Tweaks.TweakSelfTest.RunToFileAsync(outPath),
                         "cleanup" => await Services.Cleanup.CleanupSelfTest.RunToFileAsync(outPath),
                         "uninstall" => await Services.Uninstall.UninstallSelfTest.RunToFileAsync(outPath),
+                        "store" => await Services.Store.StoreSelfTest.RunToFileAsync(outPath),
+                        "fonts" => await Services.Fonts.FontSelfTest.RunToFileAsync(outPath),
+                        "office" => await Services.Office.OfficeSelfTest.RunToFileAsync(outPath),
                         _ => await Services.SysConfig.SysConfigSelfTest.RunToFileAsync(outPath),
                     };
                 }
