@@ -14,7 +14,11 @@ public partial class MainWindow : Window
             MaxButton.Content = WindowState == WindowState.Maximized ? "" : "";
             MaxButton.ToolTip = WindowState == WindowState.Maximized ? "Thu về" : "Phóng to";
         };
-        ContentRendered += (_, _) => Log.Mark("Cửa sổ đã hiển thị");
+        ContentRendered += (_, _) =>
+        {
+            Log.Mark("Cửa sổ đã hiển thị");
+            UiWatchdog.Start(Dispatcher);   // bắt đầu canh treo sau khi đã mở xong
+        };
     }
 
     private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;

@@ -20,7 +20,6 @@ public partial class App : Application
         Log.Mark($"Khởi động {AppInfo.Name} {AppInfo.Version} · {Environment.OSVersion} · admin={AdminHelper.IsElevated()}");
         DispatcherUnhandledException += OnUnhandled;
         TaskScheduler.UnobservedTaskException += (_, ev) => { Log.Error("Task lỗi", ev.Exception); ev.SetObserved(); };
-        UiWatchdog.Start(Dispatcher);
         base.OnStartup(e);
     }
 
