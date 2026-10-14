@@ -182,8 +182,10 @@ public sealed partial class UninstallViewModel : PageViewModel
             foreach (var l in items.OrderBy(l => l.Kind)) Leftovers.Add(new LeftoverRow(l));
             Stage = "scanned";
             var still = UninstallService.StillInstalled(a);
+            // Phần mềm còn cài → không tích sẵn gì, tránh xoá nhầm thư mục của app đang dùng
+            if (still && a.HasUninstaller) foreach (var l in Leftovers) l.IsChecked = false;
             StageText = still && a.HasUninstaller
-                ? "Phần mềm vẫn còn trong danh sách đã cài — có thể trình gỡ chưa chạy xong hoặc bị huỷ."
+                ? "Phần mềm vẫn còn cài — các mục dưới đây chưa được tích sẵn. Nên gỡ cài đặt trước rồi mới dọn."
                 : items.Count == 0 ? "Sạch sẽ — không tìm thấy gì còn sót." : "";
             LeftoverSummary = items.Count == 0 ? ""
                 : $"Tìm thấy {items.Count} mục còn sót · {Fmt.Size(items.Sum(i => i.Bytes))}. Mục có độ tin cậy thấp chưa được tích sẵn — xem kỹ trước khi chọn.";
