@@ -79,26 +79,59 @@ public sealed class SystemInfoService
         return new BatteryState(true, pct, s.ACLineStatus == 1, remain);
     }
 
-    public static IReadOnlyList<DriveState> GetDrives()
+    // Ổ đang đọc dở (bị treo) thì lần sau bỏ qua, tránh dồn thêm luồng chờ
+    private static readonly HashSet<string> Pending = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Đọc dung lượng các ổ cứng/USB. Chạy nền, mỗi ổ tối đa 3 giây:
+    /// ổ USB/thẻ nhớ/ổ BitLocker đang khoá có thể phản hồi rất chậm, gặp thì bỏ qua.
+    /// Ổ mạng và ổ CD không đọc (dễ treo hàng chục giây khi mất kết nối).
+    /// </summary>
+    public static async Task<IReadOnlyList<DriveState>> GetDrivesAsync()
     {
-        var list = new List<DriveState>();
-        foreach (var d in DriveInfo.GetDrives())
+        DriveInfo[] all;
+        try { all = DriveInfo.GetDrives(); } catch { return []; }
+
+        var jobs = new List<Task<DriveState?>>();
+        foreach (var d in all)
+        {
+            DriveType type;
+            try { type = d.DriveType; } catch { continue; }   // chỉ hỏi loại ổ, không chạm vào ổ
+            if (type is not (DriveType.Fixed or DriveType.Removable)) continue;
+
+            lock (Pending) if (!Pending.Add(d.Name)) continue;
+            jobs.Add(ReadDriveAsync(d, type));
+        }
+
+        var results = await Task.WhenAll(jobs);
+        return results.OfType<DriveState>().OrderBy(x => x.Name).ToList();
+    }
+
+    private static async Task<DriveState?> ReadDriveAsync(DriveInfo d, DriveType type)
+    {
+        var read = Task.Run(() =>
         {
             try
             {
-                if (!d.IsReady || d.DriveType is not (DriveType.Fixed or DriveType.Removable)) continue;
-                list.Add(new DriveState(
+                if (!d.IsReady) return null;
+                return new DriveState(
                     d.Name.TrimEnd('\\'),
                     string.IsNullOrWhiteSpace(d.VolumeLabel) ? "Local Disk" : d.VolumeLabel,
                     d.DriveFormat,
-                    d.DriveType == DriveType.Removable ? "USB" : "Ổ cứng",
+                    type == DriveType.Removable ? "USB" : "Ổ cứng",
                     d.TotalSize / Gb,
-                    d.AvailableFreeSpace / Gb));
+                    d.AvailableFreeSpace / Gb);
             }
-            catch (IOException) { /* ổ vừa rút ra */ }
-            catch (UnauthorizedAccessException) { }
+            catch { return (DriveState?)null; }   // ổ vừa rút ra, bị khoá...
+            finally { lock (Pending) Pending.Remove(d.Name); }
+        });
+
+        try { return await read.WaitAsync(TimeSpan.FromSeconds(3)); }
+        catch (TimeoutException)
+        {
+            Log.Warn($"Ổ {d.Name} phản hồi quá 3 giây, tạm bỏ qua");
+            return null;
         }
-        return list;
     }
 
     /// <summary>Đọc thông tin phần cứng (chậm ~1–2s) — gọi trong Task.Run.</summary>

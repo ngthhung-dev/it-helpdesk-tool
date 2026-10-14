@@ -24,6 +24,14 @@ public sealed partial class AboutViewModel : PageViewModel
     private void SendEmail() =>
         ShellLauncher.Open($"mailto:{Email}?subject={Uri.EscapeDataString($"[{AppName} {Version}] Hỗ trợ")}");
 
+    /// <summary>Mở thư mục log để gửi kèm khi báo lỗi.</summary>
+    [RelayCommand]
+    private void OpenLogs()
+    {
+        System.IO.Directory.CreateDirectory(Log.Folder);
+        ShellLauncher.Open(Log.Folder);
+    }
+
     [RelayCommand]
     private Task CopyEmailAsync() => CopyAsync(Email, "Đã chép email");
 

@@ -16,8 +16,9 @@ jobs:
       - name: Publish 2 kiểu đóng gói
         shell: pwsh
         run: |
-          dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o out/singlefile -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
-          dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o out/folder -p:PublishSingleFile=false
+          # "old" = kiểu đóng gói bản 1.0.0 (1 file nén, không ReadyToRun) để so sánh
+          dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o out/old -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishReadyToRun=false
+          dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o out/new
           Get-ChildItem out -Directory | ForEach-Object { $m = "{0}: {1:N0} MB, {2} files" -f $_.Name, ((Get-ChildItem $_ -Recurse | Measure-Object Length -Sum).Sum/1MB), (Get-ChildItem $_ -Recurse -File).Count; Write-Host "::notice title=size::$m" }
 
       - name: Đo
@@ -31,13 +32,14 @@ jobs:
             public static bool Alive(IntPtr h) { IntPtr r; return SendMessageTimeout(h, 0, IntPtr.Zero, IntPtr.Zero, 2, 250, out r) != IntPtr.Zero; }
           }
           "@
-          foreach ($kind in 'singlefile','folder') {
+          foreach ($kind in 'old','new') {
             foreach ($run in 1..3) {
               $exe = Resolve-Path "out/$kind/ITHelpdeskTool.exe"
               $sw = [Diagnostics.Stopwatch]::StartNew()
               $p = Start-Process $exe -PassThru
               while ($p.MainWindowHandle -eq 0 -and $sw.ElapsedMilliseconds -lt 60000) { Start-Sleep -Milliseconds 25; $p.Refresh() }
               $tWin = $sw.ElapsedMilliseconds
+              $p.Refresh(); $cpuStart = $p.TotalProcessorTime.TotalSeconds
               $h = $p.MainWindowHandle
               # Theo dõi 20 giây: mỗi 250ms ping cửa sổ, đếm lần không phản hồi
               $stalls = 0; $worst = 0; $cur = 0
@@ -49,7 +51,7 @@ jobs:
               }
               if ($cur -gt $worst) { $worst = $cur }
               $p.Refresh()
-              $m = "{0,-10} lần {1}: hiện cửa sổ sau {2,5} ms | ping trượt {3,3}/80 | treo dài nhất ~{4} ms | RAM {5:N0} MB | CPU {6:N1}s" -f $kind, $run, $tWin, $stalls, $worst, ($p.WorkingSet64/1MB), $p.TotalProcessorTime.TotalSeconds
+              $m = "{0,-4} lần {1}: hiện cửa sổ sau {2,5} ms | ping trượt {3,3}/80 | treo dài nhất ~{4} ms | RAM {5:N0} MB | CPU lúc mở {6:N1}s, chạy 20s sau đó {7:N2}s" -f $kind, $run, $tWin, $stalls, $worst, ($p.WorkingSet64/1MB), $cpuStart, ($p.TotalProcessorTime.TotalSeconds - $cpuStart)
               Write-Host "::notice title=perf::$m"
               Stop-Process $p -Force; Start-Sleep 2
             }

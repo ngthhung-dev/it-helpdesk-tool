@@ -1,4 +1,5 @@
 using System.Windows;
+using ITHelpdeskTool.Services;
 
 namespace ITHelpdeskTool;
 
@@ -9,9 +10,11 @@ public partial class MainWindow : Window
         InitializeComponent();
         StateChanged += (_, _) =>
         {
-            MaxButton.Content = WindowState == WindowState.Maximized ? "\uE923" : "\uE922";
+            AppState.IsMinimized = WindowState == WindowState.Minimized;
+            MaxButton.Content = WindowState == WindowState.Maximized ? "" : "";
             MaxButton.ToolTip = WindowState == WindowState.Maximized ? "Thu về" : "Phóng to";
         };
+        ContentRendered += (_, _) => Log.Mark("Cửa sổ đã hiển thị");
     }
 
     private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;

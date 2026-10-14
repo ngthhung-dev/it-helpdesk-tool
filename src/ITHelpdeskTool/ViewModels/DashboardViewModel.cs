@@ -17,9 +17,10 @@ public sealed partial class DashboardViewModel : PageViewModel
     private const int HistoryLength = 60;
 
     private readonly SystemInfoService _sys = new();
-    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(1) };
+    private readonly Dispatcher _ui = Application.Current.Dispatcher;
     private readonly Queue<double> _cpuHist = new(), _ramHist = new();
-    private int _tick;
+    private CancellationTokenSource? _loopCts;
+    private int _drivesBusy;
 
     public override string Title => "Tổng quan";
     public override string Subtitle => "Tình trạng máy theo thời gian thực";
@@ -61,7 +62,6 @@ public sealed partial class DashboardViewModel : PageViewModel
 
     public DashboardViewModel()
     {
-        _timer.Tick += (_, _) => Tick();
         Greeting = DateTime.Now.Hour switch
         {
             < 11 => "Chào buổi sáng",
@@ -73,18 +73,46 @@ public sealed partial class DashboardViewModel : PageViewModel
 
     public override void OnNavigatedTo()
     {
-        _sys.Sample(); // lấy mốc CPU
-        Tick();
-        _timer.Start();
+        if (_loopCts is not null) return;
+        _loopCts = new CancellationTokenSource();
+        _ = Task.Run(() => SampleLoopAsync(_loopCts.Token));
         if (Hardware is null) _ = LoadHardwareAsync();
     }
 
-    public override void OnNavigatedFrom() => _timer.Stop();
-
-    private void Tick()
+    public override void OnNavigatedFrom()
     {
-        var s = _sys.Sample();
+        _loopCts?.Cancel();
+        _loopCts = null;
+    }
 
+    /// <summary>
+    /// Vòng lặp chạy trên luồng nền: đọc số liệu mỗi giây rồi mới đẩy kết quả lên UI.
+    /// Luồng giao diện không bao giờ phải chờ đọc phần cứng/ổ đĩa.
+    /// </summary>
+    private async Task SampleLoopAsync(CancellationToken ct)
+    {
+        try
+        {
+            _sys.Sample();                                   // mốc CPU
+            await Task.Delay(400, ct);
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+            var tick = 0;
+            do
+            {
+                if (tick++ % 10 == 0) _ = RefreshDrivesAsync(); // ổ đĩa đổi chậm: 10 giây/lần
+                if (AppState.IsMinimized) continue;              // thu nhỏ thì khỏi vẽ lại
+
+                var s = _sys.Sample();
+                await _ui.InvokeAsync(() => Apply(s), DispatcherPriority.Background, ct);
+            }
+            while (await timer.WaitForNextTickAsync(ct));
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) { Log.Error("Vòng lặp Dashboard dừng", ex); }
+    }
+
+    private void Apply(LiveStats s)
+    {
         CpuPercent = s.CpuPercent;
         RamPercent = s.RamPercent;
         RamText = $"{s.RamUsedGb:0.0} / {s.RamTotalGb:0.0} GB";
@@ -100,16 +128,33 @@ public sealed partial class DashboardViewModel : PageViewModel
             : b.Remaining is { } r ? $"Còn khoảng {(int)r.TotalHours}h {r.Minutes:00}m"
             : "Đang dùng pin";
         BatteryGlyph = !b.HasBattery ? "\uE945" : b.Charging ? "\uEA93" : "\uE83F";
-
-        // Ổ đĩa đổi chậm, 10 giây đọc lại một lần
-        if (_tick++ % 10 == 0) RefreshDrives();
     }
 
-    private void RefreshDrives()
+    private async Task RefreshDrivesAsync()
     {
-        var drives = SystemInfoService.GetDrives();
-        Drives.Clear();
-        foreach (var d in drives) Drives.Add(d);
+        if (Interlocked.Exchange(ref _drivesBusy, 1) == 1) return;  // lần trước chưa xong
+        try
+        {
+            var drives = await SystemInfoService.GetDrivesAsync();
+            await _ui.InvokeAsync(() => ApplyDrives(drives), DispatcherPriority.Background);
+        }
+        catch (Exception ex) { Log.Error("Đọc ổ đĩa lỗi", ex); }
+        finally { Volatile.Write(ref _drivesBusy, 0); }
+    }
+
+    /// <summary>Cập nhật danh sách tại chỗ — chỉ thay ô nào đổi, tránh dựng lại cả danh sách.</summary>
+    private void ApplyDrives(IReadOnlyList<DriveState> drives)
+    {
+        if (Drives.Count == drives.Count && Drives.Select(d => d.Name).SequenceEqual(drives.Select(d => d.Name)))
+        {
+            for (var i = 0; i < drives.Count; i++)
+                if (Drives[i] != drives[i]) Drives[i] = drives[i];
+        }
+        else
+        {
+            Drives.Clear();
+            foreach (var d in drives) Drives.Add(d);
+        }
 
         var sysRoot = Path.GetPathRoot(Environment.SystemDirectory)?.TrimEnd('\\') ?? "C:";
         var sys = drives.FirstOrDefault(d => d.Name.Equals(sysRoot, StringComparison.OrdinalIgnoreCase));
@@ -123,8 +168,14 @@ public sealed partial class DashboardViewModel : PageViewModel
     private async Task LoadHardwareAsync()
     {
         IsLoadingHardware = true;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         try { Hardware = await Task.Run(SystemInfoService.GetHardware); }
-        finally { IsLoadingHardware = false; }
+        catch (Exception ex) { Log.Error("Đọc phần cứng lỗi", ex); }
+        finally
+        {
+            IsLoadingHardware = false;
+            Log.Info($"Đọc phần cứng (WMI) mất {sw.ElapsedMilliseconds} ms");
+        }
     }
 
     // ---- Lệnh ----
@@ -132,7 +183,7 @@ public sealed partial class DashboardViewModel : PageViewModel
     private async Task RefreshAsync()
     {
         Hardware = null;
-        RefreshDrives();
+        _ = RefreshDrivesAsync();
         await LoadHardwareAsync();
     }
 
