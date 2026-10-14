@@ -18,7 +18,7 @@ jobs:
         run: |
           dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o out/singlefile -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
           dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o out/folder -p:PublishSingleFile=false
-          Get-ChildItem out -Directory | ForEach-Object { "{0}: {1:N0} MB, {2} files" -f $_.Name, ((Get-ChildItem $_ -Recurse | Measure-Object Length -Sum).Sum/1MB), (Get-ChildItem $_ -Recurse -File).Count }
+          Get-ChildItem out -Directory | ForEach-Object { $m = "{0}: {1:N0} MB, {2} files" -f $_.Name, ((Get-ChildItem $_ -Recurse | Measure-Object Length -Sum).Sum/1MB), (Get-ChildItem $_ -Recurse -File).Count; Write-Host "::notice title=size::$m" }
 
       - name: Đo
         shell: pwsh
@@ -49,9 +49,10 @@ jobs:
               }
               if ($cur -gt $worst) { $worst = $cur }
               $p.Refresh()
-              "{0,-10} lần {1}: hiện cửa sổ sau {2,5} ms | ping trượt {3,3}/80 | treo dài nhất ~{4} ms | RAM {5:N0} MB | CPU {6:N1}s" -f $kind, $run, $tWin, $stalls, $worst, ($p.WorkingSet64/1MB), $p.TotalProcessorTime.TotalSeconds
+              $m = "{0,-10} lần {1}: hiện cửa sổ sau {2,5} ms | ping trượt {3,3}/80 | treo dài nhất ~{4} ms | RAM {5:N0} MB | CPU {6:N1}s" -f $kind, $run, $tWin, $stalls, $worst, ($p.WorkingSet64/1MB), $p.TotalProcessorTime.TotalSeconds
+              Write-Host "::notice title=perf::$m"
               Stop-Process $p -Force; Start-Sleep 2
             }
           }
           $log = "$env:LOCALAPPDATA\ITHelpdeskTool\logs\app.log"
-          if (Test-Path $log) { "---- app.log ----"; Get-Content $log -Tail 60 }
+          if (Test-Path $log) { Get-Content $log -Tail 40 | ForEach-Object { Write-Host "::notice title=log::$_" } }
