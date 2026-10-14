@@ -17,7 +17,7 @@
             </StackPanel>
             <TextBlock x:Name="MessageText" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" LineHeight="20"/>
 
-            <TextBox x:Name="TextInput" Style="{StaticResource InputBox}" Margin="0,16,0,0" Visibility="Collapsed"/>
+            <TextBox x:Name="InputText" Style="{StaticResource InputBox}" Margin="0,16,0,0" Visibility="Collapsed"/>
 
             <StackPanel x:Name="PasswordPanel" Visibility="Collapsed" Margin="0,16,0,0">
                 <TextBlock Text="Mật khẩu mới" Style="{StaticResource Muted}" Margin="0,0,0,6"/>
