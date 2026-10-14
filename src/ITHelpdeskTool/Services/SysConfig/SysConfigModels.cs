@@ -11,6 +11,13 @@ public sealed record OpResult(bool Ok, string Message, bool NeedsRestart = false
 
     internal static string FirstLine(string s)
     {
+        // Dịch vài lỗi hay gặp của Windows sang tiếng Việt
+        if (s.Contains("password policy", StringComparison.OrdinalIgnoreCase) || s.Contains("password does not meet", StringComparison.OrdinalIgnoreCase))
+            return "mật khẩu không đạt chính sách của máy (độ dài tối thiểu / phải có chữ hoa, số, ký tự đặc biệt). Hãy đặt mật khẩu mạnh hơn.";
+        if (s.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+            return "tài khoản đã tồn tại.";
+        if (s.Contains("Access is denied", StringComparison.OrdinalIgnoreCase))
+            return "bị từ chối quyền truy cập (app cần chạy quyền Administrator).";
         var line = s.Split('\n').Select(l => l.Trim()).FirstOrDefault(l => l.Length > 0) ?? "";
         return line.Length > 0 ? line : "lỗi không rõ";
     }

@@ -85,7 +85,13 @@ public static class SysConfigSelfTest
             return m;
         });
         await Do("user.password", async () => Need(await S.SetPasswordAsync(u1, "N3w!Passw0rd-xyz")));
-        await Do("user.password.empty", async () => Need(await S.SetPasswordAsync(u1, "")));
+        await Do("user.password.empty", async () =>
+        {
+            // Windows Server bắt buộc mật khẩu phức tạp nên xoá mật khẩu bị chặn — chấp nhận cả hai kết quả
+            var r = await S.SetPasswordAsync(u1, "");
+            Check(r.Ok || r.Message.Contains("chính sách"), r.Message);
+            return r.Message;
+        });
         await Do("user.disable", async () =>
         {
             var all = await S.ReadUsersAsync();
