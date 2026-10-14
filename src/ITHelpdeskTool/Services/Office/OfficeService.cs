@@ -85,7 +85,31 @@ public static class OfficeService
         roots.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Microsoft Office\Office16"));
         roots.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"Microsoft Office\Office15"));
         roots.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Microsoft Office\Office15"));
-        return roots.Select(r => Path.Combine(r, "OSPP.VBS")).FirstOrDefault(File.Exists);
+        var hit = roots.Select(r => Path.Combine(r, "OSPP.VBS")).FirstOrDefault(File.Exists);
+        if (hit is not null || c2r is null || !Directory.Exists(c2r.InstallPath)) return hit;
+        try
+        {
+            return Directory.EnumerateFiles(c2r.InstallPath, "OSPP.VBS", new EnumerationOptions { RecurseSubdirectories = true, MaxRecursionDepth = 3, IgnoreInaccessible = true }).FirstOrDefault();
+        }
+        catch { return null; }
+    }
+
+    private const string OfficeAppId = "0ff1ce15-a989-479d-af46-f275c6370663";
+
+    /// <summary>Giấy phép Office đọc thẳng từ dịch vụ cấp phép của Windows (không cần OSPP.VBS).</summary>
+    public static List<OfficeLicense> LicensesWmi()
+    {
+        var list = new List<OfficeLicense>();
+        foreach (var r in Wmi.TryQuery($"SELECT Name, Description, LicenseStatus, PartialProductKey, GracePeriodRemaining FROM SoftwareLicensingProduct WHERE ApplicationID='{OfficeAppId}' AND PartialProductKey IS NOT NULL"))
+        {
+            var st = r.Str("LicenseStatus") switch
+            {
+                "1" => "LICENSED", "2" => "OOB_GRACE", "3" => "OOT_GRACE", "4" => "NON_GENUINE_GRACE", "5" => "NOTIFICATIONS", "6" => "EXTENDED_GRACE", _ => "UNLICENSED",
+            };
+            var grace = int.TryParse(r.Str("GracePeriodRemaining"), out var m) && m > 0 ? $"{m / 1440} ngày" : "";
+            list.Add(new OfficeLicense(r.Str("Name"), r.Str("Description"), st, r.Str("PartialProductKey"), grace, ""));
+        }
+        return list;
     }
 
     private static async Task<ProcessResult> OsppAsync(string args)
@@ -97,7 +121,8 @@ public static class OfficeService
 
     public static async Task<List<OfficeLicense>> LicensesAsync()
     {
-        if (OsppPath() is null) return [];
+        var wmi = await Task.Run(LicensesWmi);
+        if (wmi.Count > 0 || OsppPath() is null) return wmi;
         var r = await OsppAsync("/dstatus");
         return ParseDstatus(r.Output);
     }

@@ -102,13 +102,17 @@ public static class OfficeSelfTest
         await t.Do("license.read", async () =>
         {
             var ospp = OfficeService.OsppPath();
-            Check(ospp is not null, "không thấy OSPP.VBS");
+            var found = Directory.EnumerateFiles(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Microsoft Office"),
+                "OSPP.VBS", SearchOption.AllDirectories).ToList();
             var l = await OfficeService.LicensesAsync();
-            return $"{ospp} · {l.Count} giấy phép: " + string.Join(" | ", l.Select(x => $"{x.Name} {x.StatusText}"));
+            var vnext = OfficeService.HasSubscriptionLicense();
+            return $"OSPP: {ospp ?? "không có"} (tìm thấy: {string.Join(", ", found)}) · {l.Count} giấy phép: " +
+                   string.Join(" | ", l.Select(x => $"{x.Name} {x.StatusText} …{x.Last5}")) + $" · vNext: {vnext}";
         });
 
         await t.Do("license.badkey", async () =>
         {
+            if (OfficeService.OsppPath() is null) return "bỏ qua (không có OSPP.VBS)";
             var r = await OfficeService.ActivateWithKeyAsync("AAAAA-BBBBB-CCCCC-DDDDD-EEEEE");
             Check(!r.Ok, "key giả phải bị từ chối");
             return r.Message;
