@@ -14,7 +14,6 @@
     <Product>DeskMate</Product>
     <Company>DeskMate</Company>
     <Version>0.1.0</Version>
-    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
     <NoWarn>$(NoWarn);MVVMTK0045</NoWarn>
   </PropertyGroup>
 
