@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.IO;
 using ITHelpdeskTool.Services.SysConfig;
-using Microsoft.Win32;
 
 namespace ITHelpdeskTool.Services.Cleanup;
 
@@ -268,43 +267,49 @@ public static class CleanupService
     }
 
     /// <summary>
-    /// Xoá bản Windows cũ. Ưu tiên Disk Cleanup (cleanmgr /sagerun) — cách chính thống;
-    /// còn sót thì lấy quyền sở hữu (takeown/icacls) rồi xoá.
+    /// Xoá bản Windows cũ: lấy quyền sở hữu cho nhóm Administrators bằng icacls (theo SID, không hỏi,
+    /// không phụ thuộc ngôn ngữ Windows), cấp toàn quyền rồi xoá. Mỗi bước có giới hạn thời gian.
     /// </summary>
     public static async Task<OpResult> RemoveOldInstallsAsync(Action<string>? progress = null)
     {
         var (before, found) = ScanOldInstalls();
         if (found.Count == 0) return OpResult.Success("Không có bản Windows cũ nào để xoá.");
 
-        var cleanmgr = System.IO.Path.Combine(Environment.SystemDirectory, "cleanmgr.exe");
-        if (File.Exists(cleanmgr))
+        foreach (var dir in found)
         {
-            progress?.Invoke("Đang chạy Disk Cleanup cho bản Windows cũ…");
-            const string vc = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches";
-            foreach (var h in new[] { "Previous Installations", "Temporary Setup Files", "Windows Upgrade Log Files", "Windows ESD installation files" })
+            var name = System.IO.Path.GetFileName(dir);
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(30));
+            try
             {
-                using var k = Registry.LocalMachine.OpenSubKey($@"{vc}\{h}", writable: true);
-                k?.SetValue("StateFlags0777", 2, RegistryValueKind.DWord);
+                progress?.Invoke($"Đang lấy quyền sở hữu {name}…");
+                await ProcessRunner.ConsoleAsync("icacls.exe", $"\"{dir}\" /setowner *S-1-5-32-544 /T /C /L /Q", cts.Token);
+                progress?.Invoke($"Đang cấp quyền {name}…");
+                await ProcessRunner.ConsoleAsync("icacls.exe", $"\"{dir}\" /grant *S-1-5-32-544:F /T /C /L /Q", cts.Token);
+                progress?.Invoke($"Đang xoá {name}…");
+                await Task.Run(() => ForceDelete(dir), cts.Token);
+                if (Directory.Exists(dir)) await ProcessRunner.ConsoleAsync("cmd.exe", $"/c rd /s /q \"{dir}\"", cts.Token);
             }
-            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(40));
-            try { await ProcessRunner.RunAsync(cleanmgr, "/sagerun:777", ct: cts.Token); } catch (OperationCanceledException) { }
-        }
-
-        foreach (var dir in found.Where(Directory.Exists))
-        {
-            progress?.Invoke($"Đang lấy quyền và xoá {dir}…");
-            await ProcessRunner.ConsoleAsync("takeown.exe", $"/F \"{dir}\" /A /R /D Y");
-            await ProcessRunner.ConsoleAsync("icacls.exe", $"\"{dir}\" /grant *S-1-5-32-544:F /T /C /Q");
-            await ProcessRunner.ConsoleAsync("attrib.exe", $"-r -s -h \"{dir}\\*\" /S /D");
-            try { await Task.Run(() => Directory.Delete(dir, recursive: true)); }
-            catch { await ProcessRunner.ConsoleAsync("cmd.exe", $"/c rd /s /q \"{dir}\""); }
+            catch (OperationCanceledException) { Log.Warn($"Xoá {dir} quá 30 phút, dừng lại"); }
         }
 
         var (after, left) = ScanOldInstalls();
         var freed = Math.Max(0, before - after);
         return left.Count == 0
             ? OpResult.Success($"Đã xoá bản Windows cũ, giải phóng {Fmt.Size(freed)}.")
-            : OpResult.Fail($"Đã giải phóng {Fmt.Size(freed)} nhưng còn sót: {string.Join(", ", left)} (thử khởi động lại máy rồi chạy lại).");
+            : OpResult.Fail($"Đã giải phóng {Fmt.Size(freed)} nhưng còn sót: {string.Join(", ", left)} (thử khởi động lại máy rồi chạy lại, hoặc dùng Disk Cleanup của Windows).");
+    }
+
+    /// <summary>Xoá thư mục kể cả file chỉ đọc/ẩn/hệ thống; không đi vào junction.</summary>
+    private static void ForceDelete(string dir)
+    {
+        var opts = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint };
+        try
+        {
+            foreach (var f in new DirectoryInfo(dir).EnumerateFiles("*", opts))
+                try { f.Attributes = FileAttributes.Normal; } catch { }
+        }
+        catch { }
+        try { Directory.Delete(dir, recursive: true); } catch (Exception ex) { Log.Warn($"Xoá {dir}: {ex.Message}"); }
     }
 
     /// <summary>Dọn kho thành phần Windows (WinSxS) bằng DISM — mất 5–30 phút.</summary>

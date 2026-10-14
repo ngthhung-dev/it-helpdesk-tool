@@ -35,6 +35,9 @@
             <DataTemplate DataType="{x:Type vm:CleanupViewModel}">
                 <v:CleanupPage/>
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:UninstallViewModel}">
+                <v:UninstallPage/>
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:AboutViewModel}">
                 <v:AboutPage/>
             </DataTemplate>
