@@ -1,0 +1,57 @@
+name: Perf check
+
+# Đo thời gian mở app và số lần giao diện bị treo trên máy Windows của GitHub.
+on:
+  workflow_dispatch:
+
+jobs:
+  perf:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish 2 kiểu đóng gói
+        shell: pwsh
+        run: |
+          dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o out/singlefile -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o out/folder -p:PublishSingleFile=false
+          Get-ChildItem out -Directory | ForEach-Object { "{0}: {1:N0} MB, {2} files" -f $_.Name, ((Get-ChildItem $_ -Recurse | Measure-Object Length -Sum).Sum/1MB), (Get-ChildItem $_ -Recurse -File).Count }
+
+      - name: Đo
+        shell: pwsh
+        run: |
+          Add-Type @"
+          using System; using System.Runtime.InteropServices;
+          public static class W {
+            [DllImport("user32.dll", SetLastError=true)]
+            public static extern IntPtr SendMessageTimeout(IntPtr h, uint m, IntPtr w, IntPtr l, uint f, uint t, out IntPtr r);
+            public static bool Alive(IntPtr h) { IntPtr r; return SendMessageTimeout(h, 0, IntPtr.Zero, IntPtr.Zero, 2, 250, out r) != IntPtr.Zero; }
+          }
+          "@
+          foreach ($kind in 'singlefile','folder') {
+            foreach ($run in 1..3) {
+              $exe = Resolve-Path "out/$kind/ITHelpdeskTool.exe"
+              $sw = [Diagnostics.Stopwatch]::StartNew()
+              $p = Start-Process $exe -PassThru
+              while ($p.MainWindowHandle -eq 0 -and $sw.ElapsedMilliseconds -lt 60000) { Start-Sleep -Milliseconds 25; $p.Refresh() }
+              $tWin = $sw.ElapsedMilliseconds
+              $h = $p.MainWindowHandle
+              # Theo dõi 20 giây: mỗi 250ms ping cửa sổ, đếm lần không phản hồi
+              $stalls = 0; $worst = 0; $cur = 0
+              $end = $sw.ElapsedMilliseconds + 20000
+              while ($sw.ElapsedMilliseconds -lt $end) {
+                $t0 = $sw.ElapsedMilliseconds
+                if (-not [W]::Alive($h)) { $stalls++; $cur += 250 } else { if ($cur -gt $worst) { $worst = $cur }; $cur = 0 }
+                $rest = 250 - ($sw.ElapsedMilliseconds - $t0); if ($rest -gt 0) { Start-Sleep -Milliseconds $rest }
+              }
+              if ($cur -gt $worst) { $worst = $cur }
+              $p.Refresh()
+              "{0,-10} lần {1}: hiện cửa sổ sau {2,5} ms | ping trượt {3,3}/80 | treo dài nhất ~{4} ms | RAM {5:N0} MB | CPU {6:N1}s" -f $kind, $run, $tWin, $stalls, $worst, ($p.WorkingSet64/1MB), $p.TotalProcessorTime.TotalSeconds
+              Stop-Process $p -Force; Start-Sleep 2
+            }
+          }
+          $log = "$env:LOCALAPPDATA\ITHelpdeskTool\logs\app.log"
+          if (Test-Path $log) { "---- app.log ----"; Get-Content $log -Tail 60 }
