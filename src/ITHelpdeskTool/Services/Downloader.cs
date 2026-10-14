@@ -73,15 +73,32 @@ public static class Downloader
     {
         if (!url.StartsWith("github:", StringComparison.OrdinalIgnoreCase)) return url;
         var spec = url[7..].Split('|', 2);
-        var json = await Http.GetStringAsync($"https://api.github.com/repos/{spec[0]}/releases/latest", ct);
-        using var doc = JsonDocument.Parse(json);
+        var repo = spec[0];
         var rx = new Regex(spec.ElementAtOrDefault(1) ?? ".", RegexOptions.IgnoreCase);
-        foreach (var a in doc.RootElement.GetProperty("assets").EnumerateArray())
+        try
         {
-            var name = a.GetProperty("name").GetString() ?? "";
-            if (rx.IsMatch(name)) return a.GetProperty("browser_download_url").GetString()!;
+            var json = await Http.GetStringAsync($"https://api.github.com/repos/{repo}/releases/latest", ct);
+            using var doc = JsonDocument.Parse(json);
+            foreach (var a in doc.RootElement.GetProperty("assets").EnumerateArray())
+            {
+                var name = a.GetProperty("name").GetString() ?? "";
+                if (rx.IsMatch(name)) return a.GetProperty("browser_download_url").GetString()!;
+            }
         }
-        throw new InvalidOperationException($"Bản phát hành mới nhất của {spec[0]} không có file phù hợp");
+        catch (HttpRequestException ex) when (ex.StatusCode is System.Net.HttpStatusCode.Forbidden or System.Net.HttpStatusCode.TooManyRequests)
+        {
+            // API giới hạn 60 lần/giờ cho mỗi IP → đọc trang phát hành thay thế
+            Log.Warn($"GitHub API bị giới hạn, đọc trang phát hành của {repo}");
+            using var resp = await Http.GetAsync($"https://github.com/{repo}/releases/latest", ct);
+            var tag = resp.RequestMessage?.RequestUri?.AbsolutePath.Split('/').LastOrDefault() ?? "";
+            var html = await Http.GetStringAsync($"https://github.com/{repo}/releases/expanded_assets/{tag}", ct);
+            foreach (Match m in Regex.Matches(html, $@"href=""(/{Regex.Escape(repo)}/releases/download/[^""]+)""", RegexOptions.IgnoreCase))
+            {
+                var link = m.Groups[1].Value;
+                if (rx.IsMatch(Uri.UnescapeDataString(link.Split('/').Last()))) return "https://github.com" + link;
+            }
+        }
+        throw new InvalidOperationException($"Bản phát hành mới nhất của {repo} không có file phù hợp");
     }
 
     public static Task<string> GetStringAsync(string url, CancellationToken ct = default) => Http.GetStringAsync(url, ct);
