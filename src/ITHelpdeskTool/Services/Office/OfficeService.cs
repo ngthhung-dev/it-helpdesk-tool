@@ -80,7 +80,11 @@ public static class OfficeService
     {
         var c2r = ReadC2R();
         var roots = new List<string>();
-        if (c2r is not null && c2r.InstallPath.Length > 0) roots.Add(Path.Combine(c2r.InstallPath, "Office16"));
+        if (c2r is not null && c2r.InstallPath.Length > 0)
+        {
+            roots.Add(Path.Combine(c2r.InstallPath, @"root\Office16"));
+            roots.Add(Path.Combine(c2r.InstallPath, "Office16"));
+        }
         roots.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"Microsoft Office\Office16"));
         roots.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Microsoft Office\Office16"));
         roots.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"Microsoft Office\Office15"));
@@ -177,7 +181,8 @@ public static class OfficeService
 
     private static string OsppError(string output)
     {
-        var code = Regex.Match(output, @"ERROR CODE:\s*(0x[0-9A-F]+)", RegexOptions.IgnoreCase).Groups[1].Value.ToUpperInvariant();
+        var hex = Regex.Match(output, @"(?:ERROR CODE:\s*|\b)0x([0-9A-F]{8})\b", RegexOptions.IgnoreCase).Groups[1].Value.ToUpperInvariant();
+        var code = hex.Length > 0 ? "0x" + hex : "";
         var desc = Regex.Match(output, @"ERROR DESCRIPTION:\s*(.+)", RegexOptions.IgnoreCase).Groups[1].Value.Trim();
         var vi = code switch
         {
