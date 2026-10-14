@@ -170,7 +170,7 @@ public static partial class ReportCollector
             .ToDictionary(b => b.Str("DriveLetter"), b => (int)b.Long("ProtectionStatus"), StringComparer.OrdinalIgnoreCase));
         var vols = await Task.Run(() => Wmi.TryQuery("SELECT DeviceID, VolumeName, FileSystem, Size, FreeSpace, DriveType FROM Win32_LogicalDisk WHERE DriveType = 2 OR DriveType = 3"));
 
-        var v = d.Table("Phân vùng", ["Ổ", "Nhãn", "Định dạng", "Dung lượng", "Còn trống", "BitLocker"], [0.5, 1.5, 0.8, 0.9, 1.2, 0.9]);
+        var v = d.Table("Phân vùng", ["Ổ", "Nhãn", "Định dạng", "Dung lượng", "Còn trống", "BitLocker"], [0.9, 1.4, 0.7, 0.9, 1.2, 0.8]);
         var sysDrive = Path.GetPathRoot(Environment.SystemDirectory)?.TrimEnd('\\') ?? "C:";
         foreach (var x in vols.OrderBy(x => x.Str("DeviceID")))
         {
