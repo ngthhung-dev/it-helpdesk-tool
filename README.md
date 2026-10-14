@@ -4,9 +4,7 @@
 
 Công cụ hỗ trợ IT cho Windows 10/11, viết bằng **C# / .NET 10 / WPF**.
 
-- Tác giả: **ngthhung** · Copyright © 2026 ngthhung
-- Email: ngthhung.dev@gmail.com
-- Điện thoại / Zalo: 0968 799 365
+- Tác giả: **ngthhung**
 
 ## Yêu cầu
 - Windows 10 (19041+) hoặc Windows 11
