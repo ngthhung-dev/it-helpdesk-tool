@@ -11,6 +11,10 @@ on:
         description: 'Tạo Release với phiên bản này (vd 0.1.0). Để trống = chỉ build'
         required: false
         default: ''
+      replace_existing:
+        description: 'Nếu release cùng phiên bản đã có thì xoá và tạo lại'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -73,6 +77,15 @@ jobs:
         with:
           name: ITHelpdeskTool-${{ steps.ver.outputs.version }}
           path: dist/*
+
+      - name: Xoá release cũ cùng phiên bản (nếu chọn)
+        if: github.event.inputs.release_version != '' && github.event.inputs.replace_existing == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete "v${{ steps.ver.outputs.version }}" --cleanup-tag --yes -R ${{ github.repository }}
+          if ($LASTEXITCODE -ne 0) { Write-Host "Không có release cũ để xoá"; $global:LASTEXITCODE = 0 }
 
       - name: Tạo Release (tag v* hoặc chạy tay có nhập phiên bản)
         if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.release_version != ''
