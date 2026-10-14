@@ -47,10 +47,19 @@ public sealed class NotConverter : IValueConverter
     public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => value is not true;
 }
 
+/// <summary>Số &gt; 0 → Visible.</summary>
+public sealed class CountToVisibility : IValueConverter
+{
+    public object Convert(object? value, Type t, object? p, CultureInfo c) =>
+        value is int n && n > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => throw new NotSupportedException();
+}
+
 /// <summary>Các converter dùng chung qua x:Static.</summary>
 public static class Converters
 {
     public static readonly NotConverter Not = new();
+    public static readonly CountToVisibility CountVis = new();
 }
 
 /// <summary>Chuỗi rỗng → "—".</summary>

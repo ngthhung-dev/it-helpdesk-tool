@@ -23,6 +23,9 @@ public sealed partial class ShellViewModel : ObservableObject
     /// <summary>Trang mở đầu tiên, đặt từ tham số dòng lệnh --page.</summary>
     public static string? StartPage { get; set; }
 
+    /// <summary>Phần sau dấu "/" của --page (vd startup/boot → boot) để trang mở đúng tab.</summary>
+    public static string? StartSubPage => StartPage?.Split('/').ElementAtOrDefault(1);
+
     public ShellViewModel()
     {
         // Giai đoạn 1: đánh số 1. Trang chưa làm hiện màn hình "Sắp có".
@@ -34,7 +37,7 @@ public sealed partial class ShellViewModel : ObservableObject
                 Item("report", "Báo cáo cấu hình", "\uE8A5", 1, () => new ReportViewModel()),
                 Item("sysconfig", "Cấu hình hệ thống", "\uE770", 1, () => new SysConfigViewModel()),
                 Item("policy", "Policy", "\uE8D7", 1, () => new PolicyViewModel()),
-                Item("startup", "Startup & Boot", "\uE7E8", 1),
+                Item("startup", "Startup & Boot", "\uE7E8", 1, () => new StartupViewModel()),
                 Item("power", "Power Plan", "\uE945", 2),
             ]),
             new("TỐI ƯU",
@@ -75,7 +78,7 @@ public sealed partial class ShellViewModel : ObservableObject
 
         // Mở thẳng vào trang chỉ định (tham số --page <key>), không có thì vào Tổng quan
         var start = Groups.SelectMany(g => g.Items).Append(AboutItem)
-            .FirstOrDefault(i => i.Key.Equals(StartPage, StringComparison.OrdinalIgnoreCase));
+            .FirstOrDefault(i => i.Key.Equals(StartPage?.Split('/')[0], StringComparison.OrdinalIgnoreCase));
         Navigate(start ?? Groups[0].Items[0]);
     }
 

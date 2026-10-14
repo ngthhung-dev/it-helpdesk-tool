@@ -1,0 +1,460 @@
+<UserControl x:Class="ITHelpdeskTool.Views.StartupPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:core="clr-namespace:ITHelpdeskTool.Core"
+             xmlns:vm="clr-namespace:ITHelpdeskTool.ViewModels"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:StartupViewModel}"
+             d:DesignWidth="1000" d:DesignHeight="900">
+
+    <UserControl.Resources>
+        <core:BoolToVisibility x:Key="BoolVis"/>
+        <core:BoolToVisibility x:Key="NotBoolVis" Invert="True"/>
+        <core:NullToVisibility x:Key="NullVis"/>
+        <core:NullToVisibility x:Key="NotNullVis" Invert="True"/>
+
+        <Style x:Key="CardIcon" TargetType="Border">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+            <Setter Property="Margin" Value="0,0,12,0"/>
+        </Style>
+        <Style x:Key="Hint" TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="TextTrimming" Value="None"/>
+        </Style>
+        <Style x:Key="Cmd" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="Foreground" Value="{StaticResource FaintBrush}"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+        </Style>
+        <Style x:Key="Badge" TargetType="Border">
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="6,1"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Background" Value="#14FFFFFF"/>
+        </Style>
+        <Style x:Key="BadgeText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+        </Style>
+        <Style x:Key="Row" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="Padding" Value="0,10"/>
+        </Style>
+        <Style x:Key="TabSeg" TargetType="RadioButton" BasedOn="{StaticResource Segment}">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="GroupName" Value="startupTab"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,4,22,28">
+            <StackPanel>
+
+                <!-- ===== Đầu trang ===== -->
+                <DockPanel Margin="0,0,0,14">
+                    <TextBox DockPanel.Dock="Right" Width="260" VerticalAlignment="Center" Style="{StaticResource SearchBox}" MinHeight="32"
+                             Tag="Tìm theo tên, lệnh, nhà phát hành…" Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged, Delay=150}"/>
+                    <StackPanel>
+                        <TextBlock Text="Startup &amp; Boot" Style="{StaticResource H1}"/>
+                        <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" FontSize="13" TextWrapping="Wrap"
+                                   Text="Ứng dụng tự chạy khi đăng nhập, tác vụ và dịch vụ nền, menu khởi động và các kiểu khởi động lại đặc biệt."/>
+                    </StackPanel>
+                </DockPanel>
+
+                <!-- Tab -->
+                <Border Style="{StaticResource Card}" Padding="4" HorizontalAlignment="Left" Margin="0,0,0,12" CornerRadius="10">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Style="{StaticResource TabSeg}" IsChecked="{Binding TabApps}">
+                            <StackPanel Orientation="Horizontal" Margin="4,2">
+                                <TextBlock Text="&#xE7E8;" Style="{StaticResource Icon}" FontSize="13" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"/>
+                                <TextBlock Text="Ứng dụng khởi động" Margin="8,0,0,0" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"/>
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton Style="{StaticResource TabSeg}" IsChecked="{Binding TabTasks}">
+                            <StackPanel Orientation="Horizontal" Margin="4,2">
+                                <TextBlock Text="&#xE912;" Style="{StaticResource Icon}" FontSize="13" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"/>
+                                <TextBlock Text="Tác vụ &amp; dịch vụ" Margin="8,0,0,0" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"/>
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton Style="{StaticResource TabSeg}" IsChecked="{Binding TabBoot}">
+                            <StackPanel Orientation="Horizontal" Margin="4,2">
+                                <TextBlock Text="&#xE7F8;" Style="{StaticResource Icon}" FontSize="13" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"/>
+                                <TextBlock Text="Khởi động máy" Margin="8,0,0,0" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"/>
+                            </StackPanel>
+                        </RadioButton>
+                    </StackPanel>
+                </Border>
+
+                <!-- ===================== TAB 1: ỨNG DỤNG ===================== -->
+                <StackPanel Visibility="{Binding TabApps, Converter={StaticResource BoolVis}}" IsEnabled="{Binding IsIdle}">
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource BtnSmall}" Content="Thư mục Startup" Margin="6,0,0,0"
+                                            Command="{Binding OpenStartupFolderCommand}" CommandParameter="user"
+                                            ToolTip="shell:startup — mục chỉ chạy cho tài khoản này"/>
+                                    <Button Style="{StaticResource BtnSmall}" Content="Sao lưu đã xoá" Margin="6,0,0,0"
+                                            Command="{Binding OpenBackupFolderCommand}" ToolTip="Các mục đã xoá được lưu ở đây — nhấp đúp file .reg để khôi phục"/>
+                                    <Button Style="{StaticResource BtnSmall}" Content="Đọc lại" Margin="6,0,0,0" Command="{Binding LoadAppsCommand}"/>
+                                    <Button Style="{StaticResource BtnPrimary}" Padding="12,5" FontSize="12" Content="+ Thêm ứng dụng" Margin="6,0,0,0"
+                                            Command="{Binding ToggleAddFormCommand}"/>
+                                </StackPanel>
+                                <Border Style="{StaticResource CardIcon}">
+                                    <TextBlock Text="&#xE7E8;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Ứng dụng tự chạy khi đăng nhập" Style="{StaticResource H2}"/>
+                                    <TextBlock Text="{Binding AppsSummary}" Style="{StaticResource Hint}"/>
+                                </StackPanel>
+                            </DockPanel>
+
+                            <!-- Form thêm -->
+                            <Border Background="{StaticResource Surface2Brush}" CornerRadius="10" Padding="14" Margin="0,10,0,4"
+                                    Visibility="{Binding ShowAddForm, Converter={StaticResource BoolVis}}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="12"/>
+                                            <ColumnDefinition Width="2*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="Tên hiển thị" Style="{StaticResource Hint}" Margin="0,0,0,4"/>
+                                            <TextBox Style="{StaticResource InputBox}" Tag="vd: Zalo" Text="{Binding NewName, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="Chương trình" Style="{StaticResource Hint}" Margin="0,0,0,4"/>
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right" Content="Chọn…" Margin="8,0,0,0" Command="{Binding BrowseExeCommand}"/>
+                                                <TextBox Style="{StaticResource InputBox}" Tag="C:\Program Files\...\app.exe" Text="{Binding NewPath, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </DockPanel>
+                                        </StackPanel>
+                                    </Grid>
+                                    <DockPanel Margin="0,10,0,0">
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Content="Thêm" Margin="12,0,0,0" Command="{Binding AddAppCommand}"/>
+                                        <CheckBox DockPanel.Dock="Right" Content="Cho mọi tài khoản" Margin="12,0,0,0" VerticalAlignment="Center" IsChecked="{Binding NewAllUsers}"/>
+                                        <TextBox Style="{StaticResource InputBox}" Tag="Tham số (không bắt buộc), vd: --minimized" Text="{Binding NewArgs, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </DockPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <ItemsControl ItemsSource="{Binding Apps}" Margin="0,6,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource Row}" Visibility="{Binding IsVisible, Converter={StaticResource BoolVis}}">
+                                            <DockPanel>
+                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Button Style="{StaticResource BtnSmall}" Content="Vị trí" Margin="6,0,0,0" ToolTip="Mở thư mục chứa file"
+                                                            Command="{Binding DataContext.OpenAppLocationCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                    <Button Content="Xoá" Margin="6,0,12,0" Padding="10,4" FontSize="12" Style="{StaticResource BtnDanger}"
+                                                            Command="{Binding DataContext.DeleteAppCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                    <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding IsOn}" ToolTip="Bật/tắt tự chạy (như Task Manager)"
+                                                              Command="{Binding DataContext.ToggleAppCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                </StackPanel>
+                                                <Grid Width="28" Height="28" Margin="0,0,12,0" VerticalAlignment="Top">
+                                                    <Image Source="{Binding Item.Icon}" Width="24" Height="24" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                    <TextBlock Text="&#xE7C3;" Style="{StaticResource Icon}" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center"
+                                                               Visibility="{Binding Item.Icon, Converter={StaticResource NotNullVis}}"/>
+                                                </Grid>
+                                                <StackPanel>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding Item.Name}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                                                        <Border Style="{StaticResource Badge}"><TextBlock Text="{Binding Item.SourceText}" Style="{StaticResource BadgeText}"/></Border>
+                                                        <Border Style="{StaticResource Badge}" Background="#1AF87171"
+                                                                Visibility="{Binding Item.FileExists, Converter={StaticResource NotBoolVis}}">
+                                                            <TextBlock Text="File không còn" Style="{StaticResource BadgeText}" Foreground="{StaticResource BadBrush}"/>
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding Item.PublisherText}" Style="{StaticResource Hint}" Margin="0,2,0,0"/>
+                                                    <TextBlock Text="{Binding Item.Command}" Style="{StaticResource Cmd}" Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,10,0,0"
+                                       Text="Tắt chỉ ngăn tự chạy (bật lại được, giống Task Manager). Xoá thì bỏ hẳn dòng lệnh — chỉ nên xoá mục hỏng hoặc của phần mềm đã gỡ."/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- ===================== TAB 2: TÁC VỤ & DỊCH VỤ ===================== -->
+                <StackPanel Visibility="{Binding TabTasks, Converter={StaticResource BoolVis}}" IsEnabled="{Binding IsIdle}">
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Đọc lại" VerticalAlignment="Center" Command="{Binding LoadTasksCommand}"/>
+                                <Border Style="{StaticResource CardIcon}">
+                                    <TextBlock Text="&#xE823;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Tác vụ lập lịch chạy lúc khởi động / đăng nhập" Style="{StaticResource H2}"/>
+                                    <TextBlock Text="{Binding TasksSummary}" Style="{StaticResource Hint}"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <ItemsControl ItemsSource="{Binding Tasks}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource Row}" Visibility="{Binding IsVisible, Converter={StaticResource BoolVis}}">
+                                            <DockPanel>
+                                                <CheckBox DockPanel.Dock="Right" Style="{StaticResource Toggle}" VerticalAlignment="Center" IsChecked="{Binding IsOn}"
+                                                          Command="{Binding DataContext.ToggleTaskCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                <StackPanel Margin="0,0,16,0">
+                                                    <TextBlock Text="{Binding Item.Name}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding Item.Detail}" Style="{StaticResource Hint}" Margin="0,2,0,0"/>
+                                                    <TextBlock Text="{Binding Item.Action}" Style="{StaticResource Cmd}" Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <Border Style="{StaticResource CardIcon}">
+                                    <TextBlock Text="&#xE912;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Dịch vụ của phần mềm khác (không phải Microsoft)" Style="{StaticResource H2}"/>
+                                    <TextBlock Text="{Binding ServicesSummary}" Style="{StaticResource Hint}"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <ItemsControl ItemsSource="{Binding Services}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource Row}" Visibility="{Binding IsVisible, Converter={StaticResource BoolVis}}">
+                                            <DockPanel>
+                                                <CheckBox DockPanel.Dock="Right" Style="{StaticResource Toggle}" VerticalAlignment="Center" IsChecked="{Binding IsOn}"
+                                                          ToolTip="Bật = tự chạy cùng Windows · Tắt = chạy khi cần (Manual)"
+                                                          Command="{Binding DataContext.ToggleServiceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                <StackPanel Margin="0,0,16,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding Item.DisplayName}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                                                        <Border Style="{StaticResource Badge}"><TextBlock Text="{Binding Item.StateText}" Style="{StaticResource BadgeText}"/></Border>
+                                                    </StackPanel>
+                                                    <TextBlock Style="{StaticResource Hint}" Margin="0,2,0,0">
+                                                        <Run Text="{Binding Item.Publisher, Mode=OneWay}"/>
+                                                        <Run Text="{Binding Item.Name, Mode=OneWay, StringFormat=' · {0}'}"/>
+                                                    </TextBlock>
+                                                    <TextBlock Text="{Binding Item.Path}" Style="{StaticResource Cmd}" Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- ===================== TAB 3: KHỞI ĐỘNG MÁY ===================== -->
+                <StackPanel Visibility="{Binding TabBoot, Converter={StaticResource BoolVis}}" IsEnabled="{Binding IsIdle}">
+
+                    <!-- Thời gian khởi động -->
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,10">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Đọc lại" VerticalAlignment="Center" Command="{Binding LoadBootCommand}"/>
+                                <Border Style="{StaticResource CardIcon}">
+                                    <TextBlock Text="&#xE916;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Thời gian khởi động" Style="{StaticResource H2}"/>
+                                    <TextBlock Text="{Binding BootSummary}" Style="{StaticResource Hint}"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <ItemsControl ItemsSource="{Binding BootTimes}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <DockPanel Margin="0,3">
+                                            <TextBlock Text="{Binding When}" Width="96" Style="{StaticResource Hint}" FontFamily="{StaticResource MonoFont}" VerticalAlignment="Center"/>
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding Seconds}" Foreground="{StaticResource TextBrush}" Width="80" TextAlignment="Right" VerticalAlignment="Center"/>
+                                            <Border Height="10" CornerRadius="5" HorizontalAlignment="Left" Width="{Binding BarWidth}">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="{StaticResource GoodBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Tone}" Value="Warn"><Setter Property="Background" Value="{StaticResource WarnBrush}"/></DataTrigger>
+                                                            <DataTrigger Binding="{Binding Tone}" Value="Bad"><Setter Property="Background" Value="{StaticResource BadBrush}"/></DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                            </Border>
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="{Binding BootTimesNote}" Style="{StaticResource Hint}" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Menu khởi động -->
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,10">
+                                <Border Style="{StaticResource CardIcon}">
+                                    <TextBlock Text="&#xE8FD;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Menu khởi động (Boot Manager)" Style="{StaticResource H2}"/>
+                                    <TextBlock Text="Máy cài nhiều Windows sẽ có nhiều mục ở đây." Style="{StaticResource Hint}"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <ItemsControl ItemsSource="{Binding BootEntries}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource Row}">
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Đặt làm mặc định"
+                                                        Visibility="{Binding IsDefault, Converter={StaticResource NotBoolVis}}"
+                                                        Command="{Binding DataContext.SetDefaultBootCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Description}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                                                    <Border Style="{StaticResource Badge}" Background="#1A5B8CFF" Visibility="{Binding IsDefault, Converter={StaticResource BoolVis}}">
+                                                        <TextBlock Text="Mặc định" Style="{StaticResource BadgeText}" Foreground="{StaticResource AccentBrush}"/>
+                                                    </Border>
+                                                    <Border Style="{StaticResource Badge}" Background="#1A34D399" Visibility="{Binding IsCurrent, Converter={StaticResource BoolVis}}">
+                                                        <TextBlock Text="Đang chạy" Style="{StaticResource BadgeText}" Foreground="{StaticResource GoodBrush}"/>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Id}" Style="{StaticResource Cmd}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <DockPanel Margin="0,12,0,0">
+                                <TextBlock Text="Thời gian hiện menu chọn hệ điều hành (giây)" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                <Button DockPanel.Dock="Right" Content="Áp dụng" Margin="8,0,0,0" Command="{Binding ApplyTimeoutCommand}"/>
+                                <TextBox Style="{StaticResource InputBox}" Width="90" HorizontalAlignment="Right" MaxLength="3" Text="{Binding TimeoutText, UpdateSourceTrigger=PropertyChanged}"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Chế độ khởi động -->
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,10">
+                                <Border Style="{StaticResource CardIcon}">
+                                    <TextBlock Text="&#xE72E;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Safe Mode &amp; khởi động lại đặc biệt" Style="{StaticResource H2}"/>
+                                    <TextBlock Style="{StaticResource Hint}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource Hint}">
+                                                <Setter Property="Text" Value="Lần khởi động sau: bình thường."/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SafeBootOn}" Value="True">
+                                                        <Setter Property="Text" Value="Lần khởi động sau: SAFE MODE (bấm “Khởi động bình thường” để tắt)."/>
+                                                        <Setter Property="Foreground" Value="{StaticResource WarnBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </DockPanel>
+                            <WrapPanel>
+                                <Button Content="Safe Mode" Margin="0,0,8,8" Command="{Binding SetSafeBootCommand}" CommandParameter="minimal"/>
+                                <Button Content="Safe Mode có mạng" Margin="0,0,8,8" Command="{Binding SetSafeBootCommand}" CommandParameter="network"/>
+                                <Button Content="Khởi động bình thường" Margin="0,0,8,8" Command="{Binding SetSafeBootCommand}" CommandParameter=""
+                                        IsEnabled="{Binding SafeBootOn}"/>
+                            </WrapPanel>
+                            <WrapPanel Margin="0,6,0,0">
+                                <Button Margin="0,0,8,8" Command="{Binding RestartSpecialCommand}" CommandParameter="fw" IsEnabled="{Binding IsUefi}"
+                                        ToolTip="shutdown /r /fw — chỉ máy UEFI">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE950;" Style="{StaticResource Icon}" FontSize="13"/>
+                                        <TextBlock Text="Khởi động lại vào BIOS/UEFI" Margin="8,0,0,0"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Margin="0,0,8,8" Command="{Binding RestartSpecialCommand}" CommandParameter="re" ToolTip="shutdown /r /o">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE90F;" Style="{StaticResource Icon}" FontSize="13"/>
+                                        <TextBlock Text="Khởi động lại vào Advanced Startup" Margin="8,0,0,0"/>
+                                    </StackPanel>
+                                </Button>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Hẹn giờ -->
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,10">
+                                <Border Style="{StaticResource CardIcon}">
+                                    <TextBlock Text="&#xE823;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Hẹn giờ tắt / khởi động lại" Style="{StaticResource H2}" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <WrapPanel>
+                                <TextBlock Text="Sau" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                                <TextBox Style="{StaticResource InputBox}" Width="80" MaxLength="4" Margin="0,0,8,8" Text="{Binding ScheduleMinutes, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="phút" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,16,8"/>
+                                <Button Content="Hẹn tắt máy" Margin="0,0,8,8" Command="{Binding ScheduleCommand}" CommandParameter="shutdown"/>
+                                <Button Content="Hẹn khởi động lại" Margin="0,0,8,8" Command="{Binding ScheduleCommand}" CommandParameter="restart"/>
+                                <Button Content="Huỷ hẹn giờ" Margin="0,0,8,8" Style="{StaticResource BtnDanger}" Command="{Binding CancelScheduleCommand}"/>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- ===== Nhật ký ===== -->
+                <Border Style="{StaticResource Card}" Visibility="{Binding ActionLog.Count, Converter={x:Static core:Converters.CountVis}}">
+                    <StackPanel>
+                        <TextBlock Text="Nhật ký thao tác" Style="{StaticResource H2}" Margin="0,0,0,10"/>
+                        <ItemsControl ItemsSource="{Binding ActionLog}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel Margin="0,3">
+                                        <TextBlock Text="{Binding Time}" Style="{StaticResource Hint}" Width="64" FontFamily="{StaticResource MonoFont}"/>
+                                        <TextBlock Width="18" FontSize="12" VerticalAlignment="Top" Margin="0,2,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource Icon}">
+                                                    <Setter Property="Text" Value="&#xE73E;"/>
+                                                    <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Ok}" Value="False">
+                                                            <Setter Property="Text" Value="&#xE711;"/>
+                                                            <Setter Property="Foreground" Value="{StaticResource BadBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding Text}" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20" CornerRadius="20" Padding="18,9"
+                Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource TextBrush}"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

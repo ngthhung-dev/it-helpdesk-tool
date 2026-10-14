@@ -57,14 +57,14 @@ jobs:
             [U]::ShowWindow($p.MainWindowHandle, 3) | Out-Null      # phóng to
             [U]::SetForegroundWindow($p.MainWindowHandle) | Out-Null
             Start-Sleep -Seconds ($(if ($page -eq 'report') { 14 } else { 5 }))
-            Shot "$page-1"
+            Shot "$($page -replace '/','_')-1"
             if ($page -notin 'dashboard','about') {
               # cuộn xuống từng trang để chụp phần dưới
               [U]::SetCursorPos([int]($b.Width * 0.6), [int]($b.Height * 0.6)) | Out-Null
               foreach ($i in 2..6) {
                 foreach ($k in 1..8) { [U]::mouse_event(0x0800, 0, 0, -120, 0); Start-Sleep -Milliseconds 30 }
                 Start-Sleep -Milliseconds 600
-                Shot "$page-$i"
+                Shot "$($page -replace '/','_')-$i"
               }
             }
             Stop-Process $p -Force; Start-Sleep 1
