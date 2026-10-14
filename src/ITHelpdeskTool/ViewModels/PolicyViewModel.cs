@@ -20,11 +20,12 @@ public sealed partial class PolicyItem(PolicyDef def, bool isHome) : ObservableO
     public bool ShowProBadge => Def.ProOnly;
     /// <summary>Máy Home + policy chỉ chạy trên Pro → báo trước.</summary>
     public bool NotOnThisEdition => Def.ProOnly && isHome;
-    public string EffectText => Def.Effect switch
+    /// <summary>Nhãn hiệu lực; null = có hiệu lực ngay (không cần nhãn).</summary>
+    public string? EffectText => Def.Effect switch
     {
-        PolicyEffect.Relogon => "Đăng xuất lại",
-        PolicyEffect.Restart => "Khởi động lại",
-        _ => "Ngay lập tức",
+        PolicyEffect.Relogon => "Cần đăng xuất lại",
+        PolicyEffect.Restart => "Cần khởi động lại",
+        _ => null,
     };
 
     [ObservableProperty] private bool _isOn;
@@ -202,7 +203,7 @@ public sealed partial class PolicyViewModel : PageViewModel
     private async Task CreateProfileAsync()
     {
         if (TargetUser is not { } u) return;
-        await Run($"Đang tạo hồ sơ cho {u.Name}", () => PolicyService.EnsureProfile(u), reload: false);
+        await Run($"Đang tạo hồ sơ cho {u.Name} (khoảng 20 giây)", () => PolicyService.EnsureProfile(u), reload: false);
         await LoadAsync();
     }
 

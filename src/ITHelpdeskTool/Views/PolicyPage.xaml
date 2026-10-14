@@ -157,7 +157,8 @@
                                                                     ToolTip="Chỉ có tác dụng trên Windows Pro / Enterprise / Education">
                                                                 <TextBlock Text="Pro" Style="{StaticResource BadgeText}"/>
                                                             </Border>
-                                                            <Border Style="{StaticResource Badge}" ToolTip="Khi nào có hiệu lực">
+                                                            <Border Style="{StaticResource Badge}" ToolTip="Khi nào có hiệu lực"
+                                                                    Visibility="{Binding EffectText, Converter={StaticResource NullVis}}">
                                                                 <TextBlock Text="{Binding EffectText}" Style="{StaticResource BadgeText}"/>
                                                             </Border>
                                                         </StackPanel>
