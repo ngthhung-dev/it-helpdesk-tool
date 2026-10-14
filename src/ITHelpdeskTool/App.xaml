@@ -20,6 +20,9 @@
             <DataTemplate DataType="{x:Type vm:SysConfigViewModel}">
                 <v:SysConfigPage/>
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:PolicyViewModel}">
+                <v:PolicyPage/>
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:AboutViewModel}">
                 <v:AboutPage/>
             </DataTemplate>

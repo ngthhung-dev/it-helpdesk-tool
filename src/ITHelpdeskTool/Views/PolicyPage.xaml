@@ -1,0 +1,320 @@
+<UserControl x:Class="ITHelpdeskTool.Views.PolicyPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:core="clr-namespace:ITHelpdeskTool.Core"
+             xmlns:vm="clr-namespace:ITHelpdeskTool.ViewModels"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:PolicyViewModel}"
+             d:DesignWidth="1000" d:DesignHeight="900">
+
+    <UserControl.Resources>
+        <core:BoolToVisibility x:Key="BoolVis"/>
+        <core:BoolToVisibility x:Key="NotBoolVis" Invert="True"/>
+        <core:NullToVisibility x:Key="NullVis"/>
+
+        <Style x:Key="CardIcon" TargetType="Border">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+            <Setter Property="Margin" Value="0,0,12,0"/>
+        </Style>
+        <Style x:Key="Hint" TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="TextTrimming" Value="None"/>
+        </Style>
+        <Style x:Key="Badge" TargetType="Border">
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="6,1"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Background" Value="#14FFFFFF"/>
+        </Style>
+        <Style x:Key="BadgeText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+        </Style>
+        <Style x:Key="NumBox" TargetType="TextBox" BasedOn="{StaticResource InputBox}">
+            <Setter Property="MaxLength" Value="5"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,4,22,28">
+            <StackPanel>
+
+                <!-- ===== Đầu trang ===== -->
+                <DockPanel Margin="0,0,0,14">
+                    <Button DockPanel.Dock="Right" VerticalAlignment="Center" Command="{Binding LoadCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" FontSize="13"/>
+                            <TextBlock Text="Đọc lại" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+                    <StackPanel>
+                        <TextBlock Text="Policy" Style="{StaticResource H1}"/>
+                        <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" FontSize="13" TextWrapping="Wrap"
+                                   Text="Chính sách nhóm hay dùng, ghi thẳng vào registry — dùng được cả trên Windows Home không có gpedit."/>
+                    </StackPanel>
+                </DockPanel>
+
+                <!-- Cần khởi động lại -->
+                <Border CornerRadius="10" Background="#1AFBBF24" BorderBrush="#55FBBF24" BorderThickness="1" Padding="14,10" Margin="0,0,0,12"
+                        Visibility="{Binding NeedsRestart, Converter={StaticResource BoolVis}}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Khởi động lại ngay" Command="{Binding RestartCommand}"/>
+                        <TextBlock Text="&#xE7BA;" Style="{StaticResource Icon}" Foreground="{StaticResource WarnBrush}" Margin="0,0,10,0"/>
+                        <TextBlock Foreground="{StaticResource WarnBrush}" VerticalAlignment="Center" TextWrapping="Wrap"
+                                   Text="Có policy chỉ có hiệu lực sau khi khởi động lại máy."/>
+                    </DockPanel>
+                </Border>
+
+                <!-- Windows Home -->
+                <Border CornerRadius="10" Background="#1A5B8CFF" Padding="14,10" Margin="0,0,0,12"
+                        Visibility="{Binding IsHome, Converter={StaticResource BoolVis}}">
+                    <DockPanel>
+                        <TextBlock Text="&#xE946;" Style="{StaticResource Icon}" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
+                        <TextBlock Foreground="{StaticResource TextBrush}" TextWrapping="Wrap" VerticalAlignment="Center"
+                                   Text="Máy đang chạy Windows Home: các mục gắn nhãn “Pro” Windows sẽ bỏ qua. Các mục còn lại vẫn có tác dụng."/>
+                    </DockPanel>
+                </Border>
+
+                <!-- ===== Chọn tài khoản + tìm kiếm ===== -->
+                <Border Style="{StaticResource Card}" Margin="0,0,0,12" IsEnabled="{Binding IsIdle}">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="3*"/>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="2*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Áp dụng nhóm “Hạn chế người dùng” cho tài khoản" Style="{StaticResource Muted}" Margin="0,0,0,6"/>
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="Tạo hồ sơ" Margin="8,0,0,0" Command="{Binding CreateProfileCommand}"
+                                            Visibility="{Binding TargetNeedsProfile, Converter={StaticResource BoolVis}}"
+                                            ToolTip="Tạo thư mục C:\Users\tên cho tài khoản chưa đăng nhập lần nào"/>
+                                    <ComboBox ItemsSource="{Binding Users}" SelectedItem="{Binding TargetUser}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate><TextBlock Text="{Binding Display}"/></DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </DockPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Tìm policy" Style="{StaticResource Muted}" Margin="0,0,0,6"/>
+                                <TextBox Style="{StaticResource SearchBox}" Tag="vd: USB, Task Manager, update…" MinHeight="32"
+                                         Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged, Delay=150}"/>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0" Foreground="{StaticResource WarnBrush}"
+                                   Visibility="{Binding TargetIsAdmin, Converter={StaticResource BoolVis}}"
+                                   Text="Đây là tài khoản quản trị — hạn chế sẽ áp dụng lên chính tài khoản này. Nên chọn tài khoản nhân viên."/>
+                        <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0"
+                                   Visibility="{Binding TargetNeedsProfile, Converter={StaticResource BoolVis}}"
+                                   Text="Tài khoản này chưa đăng nhập lần nào nên chưa có hồ sơ — bấm “Tạo hồ sơ” để áp policy trước khi họ đăng nhập."/>
+                        <TextBlock Text="{Binding Summary}" Style="{StaticResource Hint}" Margin="0,10,0,0" Foreground="{StaticResource TextBrush}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- ===== Các nhóm policy ===== -->
+                <ItemsControl ItemsSource="{Binding Groups}" IsEnabled="{Binding IsIdle}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource Card}" Margin="0,0,0,12"
+                                    Visibility="{Binding IsVisible, Converter={StaticResource BoolVis}}">
+                                <StackPanel>
+                                    <DockPanel Margin="0,0,0,14">
+                                        <Border Style="{StaticResource CardIcon}">
+                                            <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="14"
+                                                       Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                        </Border>
+                                        <Border DockPanel.Dock="Right" CornerRadius="6" Padding="8,2" Background="#1A5B8CFF" VerticalAlignment="Center">
+                                            <TextBlock Foreground="{StaticResource AccentBrush}" FontSize="11.5">
+                                                <Run Text="{Binding OnCount, Mode=OneWay}"/><Run Text=" đang bật"/>
+                                            </TextBlock>
+                                        </Border>
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="0,0,12,0"
+                                                   Visibility="{Binding HasUserItems, Converter={StaticResource BoolVis}}"
+                                                   Text="{Binding DataContext.TargetUser.Name, RelativeSource={RelativeSource AncestorType=UserControl}, StringFormat='Áp dụng cho: {0}'}"/>
+                                        <TextBlock Text="{Binding Title}" Style="{StaticResource H2}" VerticalAlignment="Center"/>
+                                    </DockPanel>
+
+                                    <ItemsControl ItemsSource="{Binding Items}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox Style="{StaticResource Toggle}" Margin="0,0,0,14"
+                                                          Visibility="{Binding IsVisible, Converter={StaticResource BoolVis}}"
+                                                          IsChecked="{Binding IsOn}"
+                                                          Command="{Binding DataContext.TogglePolicyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                          CommandParameter="{Binding}">
+                                                    <StackPanel>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="{Binding Title}" Foreground="{StaticResource TextBrush}"/>
+                                                            <Border Style="{StaticResource Badge}" Visibility="{Binding ShowProBadge, Converter={StaticResource BoolVis}}"
+                                                                    ToolTip="Chỉ có tác dụng trên Windows Pro / Enterprise / Education">
+                                                                <TextBlock Text="Pro" Style="{StaticResource BadgeText}"/>
+                                                            </Border>
+                                                            <Border Style="{StaticResource Badge}" ToolTip="Khi nào có hiệu lực">
+                                                                <TextBlock Text="{Binding EffectText}" Style="{StaticResource BadgeText}"/>
+                                                            </Border>
+                                                        </StackPanel>
+                                                        <TextBlock Text="{Binding Description}" Style="{StaticResource Hint}" Margin="0,2,0,0"/>
+                                                        <TextBlock Text="{Binding Warning}" Style="{StaticResource Hint}" Foreground="{StaticResource WarnBrush}"
+                                                                   Visibility="{Binding Warning, Converter={StaticResource NullVis}}"/>
+                                                        <TextBlock Text="Máy này là Windows Home nên mục này không có tác dụng." Style="{StaticResource Hint}"
+                                                                   Foreground="{StaticResource WarnBrush}"
+                                                                   Visibility="{Binding NotOnThisEdition, Converter={StaticResource BoolVis}}"/>
+                                                    </StackPanel>
+                                                </CheckBox>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- ===== Mật khẩu & khoá tài khoản ===== -->
+                <Border Style="{StaticResource Card}" Margin="0,0,0,12" IsEnabled="{Binding IsIdle}">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,14">
+                            <Border Style="{StaticResource CardIcon}">
+                                <TextBlock Text="&#xE8D7;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                            </Border>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="Mẫu nhanh:" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <Button Style="{StaticResource BtnSmall}" Content="Không yêu cầu" Margin="4,0,0,0" Command="{Binding PasswordPresetCommand}" CommandParameter="none"/>
+                                <Button Style="{StaticResource BtnSmall}" Content="Cơ bản" Margin="4,0,0,0" Command="{Binding PasswordPresetCommand}" CommandParameter="basic"/>
+                                <Button Style="{StaticResource BtnSmall}" Content="Chặt chẽ" Margin="4,0,0,0" Command="{Binding PasswordPresetCommand}" CommandParameter="strict"/>
+                            </StackPanel>
+                            <TextBlock Text="Mật khẩu &amp; khoá tài khoản" Style="{StaticResource H2}" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Độ dài tối thiểu (ký tự)" Style="{StaticResource Hint}" Margin="0,0,0,4"/>
+                                <TextBox Style="{StaticResource NumBox}" Tag="0 = không yêu cầu" Text="{Binding MinLength, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Hết hạn sau (ngày)" Style="{StaticResource Hint}" Margin="0,0,0,4"/>
+                                <TextBox Style="{StaticResource NumBox}" Tag="0 = không hết hạn" Text="{Binding MaxAge, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="4">
+                                <TextBlock Text="Khoá sau số lần nhập sai" Style="{StaticResource Hint}" Margin="0,0,0,4"/>
+                                <TextBox Style="{StaticResource NumBox}" Tag="0 = không khoá" Text="{Binding LockoutThreshold, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="6">
+                                <TextBlock Text="Thời gian khoá (phút)" Style="{StaticResource Hint}" Margin="0,0,0,4"/>
+                                <TextBox Style="{StaticResource NumBox}" Tag="15" Text="{Binding LockoutMinutes, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
+                        <DockPanel Margin="0,14,0,0">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Content="Áp dụng" Command="{Binding ApplyPasswordCommand}"/>
+                            <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center"
+                                       Text="Áp dụng cho mọi tài khoản cục bộ trên máy. Mật khẩu hiện tại vẫn dùng được, quy tắc mới tính từ lần đổi mật khẩu sau."/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- ===== Công cụ ===== -->
+                <Border Style="{StaticResource Card}" Margin="0,0,0,12" IsEnabled="{Binding IsIdle}">
+                    <StackPanel>
+                        <TextBlock Text="Công cụ Group Policy" Style="{StaticResource H2}" Margin="0,0,0,12"/>
+                        <WrapPanel>
+                            <Button Margin="0,0,8,8" Command="{Binding GpUpdateCommand}" ToolTip="gpupdate /force — áp dụng ngay policy mới">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13"/>
+                                    <TextBlock Text="Cập nhật policy ngay" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Margin="0,0,8,8" Command="{Binding GpResultCommand}" ToolTip="gpresult /h — xem mọi policy đang áp lên máy và người dùng">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE8A5;" Style="{StaticResource Icon}" FontSize="13"/>
+                                    <TextBlock Text="Báo cáo policy đang áp dụng" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Margin="0,0,8,8" Command="{Binding OpenGpeditCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE8D7;" Style="{StaticResource Icon}" FontSize="13"/>
+                                    <TextBlock Text="Mở gpedit.msc" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Margin="0,0,8,8" Style="{StaticResource BtnDanger}" Command="{Binding ResetAllCommand}"
+                                    ToolTip="Tắt mọi policy trong trang này">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE777;" Style="{StaticResource Icon}" FontSize="13"/>
+                                    <TextBlock Text="Gỡ tất cả policy về mặc định" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- ===== Nhật ký ===== -->
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Nhật ký thao tác" Style="{StaticResource H2}" Margin="0,0,0,10"/>
+                        <TextBlock Text="Chưa có thao tác nào trong lần mở này.">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource Hint}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ActionLog.Count}" Value="0">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <ItemsControl ItemsSource="{Binding ActionLog}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel Margin="0,3">
+                                        <TextBlock Text="{Binding Time}" Style="{StaticResource Hint}" Width="64" FontFamily="{StaticResource MonoFont}"/>
+                                        <TextBlock Width="18" FontSize="12" VerticalAlignment="Top" Margin="0,2,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource Icon}">
+                                                    <Setter Property="Text" Value="&#xE73E;"/>
+                                                    <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Ok}" Value="False">
+                                                            <Setter Property="Text" Value="&#xE711;"/>
+                                                            <Setter Property="Foreground" Value="{StaticResource BadBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding Text}" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Thanh trạng thái khi đang làm -->
+        <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20" CornerRadius="20" Padding="18,9"
+                Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource TextBrush}"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

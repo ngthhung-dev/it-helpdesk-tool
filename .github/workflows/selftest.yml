@@ -1,9 +1,13 @@
-name: SysConfig selftest
+name: Selftest
 
 # Chạy thật các thao tác của trang Cấu hình hệ thống trên máy Windows dùng một lần của GitHub
 # (tạo/xoá user, múi giờ, RDP, tường lửa, hosts, DNS, đổi tên máy...) rồi in kết quả.
 on:
   workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Bộ test: sysconfig hoặc policy'
+        default: 'sysconfig'
 
 jobs:
   selftest:
@@ -21,7 +25,7 @@ jobs:
         shell: pwsh
         run: |
           $sw = [Diagnostics.Stopwatch]::StartNew()
-          $p = Start-Process publish\ITHelpdeskTool.exe -ArgumentList '--selftest', 'sysconfig', "$PWD\selftest.json" -PassThru -Wait
+          $p = Start-Process publish\ITHelpdeskTool.exe -ArgumentList '--selftest', '${{ github.event.inputs.suite }}', "$PWD\selftest.json" -PassThru -Wait
           $steps = Get-Content selftest.json -Raw | ConvertFrom-Json
           $fail = @($steps | Where-Object { -not $_.Ok }).Count
           Write-Host "::notice title=tổng::exit=$($p.ExitCode) · $(@($steps).Count) bước · lỗi $fail · $([int]$sw.Elapsed.TotalSeconds)s"

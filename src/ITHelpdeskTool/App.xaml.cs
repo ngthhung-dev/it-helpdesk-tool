@@ -35,14 +35,20 @@ public partial class App : Application
 
         // Tự kiểm tra trên máy test: ITHelpdeskTool.exe --selftest sysconfig <kết quả.json>
         var ti = Array.FindIndex(e.Args, a => a.Equals("--selftest", StringComparison.OrdinalIgnoreCase));
-        if (ti >= 0 && ti + 2 < e.Args.Length && e.Args[ti + 1] == "sysconfig")
+        if (ti >= 0 && ti + 2 < e.Args.Length && e.Args[ti + 1] is "sysconfig" or "policy")
         {
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            var which = e.Args[ti + 1];
             var outPath = e.Args[ti + 2];
             _ = Task.Run(async () =>
             {
                 int code;
-                try { code = await Services.SysConfig.SysConfigSelfTest.RunToFileAsync(outPath); }
+                try
+                {
+                    code = which == "policy"
+                        ? await Services.Policy.PolicySelfTest.RunToFileAsync(outPath)
+                        : await Services.SysConfig.SysConfigSelfTest.RunToFileAsync(outPath);
+                }
                 catch (Exception ex) { Log.Error("Selftest lỗi", ex); code = 1; }
                 await Dispatcher.InvokeAsync(() => Shutdown(code));
             });
