@@ -577,7 +577,7 @@
                 <Border x:Name="CardLog" Style="{StaticResource Card}">
                     <StackPanel>
                         <TextBlock Text="Nhật ký thao tác" Style="{StaticResource H2}" Margin="0,0,0,10"/>
-                        <TextBlock Text="Chưa có thao tác nào trong lần mở này." Style="{StaticResource Hint}">
+                        <TextBlock Text="Chưa có thao tác nào trong lần mở này.">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource Hint}">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -594,7 +594,7 @@
                                 <DataTemplate>
                                     <DockPanel Margin="0,3">
                                         <TextBlock Text="{Binding Time}" Style="{StaticResource Hint}" Width="64" FontFamily="{StaticResource MonoFont}"/>
-                                        <TextBlock Width="18" Style="{StaticResource Icon}" FontSize="12" VerticalAlignment="Top" Margin="0,2,0,0">
+                                        <TextBlock Width="18" FontSize="12" VerticalAlignment="Top" Margin="0,2,0,0">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock" BasedOn="{StaticResource Icon}">
                                                     <Setter Property="Text" Value="&#xE73E;"/>
