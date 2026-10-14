@@ -63,7 +63,23 @@ public sealed partial class UninstallViewModel : PageViewModel
     {
         if (_loaded) return;
         _loaded = true;
-        _ = LoadAsync();
+        _ = StartAsync();
+    }
+
+    private async Task StartAsync()
+    {
+        await LoadAsync();
+        switch (ShellViewModel.StartSubPage)
+        {
+            case "store": TabApps = false; TabStore = true; break;
+            case "scan":   // mở sẵn bảng gỡ của một phần mềm và quét (chỉ đọc) — dùng khi chụp màn hình
+                if (Apps.FirstOrDefault(r => r.App.InstallLocation.Length > 3 && !r.App.Publisher.Contains("Microsoft")) is { } row)
+                {
+                    Select(row);
+                    await ScanAsync();
+                }
+                break;
+        }
     }
 
     private void AddLog(string text, bool ok)
