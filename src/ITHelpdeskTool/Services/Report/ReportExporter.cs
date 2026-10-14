@@ -115,11 +115,11 @@ public static class ReportExporter
         };
 
         var sb = new StringBuilder();
-        sb.Append($$"""
+        sb.Append($$$"""
             <!doctype html>
             <html lang="vi"><head><meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>{{E(meta.Title)}}</title>
+            <title>{{{E(meta.Title)}}}</title>
             <style>
             :root{--bg:#f6f7fb;--card:#fff;--text:#1d2230;--muted:#6b7385;--line:#e6e8ef;--accent:#5b6cff;--good:#0f9d6b;--warn:#b7791f;--bad:#d64545}
             *{box-sizing:border-box}
