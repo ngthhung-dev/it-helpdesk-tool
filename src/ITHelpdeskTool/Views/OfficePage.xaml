@@ -231,7 +231,7 @@
                                 </StackPanel>
 
                                 <TextBlock Text="Tuỳ chọn" Style="{StaticResource Label}"/>
-                                <CheckBox IsChecked="{Binding RemoveMsi}" Content="Gỡ bản Office MSI cũ (2010 / 2013 / 2016) trước khi cài" Margin="0,0,0,6"/>
+                                <CheckBox IsChecked="{Binding RemoveMsi}" Content="Gỡ Office MSI cũ (2010–2016) trước khi cài" Margin="0,0,0,6"/>
                                 <CheckBox IsChecked="{Binding AutoUpdate}" Content="Tự cập nhật Office" Margin="0,0,0,6"/>
                                 <CheckBox IsChecked="{Binding ShowUi}" Content="Hiện cửa sổ tiến độ của Microsoft" Margin="0,0,0,6"/>
 
