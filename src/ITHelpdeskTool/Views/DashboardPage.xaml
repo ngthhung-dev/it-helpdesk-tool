@@ -270,7 +270,7 @@
                     <DataTemplate>
                         <Button Style="{StaticResource TileButton}" Margin="5"
                                 Command="{Binding DataContext.OpenToolCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                CommandParameter="{Binding Target}" ToolTip="{Binding Target}">
+                                CommandParameter="{Binding Target}" ToolTip="{Binding ToolTipText}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" Foreground="{StaticResource AccentBrush}"/>
                                 <TextBlock Text="{Binding Title}" Margin="10,0,0,0" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center"/>

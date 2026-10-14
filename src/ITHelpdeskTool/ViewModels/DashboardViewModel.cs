@@ -10,7 +10,10 @@ using ITHelpdeskTool.Services;
 
 namespace ITHelpdeskTool.ViewModels;
 
-public sealed record QuickTool(string Glyph, string Title, string Target);
+public sealed record QuickTool(string Glyph, string Title, string Target, string? Hint = null)
+{
+    public string ToolTipText => Hint ?? Target;
+}
 
 public sealed partial class DashboardViewModel : PageViewModel
 {
@@ -58,6 +61,10 @@ public sealed partial class DashboardViewModel : PageViewModel
         new("\uE946", "System Information", "msinfo32"),
         new("\uE81C", "Event Viewer", "eventvwr.msc"),
         new("\uE839", "Kết nối mạng", "ncpa.cpl"),
+        new("\uE7F4", "Computer Management", "compmgmt.msc"),
+        new("\uE71D", "Installed apps", "ms-settings:appsfeatures", "Settings › Apps › Installed apps"),
+        new("\uE756", "Command Prompt", "cmd.exe", "cmd.exe (quyền Administrator)"),
+        new("\uE943", "Terminal / PowerShell", ShellLauncher.Terminal, "Windows Terminal, không có thì mở PowerShell (quyền Administrator)"),
     ];
 
     public DashboardViewModel()
