@@ -34,6 +34,9 @@ public sealed record AdapterInfo(
 public sealed record UserInfo(string Name, string FullName, bool Enabled, bool IsAdmin, bool IsBuiltinAdmin,
     bool IsCurrent, string LastLogon, string Sid, bool PasswordNeverExpires)
 {
+    /// <summary>Tài khoản ẩn có sẵn của Windows (Guest, DefaultAccount, WDAGUtilityAccount).</summary>
+    public bool IsSystem => Sid.EndsWith("-501") || Sid.EndsWith("-503") || Sid.EndsWith("-504");
+
     /// <summary>Dòng mô tả phụ: họ tên · lần đăng nhập cuối.</summary>
     public string Detail => string.Join(" · ", new[]
     {

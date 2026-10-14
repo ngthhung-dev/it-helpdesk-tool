@@ -145,8 +145,7 @@ public static partial class SysConfigService
         return list.OrderBy(u => IsSystemAccount(u) ? 1 : 0).ThenBy(u => u.Name).ToList();
     }
 
-    public static bool IsSystemAccount(UserInfo u) =>
-        u.Sid.EndsWith("-501") || u.Sid.EndsWith("-503") || u.Sid.EndsWith("-504");
+    public static bool IsSystemAccount(UserInfo u) => u.IsSystem;
 
     public static string? ValidateUserName(string name)
     {

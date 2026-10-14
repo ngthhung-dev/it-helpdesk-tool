@@ -367,9 +367,19 @@
                                             </Border.Style>
                                             <DockPanel>
                                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Button Style="{StaticResource BtnSmall}" Content="Mật khẩu" Margin="6,0,0,0"
+                                                    <Button Content="Mật khẩu" Margin="6,0,0,0"
                                                             Command="{Binding DataContext.SetPasswordCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                            CommandParameter="{Binding}"/>
+                                                            CommandParameter="{Binding}">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button" BasedOn="{StaticResource BtnSmall}">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsSystem}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Hidden"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
                                                     <Button Margin="6,0,0,0"
                                                             Command="{Binding DataContext.ToggleUserEnabledCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                             CommandParameter="{Binding}">
@@ -391,6 +401,9 @@
                                                             <Style TargetType="Button" BasedOn="{StaticResource BtnSmall}">
                                                                 <Setter Property="Content" Value="Cấp admin"/>
                                                                 <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsSystem}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Hidden"/>
+                                                                    </DataTrigger>
                                                                     <DataTrigger Binding="{Binding IsAdmin}" Value="True">
                                                                         <Setter Property="Content" Value="Bỏ admin"/>
                                                                     </DataTrigger>
@@ -410,6 +423,9 @@
                                                                         <Setter Property="Visibility" Value="Hidden"/>
                                                                     </DataTrigger>
                                                                     <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Hidden"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding IsSystem}" Value="True">
                                                                         <Setter Property="Visibility" Value="Hidden"/>
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
@@ -433,6 +449,10 @@
                                                         <Border Style="{StaticResource Badge}" Background="#14FFFFFF"
                                                                 Visibility="{Binding Enabled, Converter={StaticResource NotBoolVis}}">
                                                             <TextBlock Text="Đã tắt" FontSize="11" Foreground="{StaticResource MutedBrush}"/>
+                                                        </Border>
+                                                        <Border Style="{StaticResource Badge}" Background="#14FFFFFF"
+                                                                Visibility="{Binding IsSystem, Converter={StaticResource BoolVis}}">
+                                                            <TextBlock Text="Tài khoản hệ thống" FontSize="11" Foreground="{StaticResource MutedBrush}"/>
                                                         </Border>
                                                         <Border Style="{StaticResource Badge}" Background="#14FFFFFF"
                                                                 Visibility="{Binding IsBuiltinAdmin, Converter={StaticResource BoolVis}}">
