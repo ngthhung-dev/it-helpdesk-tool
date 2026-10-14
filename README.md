@@ -47,4 +47,4 @@ src/DeskMate/
 
 ## Build tự động (GitHub Actions)
 - Mỗi lần push lên `main`: build + đóng gói, tải bản cài ở tab **Actions → run → Artifacts**.
-- Push tag `v*` (vd `git tag v0.1.0 && git push --tags`): tạo **Release** kèm `DeskMate-Setup-x.y.z.exe` và bản portable.
+- Tạo **Release**: vào **Actions → Build & Package → Run workflow**, nhập phiên bản (vd `0.2.0`). Hoặc push tag `v0.2.0`. Release kèm `DeskMate-Setup-x.y.z.exe` và bản portable.
