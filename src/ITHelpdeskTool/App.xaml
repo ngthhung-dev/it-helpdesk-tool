@@ -32,6 +32,9 @@
             <DataTemplate DataType="{x:Type vm:TweaksViewModel}">
                 <v:TweaksPage/>
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:CleanupViewModel}">
+                <v:CleanupPage/>
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:AboutViewModel}">
                 <v:AboutPage/>
             </DataTemplate>
