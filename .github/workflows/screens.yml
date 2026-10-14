@@ -1,0 +1,93 @@
+name: Screenshots
+
+# Chạy app thật trên máy Windows của GitHub, chụp màn hình các trang và báo cáo HTML,
+# rồi đẩy ảnh lên nhánh ci-screens để xem lại.
+on:
+  workflow_dispatch:
+    inputs:
+      pages:
+        description: 'Các trang cần chụp (key, cách nhau dấu phẩy)'
+        default: 'report,dashboard,about'
+
+permissions:
+  contents: write
+
+jobs:
+  shots:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish
+        run: dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o publish
+
+      - name: Chụp màn hình
+        shell: pwsh
+        run: |
+          try { Set-DisplayResolution -Width 1600 -Height 1000 -Force -ErrorAction Stop } catch { Write-Host "Không đổi được độ phân giải: $_" }
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          Add-Type @"
+          using System; using System.Runtime.InteropServices;
+          public static class U {
+            [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int n);
+            [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+            [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+            [DllImport("user32.dll")] public static extern void mouse_event(int f, int x, int y, int d, int e);
+          }
+          "@
+          New-Item -ItemType Directory shots -Force | Out-Null
+          function Shot($name) {
+            $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+            $g = [System.Drawing.Graphics]::FromImage($bmp)
+            $g.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+            $bmp.Save("shots\$name.png", [System.Drawing.Imaging.ImageFormat]::Png)
+            $g.Dispose(); $bmp.Dispose()
+          }
+          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          Write-Host "Màn hình: $($b.Width)x$($b.Height)"
+          foreach ($page in '${{ github.event.inputs.pages }}'.Split(',')) {
+            $page = $page.Trim()
+            $p = Start-Process publish\ITHelpdeskTool.exe -ArgumentList '--page', $page -PassThru
+            $sw = [Diagnostics.Stopwatch]::StartNew()
+            while ($p.MainWindowHandle -eq 0 -and $sw.ElapsedMilliseconds -lt 30000) { Start-Sleep -Milliseconds 100; $p.Refresh() }
+            [U]::ShowWindow($p.MainWindowHandle, 3) | Out-Null      # phóng to
+            [U]::SetForegroundWindow($p.MainWindowHandle) | Out-Null
+            Start-Sleep -Seconds ($(if ($page -eq 'report') { 14 } else { 5 }))
+            Shot "$page-1"
+            if ($page -eq 'report') {
+              # cuộn xuống từng trang để chụp phần dưới
+              [U]::SetCursorPos([int]($b.Width * 0.6), [int]($b.Height * 0.6)) | Out-Null
+              foreach ($i in 2..6) {
+                foreach ($k in 1..8) { [U]::mouse_event(0x0800, 0, 0, -120, 0); Start-Sleep -Milliseconds 30 }
+                Start-Sleep -Milliseconds 600
+                Shot "$page-$i"
+              }
+            }
+            Stop-Process $p -Force; Start-Sleep 1
+          }
+
+          # Báo cáo HTML xuất ra, chụp bằng Edge headless
+          Start-Process publish\ITHelpdeskTool.exe -ArgumentList '--report', "$PWD\shots\report" -Wait
+          $edge = "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe"
+          if (Test-Path $edge) {
+            & $edge --headless=new --disable-gpu --hide-scrollbars --window-size=1200,5200 "--screenshot=$PWD\shots\report-html.png" "file:///$($PWD -replace '\\','/')/shots/report.html"
+            Start-Sleep 5
+          }
+          Get-ChildItem shots | ForEach-Object { Write-Host "::notice title=shot::$($_.Name) $([int]($_.Length/1KB)) KB" }
+
+      - name: Đẩy ảnh lên nhánh ci-screens
+        shell: pwsh
+        run: |
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          Copy-Item shots $env:RUNNER_TEMP\shots -Recurse
+          git checkout --orphan ci-screens
+          git rm -rf . -q
+          Copy-Item $env:RUNNER_TEMP\shots\* .
+          Remove-Item *.json, *.txt -ErrorAction SilentlyContinue
+          git add -A
+          git commit -q -m "Screenshots $env:GITHUB_SHA"
+          git push -f origin ci-screens

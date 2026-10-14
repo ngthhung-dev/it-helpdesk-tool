@@ -12,9 +12,11 @@ public static partial class ReportCollector
     {
         var d = new SectionData();
 
-        // Phần mềm diệt virus đăng ký với Windows Security Center
-        var avs = Wmi.TryQuery("SELECT displayName, productState FROM AntiVirusProduct", @"root\SecurityCenter2");
-        foreach (var av in avs.GroupBy(a => a.Str("displayName")).Select(g => g.First()))
+        // Phần mềm diệt virus đăng ký với Windows Security Center (Windows Server không có mục này)
+        List<WmiRow>? avs;
+        try { avs = Wmi.Query("SELECT displayName, productState FROM AntiVirusProduct", @"root\SecurityCenter2"); }
+        catch { avs = null; }
+        foreach (var av in (avs ?? []).GroupBy(a => a.Str("displayName")).Select(g => g.First()))
         {
             var state = av.Long("productState");
             var on = ((state >> 12) & 0xF) == 1;
@@ -23,8 +25,6 @@ public static partial class ReportCollector
                 on ? outdated ? "Đang bật · chưa cập nhật mẫu nhận diện" : "Đang bật" : "Đang tắt",
                 !on ? Tone.Bad : outdated ? Tone.Warn : Tone.Good);
         }
-        if (avs.Count == 0) d.F("Diệt virus", "Không thấy phần mềm diệt virus nào", Tone.Bad);
-
         // Microsoft Defender
         var mp = Wmi.First("SELECT RealTimeProtectionEnabled, AntivirusEnabled, AntivirusSignatureLastUpdated, AntivirusSignatureVersion, IsTamperProtected FROM MSFT_MpComputerStatus",
             @"root\Microsoft\Windows\Defender");
@@ -40,6 +40,9 @@ public static partial class ReportCollector
             }
             d.F("Defender · chống can thiệp (Tamper)", Fmt.YesNo(mp.Bool("IsTamperProtected")));
         }
+        var defenderOn = mp?.Bool("AntivirusEnabled") == true;
+        if (avs is { Count: 0 } && !defenderOn)
+            d.F("Diệt virus", "Không thấy phần mềm diệt virus nào", Tone.Bad);
 
         // Tường lửa: đọc registry (nhanh, không cần dịch vụ)
         var fw = new List<string>();

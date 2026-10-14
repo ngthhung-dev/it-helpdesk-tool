@@ -20,6 +20,9 @@ public sealed partial class ShellViewModel : ObservableObject
 
     [ObservableProperty] private PageViewModel? _currentPage;
 
+    /// <summary>Trang mở đầu tiên, đặt từ tham số dòng lệnh --page.</summary>
+    public static string? StartPage { get; set; }
+
     public ShellViewModel()
     {
         // Giai đoạn 1: đánh số 1. Trang chưa làm hiện màn hình "Sắp có".
@@ -70,7 +73,10 @@ public sealed partial class ShellViewModel : ObservableObject
             ]),
         ];
 
-        Navigate(Groups[0].Items[0]);
+        // Mở thẳng vào trang chỉ định (tham số --page <key>), không có thì vào Tổng quan
+        var start = Groups.SelectMany(g => g.Items).Append(AboutItem)
+            .FirstOrDefault(i => i.Key.Equals(StartPage, StringComparison.OrdinalIgnoreCase));
+        Navigate(start ?? Groups[0].Items[0]);
     }
 
     private static NavItem Item(string key, string title, string glyph, int phase, Func<PageViewModel>? factory = null)

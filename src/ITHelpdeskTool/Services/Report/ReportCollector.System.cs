@@ -25,7 +25,7 @@ public static partial class ReportCollector
         var model = cs?.Str("Model") ?? "";
         var family = cs?.Str("SystemFamily") ?? "";
         d.F("Model", family.Length > 0 && !model.Contains(family, StringComparison.OrdinalIgnoreCase) ? $"{family} · {model}" : model);
-        d.F("Mã SKU", cs?.Str("SystemSKUNumber"));
+        d.F("Mã SKU", Clean(cs?.Str("SystemSKUNumber")));
         d.F("Loại máy", ChassisName(chassis?.UShorts("ChassisTypes") ?? []));
         d.F("Serial (Service Tag)", Clean(bios?.Str("SerialNumber")));
         d.F("UUID", csp?.Str("UUID"));
@@ -102,7 +102,7 @@ public static partial class ReportCollector
         if (c.Long("MaxClockSpeed") is > 0 and var mhz) d.F("Xung cơ bản", $"{mhz / 1000.0:0.00} GHz");
         if (c.Long("L2CacheSize") is > 0 and var l2) d.F("Cache L2", CacheText(l2));
         if (c.Long("L3CacheSize") is > 0 and var l3) d.F("Cache L3", CacheText(l3));
-        d.F("Socket", c.Str("SocketDesignation"));
+        d.F("Socket", Clean(c.Str("SocketDesignation")));
 
         // Khi Hyper-V/WSL2 đang chạy, Windows báo VirtualizationFirmwareEnabled = false dù BIOS đã bật
         if (cs?.Bool("HypervisorPresent") == true)
@@ -145,15 +145,15 @@ public static partial class ReportCollector
             [1.2, 1, 1, 1, 1.1, 1.6, 1.1]);
         foreach (var s in sticks)
         {
-            var slot = s.Str("DeviceLocator");
-            var bank = s.Str("BankLabel");
+            var slot = Clean(s.Str("DeviceLocator"));
+            var bank = Clean(s.Str("BankLabel"));
             t.Add(
-                bank.Length > 0 && !slot.Contains(bank) ? $"{slot} ({bank})" : slot,
+                bank.Length > 0 && !slot.Contains(bank) ? $"{slot} ({bank})".Trim() : slot,
                 Fmt.Size(s.Long("Capacity")),
                 MemoryType((int)s.Long("SMBIOSMemoryType")),
-                $"{(s.Long("ConfiguredClockSpeed") is > 0 and var cfg ? cfg : s.Long("Speed"))} MT/s",
+                (s.Long("ConfiguredClockSpeed") is > 0 and var cfg ? cfg : s.Long("Speed")) is > 0 and var mts ? $"{mts} MT/s" : "",
                 RamVendor(s.Str("Manufacturer")),
-                s.Str("PartNumber"),
+                Clean(s.Str("PartNumber")),
                 Clean(s.Str("SerialNumber")));
         }
         return d;
@@ -163,7 +163,9 @@ public static partial class ReportCollector
     private static string Clean(string? s)
     {
         s = s?.Trim() ?? "";
-        string[] junk = ["To be filled by O.E.M.", "Default string", "System Serial Number", "None", "0", "00000000", "Not Specified", "N/A", "123456789"];
+        s = s.TrimEnd('.', ' ');
+        string[] junk = ["To be filled by O.E.M.", "To Be Filled By O.E.M", "Default string", "System Serial Number", "System Product Name",
+                         "None", "0", "00000000", "Not Specified", "Not Available", "N/A", "123456789", "Unknown", "Base Board Serial Number"];
         return junk.Any(j => s.Equals(j, StringComparison.OrdinalIgnoreCase)) ? "" : s;
     }
 

@@ -138,11 +138,11 @@ public static partial class ReportCollector
         var d = new SectionData();
         const string storage = @"root\Microsoft\Windows\Storage";
 
-        // Nhiệt độ / hao mòn / giờ chạy: chỉ có qua cmdlet Get-StorageReliabilityCounter
-        var relTask = ReadReliabilityAsync();
-
         var phys = await Task.Run(() => Wmi.TryQuery("SELECT DeviceId, FriendlyName, MediaType, BusType, Size, HealthStatus, SerialNumber, FirmwareVersion FROM MSFT_PhysicalDisk", storage));
-        var rel = await relTask;
+
+        // Nhiệt độ / hao mòn / giờ chạy: thử đọc thẳng WMI (nhanh), không được mới gọi PowerShell (chậm vài giây)
+        var rel = await Task.Run(() => ReadReliabilityWmi(storage));
+        if (rel.Count == 0 && phys.Count > 0) rel = await ReadReliabilityAsync();
 
         var p = d.Table("Ổ vật lý", ["Tên", "Loại", "Dung lượng", "Sức khoẻ", "Nhiệt độ", "Hao mòn", "Giờ chạy", "Serial"],
             [2, 1, 0.8, 0.8, 0.7, 0.7, 0.8, 1.3]);
@@ -159,7 +159,7 @@ public static partial class ReportCollector
                 r.Temp > 0 ? new ReportCell($"{r.Temp} °C", r.Temp >= 70 ? Tone.Bad : r.Temp >= 60 ? Tone.Warn : Tone.Normal) : "",
                 r.Wear is { } w ? new ReportCell($"{w}%", w >= 90 ? Tone.Bad : w >= 70 ? Tone.Warn : Tone.Normal) : "",
                 r.Hours > 0 ? Fmt.Num(r.Hours) : "",
-                x.Str("SerialNumber"));
+                Clean(x.Str("SerialNumber")));
         }
 
         // Phân vùng: chỉ ổ cứng trong + USB (DriveType 2/3) nên không đụng ổ mạng
@@ -192,6 +192,20 @@ public static partial class ReportCollector
     }
 
     private readonly record struct Reliability(int Temp, int? Wear, long Hours);
+
+    private static Dictionary<string, Reliability> ReadReliabilityWmi(string scope)
+    {
+        var map = new Dictionary<string, Reliability>();
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        foreach (var r in Wmi.TryQuery("SELECT DeviceId, Temperature, Wear, PowerOnHours FROM MSFT_StorageReliabilityCounter", scope))
+        {
+            var id = r.Str("DeviceId");
+            if (id.Length == 0) continue;
+            map[id] = new Reliability((int)r.Long("Temperature"), r["Wear"] is null ? null : (int)r.Long("Wear"), r.Long("PowerOnHours"));
+        }
+        Log.Info($"Reliability qua WMI: {map.Count} ổ, {sw.ElapsedMilliseconds} ms");
+        return map;
+    }
 
     private static async Task<Dictionary<string, Reliability>> ReadReliabilityAsync()
     {

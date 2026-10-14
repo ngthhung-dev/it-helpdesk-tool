@@ -33,6 +33,9 @@ public partial class App : Application
             return;
         }
 
+        var pi = Array.FindIndex(e.Args, a => a.Equals("--page", StringComparison.OrdinalIgnoreCase));
+        if (pi >= 0 && pi + 1 < e.Args.Length) ViewModels.ShellViewModel.StartPage = e.Args[pi + 1];
+
         new MainWindow().Show();
     }
 
