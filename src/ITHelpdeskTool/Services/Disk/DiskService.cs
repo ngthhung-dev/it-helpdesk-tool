@@ -74,10 +74,14 @@ public static class DiskService
     public static async Task<List<VolumeInfo>> VolumesAsync()
     {
         const string script = """
-            @(Get-Partition | Where-Object { $_.DriveLetter -or $_.IsBoot } | ForEach-Object {
+            $parts = @(Get-Partition); $disks = @(Get-Disk)
+            @($parts | Where-Object { $_.DriveLetter -or $_.IsBoot } | ForEach-Object {
               $p = $_; $v = $p | Get-Volume -ErrorAction SilentlyContinue
               if ($v -and ($v.DriveType -eq 'Fixed' -or $v.DriveType -eq 'Removable')) {
-                $max = 0; try { $max = ($p | Get-PartitionSupportedSize -ErrorAction Stop).SizeMax } catch {}
+                # Dung lượng tối đa = tới phân vùng kế tiếp (hoặc cuối ổ) — nhanh hơn Get-PartitionSupportedSize rất nhiều
+                $next = $parts | Where-Object { $_.DiskNumber -eq $p.DiskNumber -and $_.Offset -gt $p.Offset } | Sort-Object Offset | Select-Object -First 1
+                $end = if ($next) { $next.Offset } else { ($disks | Where-Object Number -eq $p.DiskNumber).Size - 1MB }
+                $max = [int64]([math]::Max($p.Size, $end - $p.Offset))
                 [pscustomobject]@{ Letter="$($p.DriveLetter)".Trim([char]0); Label="$($v.FileSystemLabel)"; FS="$($v.FileSystem)"; Size=[int64]$v.Size; Free=[int64]$v.SizeRemaining;
                   Disk=$p.DiskNumber; Part=$p.PartitionNumber; System=[bool]$p.IsSystem; Boot=[bool]$p.IsBoot; Health="$($v.HealthStatus)"; Max=[int64]$max }
               }

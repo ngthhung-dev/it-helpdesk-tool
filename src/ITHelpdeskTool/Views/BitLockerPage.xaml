@@ -137,9 +137,15 @@
                                     <Setter TargetName="Ico" Property="Foreground" Value="{StaticResource GoodBrush}"/>
                                     <Setter TargetName="Badge" Property="Background" Value="#1A34D399"/>
                                     <Setter TargetName="BadgeT" Property="Foreground" Value="{StaticResource GoodBrush}"/>
-                                    <Setter TargetName="BSuspend" Property="Visibility" Value="Visible"/>
                                     <Setter TargetName="BOff" Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding V.IsOs}" Value="True"/>
+                                        <Condition Binding="{Binding V.On}" Value="True"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter TargetName="BSuspend" Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
                                 <DataTrigger Binding="{Binding V.Suspended}" Value="True">
                                     <Setter TargetName="Ico" Property="Text" Value="&#xE72E;"/>
                                     <Setter TargetName="Ico" Property="Foreground" Value="{StaticResource WarnBrush}"/>

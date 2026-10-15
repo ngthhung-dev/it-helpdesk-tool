@@ -155,15 +155,16 @@ public static class StorageSelfTest
                 Check(!(await B()).Locked, "mã khôi phục không mở được");
                 return "khoá → mật khẩu → khoá → mã khôi phục ok";
             });
-            await t.Do("bitlocker.suspend.disable", async () =>
+            await t.Do("bitlocker.autounlock.disable", async () =>
             {
-                Need(await BitLockerService.SuspendAsync(bv!, 0));
-                Check((await B()).Suspended, "chưa tạm dừng");
-                Need(await BitLockerService.ResumeAsync(bv!));
-                Check((await B()).On, "chưa bật lại");
+                Check(!(await BitLockerService.SuspendAsync(bv!, 0)).Ok, "ổ dữ liệu không tạm dừng được — giao diện chỉ hiện nút này cho ổ hệ điều hành");
+                Need(await BitLockerService.SetAutoUnlockAsync(bv!, true));
+                Check((await B()).AutoUnlock, "chưa bật tự mở khoá");
+                Need(await BitLockerService.SetAutoUnlockAsync(bv!, false));
                 Need(await BitLockerService.DisableAsync(bv!));
                 for (var i = 0; i < 60 && (bv = await B()).InProgress; i++) await Task.Delay(2000);
-                return bv!.StateText;
+                Check(bv!.Status == "FullyDecrypted", bv.StateText);
+                return bv.StateText;
             });
         }
 
