@@ -100,6 +100,72 @@ public static class FontSelfTest
             return $"{info.RegName} ({info.FileName}) cho tài khoản này → gỡ ok";
         });
 
+        await t.Do("scan.match", async () =>
+        {
+            // Bộ đọc nhanh phải cho kết quả giống GlyphTypeface trên toàn bộ font của Windows
+            var all = Directory.GetFiles(win).Where(f => Path.GetExtension(f).ToLowerInvariant() is ".ttf" or ".otf" or ".ttc").ToList();
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var fast = all.ToDictionary(f => f, FontScan.Probe);
+            var tFast = sw.ElapsedMilliseconds;
+            sw.Restart();
+            var bad = new List<string>();
+            var famBad = 0;
+            foreach (var f in all)
+            {
+                FontFileInfo slow;
+                try { slow = FontService.Read(f); } catch { continue; }
+                if (slow.Vietnamese != fast[f].Vietnamese) bad.Add($"{Path.GetFileName(f)} wpf={slow.Vietnamese} nhanh={fast[f].Vietnamese}");
+                if (!f.EndsWith(".ttc", StringComparison.OrdinalIgnoreCase) && slow.Family != fast[f].Family) famBad++;
+            }
+            var tSlow = sw.ElapsedMilliseconds;
+            Check(bad.Count <= all.Count / 100, $"{bad.Count} lệch: " + string.Join("; ", bad.Take(10)));
+            Check(famBad <= all.Count / 50, $"{famBad} tên họ lệch");
+            Check(FontScan.Probe(Path.Combine(win, "segoeui.ttf")) is { Family: "Segoe UI", Vietnamese: true }, "segoeui sai");
+            Check(FontScan.IsLegacyName(".VnTime") && FontScan.IsLegacyName("VNI-Times") && !FontScan.IsLegacyName("Arial"), "nhận diện VNI/TCVN3 sai");
+            await Task.CompletedTask;
+            return $"{all.Count} font: nhanh {tFast} ms, GlyphTypeface {tSlow} ms · {fast.Values.Count(v => v.Vietnamese)} đủ dấu · lệch {bad.Count} ({string.Join(", ", bad.Take(3))}) · tên lệch {famBad}";
+        });
+
+        await t.Do("bulk.many", async () =>
+        {
+            // Giả lập máy có rất nhiều font cài thêm: 3000 bản sao cho tài khoản này, rồi gỡ hàng loạt
+            const int N = 3000;
+            var src = files.First(f => f.EndsWith("BeVietnamPro-Bold.ttf"));
+            Directory.CreateDirectory(FontService.UserDir);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            using (var k = Registry.CurrentUser.CreateSubKey(FontService.FontsKey, true))
+                for (var i = 0; i < N; i++)
+                {
+                    var dest = Path.Combine(FontService.UserDir, $"ithdtest{i:0000}.ttf");
+                    File.Copy(src, dest, true);
+                    k.SetValue($"ITHD Test {i:0000} (TrueType)", dest);
+                }
+            var tMake = sw.ElapsedMilliseconds;
+            sw.Restart();
+            var list = FontService.ReadInstalled();
+            var tRead = sw.ElapsedMilliseconds;
+            sw.Restart();
+            var map = FontScan.ScanMany(list);
+            var tScan = sw.ElapsedMilliseconds;
+            sw.Restart();
+            FontScan.ScanMany(list);
+            var tCached = sw.ElapsedMilliseconds;
+            var mine = list.Where(f => f.RegName.StartsWith("ITHD Test ")).ToList();
+            Check(mine.Count == N, $"đọc được {mine.Count}/{N}");
+            Check(mine.All(f => !f.IsSystem && f.Scope == FontScope.User), "phân loại sai");
+            Check(mine.All(f => map.TryGetValue(f.File, out var r) && r.Vietnamese && r.Family == "Be Vietnam Pro"), "phân tích sai");
+            Check(tCached < tScan || tScan < 200, $"bộ đệm không nhanh hơn ({tCached} vs {tScan} ms)");
+            sw.Restart();
+            var fail = mine.Select(f => FontService.Uninstall(f, broadcast: false)).Count(r => !r.Ok);
+            FontService.Broadcast();
+            var tDel = sw.ElapsedMilliseconds;
+            Check(fail == 0, $"{fail} font gỡ lỗi");
+            Check(FontService.ReadInstalled(false).All(f => !f.RegName.StartsWith("ITHD Test ")), "còn sót registry");
+            Check(!Directory.EnumerateFiles(FontService.UserDir, "ithdtest*").Any(), "còn sót file");
+            await Task.CompletedTask;
+            return $"{list.Count} font (thêm {N}): tạo {tMake} ms · đọc danh sách {tRead} ms · phân tích {tScan} ms · lần 2 (bộ đệm) {tCached} ms · gỡ {N} font {tDel} ms";
+        });
+
         await t.Do("collect.zip", async () =>
         {
             var zip = Path.Combine(Path.GetTempPath(), "ithd-fonts.zip");

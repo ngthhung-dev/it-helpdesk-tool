@@ -186,23 +186,62 @@
                 </Grid.ColumnDefinitions>
                 <Border Style="{StaticResource Card}" Padding="0">
                     <DockPanel>
-                        <DockPanel DockPanel.Dock="Top" Margin="18,14,18,8">
+                        <DockPanel DockPanel.Dock="Top" Margin="18,14,18,6">
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                                <CheckBox IsChecked="{Binding OnlyAdded}" Content="Chỉ font cài thêm" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <CheckBox IsChecked="{Binding ShowOwnFont}" Content="Hiện tên bằng chính font" VerticalAlignment="Center" Margin="0,0,12,0"
+                                          ToolTip="Tắt đi nếu máy có rất nhiều font và cuộn bị chậm"/>
                                 <TextBox Width="200" Style="{StaticResource SearchBox}" MinHeight="30" Tag="Tìm font…"
-                                         Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged, Delay=150}"/>
+                                         Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged, Delay=250}"/>
+                                <Button Style="{StaticResource BtnSmall}" Margin="8,0,0,0" Command="{Binding LoadInstalledCommand}" ToolTip="Đọc lại danh sách font">
+                                    <TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" FontSize="12"/>
+                                </Button>
                             </StackPanel>
-                            <TextBlock Text="{Binding InstalledSummary}" Style="{StaticResource Hint}" VerticalAlignment="Center"/>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{Binding InstalledSummary}" Style="{StaticResource Hint}"/>
+                                <TextBlock Text="{Binding ScanText}" Style="{StaticResource EmptyHidden}" Foreground="{StaticResource AccentBrush}"/>
+                            </StackPanel>
                         </DockPanel>
-                        <ListBox ItemsSource="{Binding Installed}" SelectedItem="{Binding Selected}" Background="Transparent" BorderThickness="0" Padding="8,0,8,8"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+
+                        <WrapPanel DockPanel.Dock="Top" Margin="18,0,18,4">
+                            <RadioButton Style="{StaticResource ChipRadio}" GroupName="fontScope" IsChecked="{Binding ScopeAll}" Content="{Binding CountAll}"/>
+                            <RadioButton Style="{StaticResource ChipRadio}" GroupName="fontScope" IsChecked="{Binding ScopeWindows}" Content="{Binding CountWindows}"/>
+                            <RadioButton Style="{StaticResource ChipRadio}" GroupName="fontScope" IsChecked="{Binding ScopeAdded}" Content="{Binding CountAdded}"/>
+                        </WrapPanel>
+                        <WrapPanel DockPanel.Dock="Top" Margin="18,0,18,8" IsEnabled="{Binding Scanned}">
+                            <RadioButton Style="{StaticResource ChipRadio}" GroupName="fontLang" IsChecked="{Binding LangAll}" Content="Mọi ngôn ngữ"/>
+                            <RadioButton Style="{StaticResource ChipRadio}" GroupName="fontLang" IsChecked="{Binding LangVn}" Content="{Binding CountVn}"
+                                         ToolTip="Font Unicode có đủ chữ có dấu tiếng Việt"/>
+                            <RadioButton Style="{StaticResource ChipRadio}" GroupName="fontLang" IsChecked="{Binding LangLegacy}" Content="{Binding CountLegacy}"
+                                         ToolTip="Font việt hoá kiểu cũ (.VnTime, VNI-Times…) — gõ bằng bảng mã TCVN3/VNI trong UniKey"/>
+                            <RadioButton Style="{StaticResource ChipRadio}" GroupName="fontLang" IsChecked="{Binding LangNone}" Content="{Binding CountNone}"/>
+                        </WrapPanel>
+
+                        <DockPanel DockPanel.Dock="Bottom" Margin="18,8,18,12">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource BtnDanger}" Command="{Binding UninstallCheckedCommand}" IsEnabled="{Binding HasChecked}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE74D;" Style="{StaticResource Icon}" FontSize="13"/>
+                                    <TextBlock Text="{Binding CheckedText}" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+                            <WrapPanel VerticalAlignment="Center">
+                                <TextBlock Text="Chọn:" Style="{StaticResource Hint}" Margin="0,0,10,0"/>
+                                <Button Style="{StaticResource LinkButton}" Content="Mọi font cài thêm đang hiện" Margin="0,0,12,0" Command="{Binding SelectInstalledCommand}" CommandParameter="visible"/>
+                                <Button Style="{StaticResource LinkButton}" Content="Bỏ chọn" Command="{Binding SelectInstalledCommand}" CommandParameter="none"/>
+                            </WrapPanel>
+                        </DockPanel>
+
+                        <ListBox x:Name="InstalledList" ItemsSource="{Binding InstalledView}" SelectedItem="{Binding Selected}" Background="Transparent" BorderThickness="0" Padding="8,0,8,0"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True"
+                                 VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.CacheLengthUnit="Item" VirtualizingPanel.CacheLength="10,10">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="ListBoxItem">
-                                    <Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource BoolVis}}"/>
                                     <Setter Property="Template">
                                         <Setter.Value>
                                             <ControlTemplate TargetType="ListBoxItem">
-                                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8" Padding="10,7" Cursor="Hand">
+                                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8" Padding="10,6" Cursor="Hand">
                                                     <ContentPresenter/>
                                                 </Border>
                                                 <ControlTemplate.Triggers>
@@ -220,26 +259,45 @@
                             </ListBox.ItemContainerStyle>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding Font.Name}" FontFamily="{Binding Family}" FontSize="16" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{Binding Detail}" Style="{StaticResource Hint}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
-                                    </StackPanel>
+                                    <DockPanel Height="44">
+                                        <CheckBox IsChecked="{Binding IsChecked}" IsEnabled="{Binding CanRemove}" VerticalAlignment="Center" Margin="0,0,12,0"
+                                                  ToolTip="Chọn để gỡ (font của Windows không gỡ được)"/>
+                                        <Border x:Name="Vn" DockPanel.Dock="Right" Style="{StaticResource Badge}" Background="#1A34D399" Margin="8,0,0,0">
+                                            <TextBlock x:Name="VnT" Text="{Binding Badge}" Style="{StaticResource BadgeText}" Foreground="{StaticResource GoodBrush}"/>
+                                        </Border>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock x:Name="NameT" Text="{Binding Font.Name}" FontSize="16" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Hint}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding DataContext.ShowOwnFont, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="True">
+                                            <Setter TargetName="NameT" Property="FontFamily" Value="{Binding Family}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Badge}" Value="">
+                                            <Setter TargetName="Vn" Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Tone}" Value="Warn">
+                                            <Setter TargetName="Vn" Property="Background" Value="#1AFBBF24"/>
+                                            <Setter TargetName="VnT" Property="Foreground" Value="{StaticResource WarnBrush}"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
                     </DockPanel>
                 </Border>
 
-                <Border Grid.Column="1" Width="440" Margin="12,0,0,0" Style="{StaticResource Card}"
+                <Border Grid.Column="1" Width="400" Margin="12,0,0,0" Style="{StaticResource Card}"
                         Visibility="{Binding HasSelected, Converter={StaticResource BoolVis}}">
                     <StackPanel>
                         <TextBlock Text="{Binding Selected.Font.Name}" Style="{StaticResource H2}" TextWrapping="Wrap"/>
                         <TextBlock Text="{Binding Selected.Detail}" Style="{StaticResource Hint}" Margin="0,2,0,0"/>
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                            <Border x:Name="SelVn" Style="{StaticResource Badge}" Background="#1A34D399" Visibility="{Binding Selected.Info.Vietnamese, Converter={StaticResource BoolVis}}">
+                            <Border x:Name="SelVn" Style="{StaticResource Badge}" Background="#1A34D399" Visibility="{Binding Selected.Vietnamese, Converter={StaticResource BoolVis}}">
                                 <TextBlock Text="Đủ dấu tiếng Việt" Style="{StaticResource BadgeText}" Foreground="{StaticResource GoodBrush}"/>
                             </Border>
-                            <Border Style="{StaticResource Badge}" Background="#1AFBBF24" Visibility="{Binding Selected.Info.Legacy, Converter={StaticResource BoolVis}}">
+                            <Border Style="{StaticResource Badge}" Background="#1AFBBF24" Visibility="{Binding Selected.Legacy, Converter={StaticResource BoolVis}}">
                                 <TextBlock Text="Font mã cũ VNI/TCVN3" Style="{StaticResource BadgeText}" Foreground="{StaticResource WarnBrush}"/>
                             </Border>
                         </StackPanel>

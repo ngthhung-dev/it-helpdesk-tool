@@ -112,9 +112,10 @@ public static class FontService
         System.Text.RegularExpressions.Regex.Replace(regName, @"\s*\((TrueType|OpenType|VGA res|All res|\d+[^)]*)\)\s*$", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
     // ================= Font đã cài =================
-    public static List<InstalledFont> ReadInstalled()
+    /// <summary>Font đã cài. checkSystem: xác định font của Windows (đọc chủ sở hữu file — chậm hơn, chạy song song).</summary>
+    public static List<InstalledFont> ReadInstalled(bool checkSystem = true)
     {
-        var list = new List<InstalledFont>();
+        var raw = new List<(string Name, string File, FontScope Scope)>();
         void Scan(RegistryKey root, FontScope scope)
         {
             using var k = root.OpenSubKey(FontsKey);
@@ -123,14 +124,20 @@ public static class FontService
             {
                 if (k.GetValue(n) is not string v || v.Length == 0) continue;
                 var file = System.IO.Path.IsPathRooted(v) ? v : System.IO.Path.Combine(MachineDir, v);
-                long size = 0;
-                try { size = new FileInfo(file).Length; } catch { }
-                list.Add(new InstalledFont(n, file, scope, scope == FontScope.Machine && IsSystemFile(file), size));
+                raw.Add((n, file, scope));
             }
         }
         Scan(Registry.LocalMachine, FontScope.Machine);
         Scan(Registry.CurrentUser, FontScope.User);
-        return list.OrderBy(f => f.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+        var arr = new InstalledFont[raw.Count];
+        Parallel.For(0, raw.Count, new ParallelOptions { MaxDegreeOfParallelism = Math.Clamp(Environment.ProcessorCount, 2, 8) }, i =>
+        {
+            var (n, file, scope) = raw[i];
+            long size = 0;
+            try { size = new FileInfo(file).Length; } catch { }
+            arr[i] = new InstalledFont(n, file, scope, checkSystem && scope == FontScope.Machine && IsSystemFile(file), size);
+        });
+        return arr.OrderBy(f => f.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
     }
 
     /// <summary>Font đi kèm Windows: file thuộc sở hữu TrustedInstaller.</summary>
@@ -147,10 +154,10 @@ public static class FontService
 
     /// <summary>Tên font (registry) đã có chưa → để báo “đã cài”.</summary>
     public static HashSet<string> InstalledNames() =>
-        ReadInstalled().Select(f => f.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        ReadInstalled(false).Select(f => f.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     public static HashSet<string> InstalledFileNames() =>
-        ReadInstalled().Select(f => f.FileName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        ReadInstalled(false).Select(f => f.FileName).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     // ================= Cài =================
     [DllImport("gdi32.dll", CharSet = CharSet.Unicode)] private static extern int AddFontResource(string file);
@@ -215,7 +222,7 @@ public static class FontService
     }
 
     // ================= Gỡ =================
-    public static OpResult Uninstall(InstalledFont f)
+    public static OpResult Uninstall(InstalledFont f, bool broadcast = true)
     {
         if (f.IsSystem) return OpResult.Fail($"{f.Name} là font hệ thống của Windows — không gỡ.");
         try
@@ -223,7 +230,7 @@ public static class FontService
             RemoveFontResource(f.File);
             var root = f.Scope == FontScope.Machine ? Registry.LocalMachine : Registry.CurrentUser;
             using (var k = root.OpenSubKey(FontsKey, true)) k?.DeleteValue(f.RegName, false);
-            Broadcast();
+            if (broadcast) Broadcast();
             var restart = false;
             if (File.Exists(f.File))
             {
