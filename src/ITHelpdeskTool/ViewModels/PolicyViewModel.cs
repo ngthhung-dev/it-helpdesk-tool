@@ -49,6 +49,14 @@ public sealed partial class PolicyGroup(string title, string glyph, IReadOnlyLis
     [ObservableProperty] private int _onCount;
 }
 
+/// <summary>Một USB trong danh sách "chỉ USB được phép".</summary>
+public sealed partial class UsbAllowRow(UsbStorage d, bool allowed) : ObservableObject
+{
+    public UsbStorage Disk { get; } = d;
+    [ObservableProperty] private bool _isChecked = allowed || d.Present;
+    public bool IsAllowed { get; } = allowed;
+}
+
 public sealed partial class PolicyViewModel : PageViewModel
 {
     public override string Title => "Policy";
@@ -101,6 +109,86 @@ public sealed partial class PolicyViewModel : PageViewModel
         if (_loaded) return;
         _loaded = true;
         _ = LoadAsync();
+        _ = LoadUsbAsync();
+    }
+
+    // ================= Chỉ cho dùng USB được phép =================
+    public ObservableCollection<UsbAllowRow> UsbRows { get; } = [];
+    [ObservableProperty] private bool _usbWlEnabled;
+    [ObservableProperty] private string _usbWlStatus = "";
+
+    [RelayCommand]
+    private async Task LoadUsbAsync()
+    {
+        try
+        {
+            UsbWlEnabled = UsbWhitelistService.IsEnabled();
+            var allowed = UsbWhitelistService.AllowedIds().ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var list = await UsbWhitelistService.ListAsync();
+            UsbRows.Clear();
+            // Khi đang bật chỉ hiện USB (bỏ ổ trong máy cũng nằm trong danh sách phép)
+            foreach (var d in list.Where(d => d.Present || UsbLike(d.InstanceId)))
+                UsbRows.Add(new UsbAllowRow(d, allowed.Contains(d.InstanceId)));
+            var n = UsbRows.Count(r => r.IsAllowed);
+            UsbWlStatus = UsbWlEnabled
+                ? $"Đang bật · {n} USB được phép. USB khác cắm vào máy sẽ không được nhận."
+                : UsbRows.Count == 0 ? "Chưa cắm USB nào — cắm USB cần cho phép rồi bấm “Quét lại”." : "Đang tắt · mọi USB đều dùng được.";
+        }
+        catch (Exception ex) { UsbWlStatus = "Không đọc được danh sách USB: " + ex.Message; }
+    }
+
+    private static bool UsbLike(string id) =>
+        id.StartsWith(@"USBSTOR\", StringComparison.OrdinalIgnoreCase) || id.Contains("USB", StringComparison.OrdinalIgnoreCase);
+
+    [RelayCommand]
+    private async Task EnableUsbWlAsync()
+    {
+        var ids = UsbRows.Where(r => r.IsChecked).Select(r => r.Disk.InstanceId).ToList();
+        if (ids.Count == 0) { DialogWindow.Info("Chưa chọn USB", "Cắm USB cần cho phép vào máy, bấm “Quét lại” rồi tích chọn."); return; }
+        var others = UsbRows.Count(r => r.Disk.Present && !r.IsChecked);
+        if (!DialogWindow.Confirm($"Chỉ cho dùng {ids.Count} USB đã chọn?",
+                "Mọi USB lưu trữ / ổ cứng gắn ngoài khác cắm vào máy sẽ không được nhận (không đọc, không chép được dữ liệu)." +
+                (others > 0 ? $"\n\n{others} USB đang cắm mà không được chọn sẽ bị ngắt ngay." : "") +
+                "\n\nChuột, bàn phím, máy in, điện thoại sạc qua USB vẫn dùng bình thường. Ổ đĩa trong máy không bị ảnh hưởng.", "Bật", danger: true))
+            return;
+        IsBusy = true;
+        BusyText = "Đang áp dụng danh sách USB được phép…";
+        OpResult r;
+        try { r = await UsbWhitelistService.EnableAsync(ids); }
+        finally { IsBusy = false; }
+        AddLog(r.Message, r.Ok);
+        if (!r.Ok) DialogWindow.Info("Chưa thực hiện được", r.Message, error: true);
+        await LoadUsbAsync();
+    }
+
+    [RelayCommand]
+    private async Task DisableUsbWlAsync()
+    {
+        if (!DialogWindow.Confirm("Tắt chế độ chỉ USB được phép?", "Mọi USB lưu trữ sẽ dùng được lại như bình thường.", "Tắt")) return;
+        IsBusy = true;
+        BusyText = "Đang gỡ danh sách USB được phép…";
+        OpResult r;
+        try { r = await UsbWhitelistService.DisableAsync(); }
+        finally { IsBusy = false; }
+        AddLog(r.Message, r.Ok);
+        if (!r.Ok) DialogWindow.Info("Chưa thực hiện được", r.Message, error: true);
+        await LoadUsbAsync();
+    }
+
+    /// <summary>Khi đang bật: thêm / bỏ một USB khỏi danh sách phép.</summary>
+    [RelayCommand]
+    private async Task ToggleUsbAllowAsync(UsbAllowRow? row)
+    {
+        if (row is null || !UsbWlEnabled) return;
+        var allow = !row.IsAllowed;
+        if (!allow && UsbRows.Count(r => r.IsAllowed) <= 1)
+        {
+            DialogWindow.Info("Cần ít nhất một USB", "Muốn chặn hết USB thì dùng mục “Chặn USB lưu trữ”, hoặc tắt chế độ này.");
+            return;
+        }
+        var r = UsbWhitelistService.SetAllowed(row.Disk.InstanceId, allow);
+        AddLog($"{row.Disk.Display}: {r.Message}", r.Ok);
+        await LoadUsbAsync();
     }
 
     private IEnumerable<PolicyItem> AllItems => Groups.SelectMany(g => g.Items);

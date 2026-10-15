@@ -184,6 +184,76 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
+
+                                    <!-- Chỉ cho dùng USB được phép (chỉ hiện trong nhóm Thiết bị & USB) -->
+                                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,14,0,0">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Title}" Value="Thiết bị &amp; USB">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                            <DockPanel>
+                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                                                    <Button Style="{StaticResource BtnSmall}" Content="Quét lại" Command="{Binding LoadUsbCommand}" ToolTip="Đọc lại danh sách USB đang cắm"/>
+                                                    <Button Style="{StaticResource BtnPrimary}" Content="Bật" Margin="8,0,0,0" Command="{Binding EnableUsbWlCommand}"
+                                                            Visibility="{Binding UsbWlEnabled, Converter={StaticResource NotBoolVis}}"/>
+                                                    <Button Style="{StaticResource BtnDanger}" Content="Tắt" Margin="8,0,0,0" Command="{Binding DisableUsbWlCommand}"
+                                                            Visibility="{Binding UsbWlEnabled, Converter={StaticResource BoolVis}}"/>
+                                                </StackPanel>
+                                                <StackPanel Margin="0,0,12,0">
+                                                    <TextBlock Text="Chỉ cho dùng USB được phép" Foreground="{StaticResource TextBrush}"/>
+                                                    <TextBlock Style="{StaticResource Hint}" Margin="0,2,0,0"
+                                                               Text="Chỉ các USB được chọn bên dưới mới đọc / chép được dữ liệu. Mọi USB lưu trữ, ổ cứng gắn ngoài khác cắm vào máy sẽ không được nhận."/>
+                                                    <TextBlock Text="{Binding UsbWlStatus}" Style="{StaticResource Hint}" Foreground="{StaticResource AccentBrush}" Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </DockPanel>
+
+                                            <ItemsControl ItemsSource="{Binding UsbRows}" Margin="0,4,0,0">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <DockPanel Margin="0,10,0,0">
+                                                            <Button DockPanel.Dock="Right" VerticalAlignment="Center" CommandParameter="{Binding}"
+                                                                    Command="{Binding DataContext.ToggleUsbAllowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                    Visibility="{Binding DataContext.UsbWlEnabled, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
+                                                                <Button.Style>
+                                                                    <Style TargetType="Button" BasedOn="{StaticResource BtnSmall}">
+                                                                        <Setter Property="Content" Value="Bỏ khỏi danh sách"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsAllowed}" Value="False">
+                                                                                <Setter Property="Content" Value="Cho phép"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Button.Style>
+                                                            </Button>
+                                                            <CheckBox IsChecked="{Binding IsChecked}" VerticalAlignment="Center" Margin="0,0,10,0"
+                                                                      Visibility="{Binding DataContext.UsbWlEnabled, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource NotBoolVis}}"/>
+                                                            <TextBlock Text="&#xE88E;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource AccentBrush}"
+                                                                       VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                                            <StackPanel>
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <TextBlock Text="{Binding Disk.Display}" Foreground="{StaticResource TextBrush}"/>
+                                                                    <Border Style="{StaticResource Badge}" Background="#1A34D399" Margin="8,0,0,0"
+                                                                            Visibility="{Binding IsAllowed, Converter={StaticResource BoolVis}}">
+                                                                        <TextBlock Text="Được phép" Style="{StaticResource BadgeText}" Foreground="{StaticResource GoodBrush}"/>
+                                                                    </Border>
+                                                                </StackPanel>
+                                                                <TextBlock Text="{Binding Disk.Detail}" Style="{StaticResource Hint}"/>
+                                                            </StackPanel>
+                                                        </DockPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <TextBlock Style="{StaticResource Hint}" Foreground="{StaticResource WarnBrush}" Margin="0,12,0,0" TextWrapping="Wrap"
+                                                       Text="Không bật cùng “Chặn USB lưu trữ” hay “USB chỉ đọc” (sẽ chặn cả USB được phép). Khi bật, ổ cứng gắn ngoài và ổ ảo (VHD) mới cũng bị chặn; chuột, bàn phím, máy in USB vẫn dùng bình thường. Cần Windows 10 bản 2004 trở lên."/>
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
                             </Border>
                         </DataTemplate>
