@@ -133,15 +133,33 @@ public sealed class SectionIndex : ItemsControl
         catch { return double.NaN; }
     }
 
-    /// <summary>Sáng mục được chọn và mọi mục nằm cùng hàng với nó (thẻ đặt cạnh nhau, cùng mép trên).</summary>
+    /// <summary>Vị trí thẻ trong khung cuộn (null nếu không hiện).</summary>
+    private Rect? Bounds(FrameworkElement el)
+    {
+        try
+        {
+            if (Target is null || !el.IsVisible || !Target.IsAncestorOf(el)) return null;
+            var p = el.TransformToAncestor(Target).Transform(new Point(0, 0));
+            return new Rect(p.X, p.Y, el.ActualWidth, el.ActualHeight);
+        }
+        catch { return null; }
+    }
+
+    /// <summary>
+    /// Sáng mục đang xem, cộng các mục ở cột bên cạnh (không chồng lên theo chiều ngang) đang thực sự hiện trong khung nhìn
+    /// — vd trang 2 cột: thẻ bên phải cùng hàng, hoặc cả cột phải nếu cửa sổ đủ cao để thấy hết.
+    /// </summary>
     private void SetActive(SectionIndexItem? active)
     {
-        var top = active is null ? double.NaN : Top(active.Element);
+        var a = active is null ? null : Bounds(active.Element);
+        var viewH = Target?.ViewportHeight ?? 0;
         foreach (var it in _items)
         {
             if (ReferenceEquals(it, active)) { it.IsActive = true; continue; }
-            var y = double.IsNaN(top) ? double.NaN : Top(it.Element);
-            it.IsActive = !double.IsNaN(y) && Math.Abs(y - top) < 2;
+            if (a is not { } ar || Bounds(it.Element) is not { } r) { it.IsActive = false; continue; }
+            var sameColumn = Math.Min(ar.Right, r.Right) - Math.Max(ar.Left, r.Left) > 1;
+            var visible = Math.Min(r.Bottom, viewH) - Math.Max(r.Top, 0);
+            it.IsActive = !sameColumn && visible >= Math.Min(48, r.Height * 0.5);
         }
     }
 }
