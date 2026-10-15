@@ -53,17 +53,17 @@ public sealed partial class DashboardViewModel : PageViewModel
 
     public IReadOnlyList<QuickTool> QuickTools { get; } =
     [
-        new("\uE9D9", "Task Manager", "taskmgr"),
-        new("\uE772", "Device Manager", "devmgmt.msc"),
-        new("\uEDA2", "Disk Management", "diskmgmt.msc"),
-        new("\uE912", "Services", "services.msc"),
-        new("\uE80A", "Control Panel", "control"),
-        new("\uE946", "System Information", "msinfo32"),
-        new("\uE81C", "Event Viewer", "eventvwr.msc"),
-        new("\uE839", "Kết nối mạng", "ncpa.cpl"),
         new("\uE7F4", "Computer Management", "compmgmt.msc"),
+        new("\uE80A", "Control Panel", "control"),
+        new("\uE9D9", "Task Manager", "taskmgr"),
+        new("\uE946", "System Information", "msinfo32"),
+        new("\uEDA2", "Disk Management", "diskmgmt.msc"),
         new("\uE71D", "Installed apps", "ms-settings:appsfeatures", "Settings › Apps › Installed apps"),
+        new("\uE839", "Kết nối mạng", "ncpa.cpl"),
         new("\uE756", "Command Prompt", "cmd.exe", "cmd.exe (quyền Administrator)"),
+        new("\uE772", "Device Manager", "devmgmt.msc"),
+        new("\uE912", "Services", "services.msc"),
+        new("\uE81C", "Event Viewer", "eventvwr.msc"),
         new("\uE943", "Terminal / PowerShell", ShellLauncher.Terminal, "Windows Terminal, không có thì mở PowerShell (quyền Administrator)"),
     ];
 
