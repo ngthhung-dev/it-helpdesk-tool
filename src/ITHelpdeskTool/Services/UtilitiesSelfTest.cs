@@ -192,7 +192,8 @@ public static class UtilitiesSelfTest
                 throw new InvalidOperationException($"qua explorer: không chạy (main {mainOk}, tiến trình {before}→{after}, file hồ sơ {files}) · cscript: mã {cs.ExitCode} {cs.Text} · sau cscript chạy={direct}, file {files2}");
             }
             Check(MultiZaloService.IsRunning(MultiZaloService.MainDataDir), "Zalo chính không chạy");
-            var windows = Process.GetProcessesByName("Zalo").Count(x => x.MainWindowHandle != IntPtr.Zero);
+            var windows = 0;
+            for (var i = 0; i < 30 && (windows = Process.GetProcessesByName("Zalo").Count(x => x.MainWindowHandle != IntPtr.Zero)) < 2; i++) await Task.Delay(1000);
             Check(windows >= 2, $"chỉ có {windows} cửa sổ Zalo");
             Need(MultiZaloService.CreateShortcut(p));
             var lnk = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Zalo - Zalo Test A.lnk");
