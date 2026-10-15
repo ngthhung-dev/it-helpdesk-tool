@@ -133,8 +133,15 @@ public sealed class SectionIndex : ItemsControl
         catch { return double.NaN; }
     }
 
+    /// <summary>Sáng mục được chọn và mọi mục nằm cùng hàng với nó (thẻ đặt cạnh nhau, cùng mép trên).</summary>
     private void SetActive(SectionIndexItem? active)
     {
-        foreach (var it in _items) it.IsActive = ReferenceEquals(it, active);
+        var top = active is null ? double.NaN : Top(active.Element);
+        foreach (var it in _items)
+        {
+            if (ReferenceEquals(it, active)) { it.IsActive = true; continue; }
+            var y = double.IsNaN(top) ? double.NaN : Top(it.Element);
+            it.IsActive = !double.IsNaN(y) && Math.Abs(y - top) < 2;
+        }
     }
 }
