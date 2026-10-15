@@ -140,6 +140,14 @@ public static class FontSelfTest
                     File.Copy(src, dest, true);
                     k.SetValue($"ITHD Test {i:0000} (TrueType)", dest);
                 }
+            // 20 font nạp thật vào phiên (AddFontResource) — file bị giữ, phải gỡ khỏi phiên rồi mới xoá được
+            var baseInfo = FontService.Read(src);
+            for (var i = 0; i < 20; i++)
+            {
+                var copy = Path.Combine(Path.GetTempPath(), $"ithdload{i:00}.ttf");
+                File.Copy(src, copy, true);
+                Need(FontService.Install(baseInfo with { Path = copy, RegName = $"ITHD Test L{i:00} (TrueType)" }, allUsers: false, broadcast: false));
+            }
             var tMake = sw.ElapsedMilliseconds;
             sw.Restart();
             var list = FontService.ReadInstalled();
@@ -151,18 +159,22 @@ public static class FontSelfTest
             FontScan.ScanMany(list);
             var tCached = sw.ElapsedMilliseconds;
             var mine = list.Where(f => f.RegName.StartsWith("ITHD Test ")).ToList();
-            Check(mine.Count == N, $"đọc được {mine.Count}/{N}");
+            Check(mine.Count == N + 20, $"đọc được {mine.Count}/{N + 20}");
             Check(mine.All(f => !f.IsSystem && f.Scope == FontScope.User), "phân loại sai");
             Check(mine.All(f => map.TryGetValue(f.File, out var r) && r.Vietnamese && r.Family == "Be Vietnam Pro"), "phân tích sai");
             Check(tCached < tScan || tScan < 200, $"bộ đệm không nhanh hơn ({tCached} vs {tScan} ms)");
             sw.Restart();
-            var fail = FontService.UninstallMany(mine).Count(r => !r.Result.Ok);
+            var res = FontService.UninstallMany(mine);
+            var fail = res.Count(r => !r.Result.Ok);
+            var later = res.Count(r => r.Result.NeedsRestart);
             var tDel = sw.ElapsedMilliseconds;
             Check(fail == 0, $"{fail} font gỡ lỗi");
             Check(FontService.ReadInstalled(false).All(f => !f.RegName.StartsWith("ITHD Test ")), "còn sót registry");
             Check(!Directory.EnumerateFiles(FontService.UserDir, "ithdtest*").Any(), "còn sót file");
+            var leftLoaded = Directory.EnumerateFiles(FontService.UserDir, "ithdload*").Count();
+            Check(leftLoaded <= later, $"còn {leftLoaded} file font đã nạp mà không hẹn xoá");
             await Task.CompletedTask;
-            return $"{list.Count} font (thêm {N}): tạo {tMake} ms · đọc danh sách {tRead} ms · phân tích {tScan} ms · lần 2 (bộ đệm) {tCached} ms · gỡ {N} font {tDel} ms";
+            return $"{list.Count} font (thêm {N}): tạo {tMake} ms · đọc danh sách {tRead} ms · phân tích {tScan} ms · lần 2 (bộ đệm) {tCached} ms · gỡ {N + 20} font {tDel} ms (hẹn xoá sau khởi động lại: {later})";
         });
 
         await t.Do("collect.zip", async () =>

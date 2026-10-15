@@ -222,29 +222,39 @@ public static class FontService
     }
 
     // ================= Gỡ =================
-    public static OpResult Uninstall(InstalledFont f, bool broadcast = true)
+    /// <param name="unloadFirst">
+    /// Gọi RemoveFontResource trước khi xoá. Hàm này của Windows mất ~150 ms/lần và không chạy song song được,
+    /// nên khi gỡ hàng loạt thì thử xoá file trước — chỉ khi file đang bị giữ mới gỡ khỏi phiên rồi xoá lại.
+    /// </param>
+    public static OpResult Uninstall(InstalledFont f, bool broadcast = true, bool unloadFirst = true)
     {
         if (f.IsSystem) return OpResult.Fail($"{f.Name} là font hệ thống của Windows — không gỡ.");
         try
         {
-            RemoveFontResource(f.File);
+            if (unloadFirst) RemoveFontResource(f.File);
             var root = f.Scope == FontScope.Machine ? Registry.LocalMachine : Registry.CurrentUser;
             using (var k = root.OpenSubKey(FontsKey, true)) k?.DeleteValue(f.RegName, false);
-            if (broadcast) Broadcast();
             var restart = false;
-            if (File.Exists(f.File))
+            if (File.Exists(f.File) && !TryDelete(f.File))
             {
-                try { File.Delete(f.File); }
-                catch
+                if (!unloadFirst) RemoveFontResource(f.File);
+                if (!TryDelete(f.File))
                 {
                     // Font đang được ứng dụng giữ → xoá khi khởi động lại
                     MoveFileEx(f.File, null, 4 /*MOVEFILE_DELAY_UNTIL_REBOOT*/);
                     restart = true;
                 }
             }
+            if (broadcast) Broadcast();
             return OpResult.Success($"Đã gỡ {f.Name}" + (restart ? " (file xoá hẳn sau khi khởi động lại)." : "."), restart);
         }
         catch (Exception ex) { return OpResult.Fail($"Không gỡ được {f.Name}: {ex.Message}"); }
+    }
+
+    private static bool TryDelete(string file)
+    {
+        try { File.Delete(file); return !File.Exists(file); }
+        catch { return false; }
     }
 
     /// <summary>Gỡ nhiều font một lần: chạy song song, báo WM_FONTCHANGE một lần ở cuối.</summary>
@@ -254,7 +264,7 @@ public static class FontService
         var done = 0;
         Parallel.For(0, fonts.Count, new ParallelOptions { MaxDegreeOfParallelism = Math.Clamp(Environment.ProcessorCount, 2, 8) }, i =>
         {
-            results[i] = (fonts[i], Uninstall(fonts[i], broadcast: false));
+            results[i] = (fonts[i], Uninstall(fonts[i], broadcast: false, unloadFirst: false));
             var n = Interlocked.Increment(ref done);
             if (n % 25 == 0) progress?.Invoke(n);
         });
