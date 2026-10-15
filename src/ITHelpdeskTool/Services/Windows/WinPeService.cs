@@ -1,5 +1,4 @@
 using System.IO;
-using ITHelpdeskTool.Services.Store;
 using ITHelpdeskTool.Services.SysConfig;
 using Microsoft.Win32;
 
@@ -52,30 +51,44 @@ public static class WinPeService
         catch { return ""; }
     }
 
-    /// <summary>Phiên bản ADK có WinPE add-on tương ứng trên winget (hai gói phải cùng phiên bản).</summary>
-    public const string PairedVersion = "10.1.26100.2454";
+    /// <summary>Link tải chính thức trên trang “Download and install the Windows ADK” của Microsoft (luôn là cặp cùng phiên bản).</summary>
+    public const string AdkUrl = "https://go.microsoft.com/fwlink/?linkid=2289980";
+    public const string PeAddonUrl = "https://go.microsoft.com/fwlink/?linkid=2289981";
 
-    /// <summary>Cài Windows ADK (Deployment Tools) và WinPE add-on qua winget (nguồn Microsoft).</summary>
+    /// <summary>Tải và cài Windows ADK (Deployment Tools) + WinPE add-on từ Microsoft, kiểm tra chữ ký số trước khi chạy.</summary>
     public static async Task<OpResult> InstallAdkAsync(Action<string> log, CancellationToken ct)
     {
+        var dir = Path.Combine(Downloader.CacheDir, "adk");
+        async Task<OpResult> Run(string url, string file, string args, string name)
+        {
+            log($"Đang tải {name}…");
+            var exe = await Downloader.DownloadAsync(url, dir, file, ct: ct);
+            var (ok, detail) = await Downloader.IsMicrosoftSignedAsync(exe, ct);
+            if (!ok) return OpResult.Fail($"{name}: file tải về không có chữ ký Microsoft ({detail}).");
+            log($"Đang cài {name} (tải thêm khoảng 1 GB, vài phút)…");
+            var r = await ProcessRunner.RunAsync(exe, args, ct: ct);
+            if (r.ExitCode is 0 or 3010) return OpResult.Success($"Đã cài {name}.");
+            var logDir = Path.Combine(Path.GetTempPath(), "adk");
+            var err = Directory.Exists(logDir)
+                ? Directory.GetFiles(logDir, "*.log").OrderByDescending(File.GetLastWriteTime).Take(1)
+                    .SelectMany(f => File.ReadLines(f).Where(l => l.Contains("error", StringComparison.OrdinalIgnoreCase)).TakeLast(2)).ToList()
+                : [];
+            return OpResult.Fail($"Cài {name} lỗi (mã {r.ExitCode}). {string.Join(" | ", err)}".Trim());
+        }
+
         if (!HasAdk)
         {
-            log("Đang cài Windows ADK (Deployment Tools)…");
-            var r = await WingetService.InstallAsync("Microsoft.WindowsADK", "Windows ADK", l => { if (StoreInstaller.Stage(l) is { } s) log(s); }, ct,
-                $"--version {PairedVersion} --override \"/quiet /norestart /features OptionId.DeploymentTools\"");
+            var r = await Run(AdkUrl, "adksetup.exe", "/quiet /norestart /ceip off /features OptionId.DeploymentTools", "Windows ADK");
             log(r.Message);
             if (!r.Ok) return r;
         }
         if (!HasPeAddon)
         {
-            log("Đang cài Windows PE add-on (khoảng 1–2 GB)…");
-            var r = await WingetService.InstallAsync("Microsoft.WindowsADK.WinPEAddon", "Windows PE add-on", l => { if (StoreInstaller.Stage(l) is { } s) log(s); }, ct,
-                $"--version {PairedVersion}");
+            var r = await Run(PeAddonUrl, "adkwinpesetup.exe", "/quiet /norestart /ceip off /features OptionId.WindowsPreinstallationEnvironment", "Windows PE add-on");
             log(r.Message);
-            if (!r.Ok)
-                return OpResult.Fail($"{r.Message}. WinPE add-on phải cùng phiên bản với Windows ADK ({AdkVersion()}) — gỡ ADK rồi cài lại từ đây, hoặc tải cặp ADK + WinPE add-on cùng phiên bản trên trang Microsoft.");
+            if (!r.Ok) return OpResult.Fail($"{r.Message} WinPE add-on phải cùng phiên bản với Windows ADK đang cài ({AdkVersion()}) — gỡ ADK cũ rồi cài lại từ đây.");
         }
-        return HasAdk && HasPeAddon ? OpResult.Success("Windows ADK và WinPE add-on đã sẵn sàng.") : OpResult.Fail("Đã chạy bộ cài nhưng vẫn chưa thấy Windows ADK / WinPE add-on.");
+        return HasAdk && HasPeAddon ? OpResult.Success($"Windows ADK {AdkVersion()} và WinPE add-on đã sẵn sàng.") : OpResult.Fail("Đã chạy bộ cài nhưng vẫn chưa thấy Windows ADK / WinPE add-on.");
     }
 
     // ================= Tạo WinPE =================
@@ -191,6 +204,7 @@ public static class WinPeService
 
     public static async Task<OpResult> MakeIsoAsync(string workDir, string iso, Action<string> log, CancellationToken ct)
     {
+        if (!HasAdk || !HasPeAddon) return OpResult.Fail("Chưa có Windows ADK + WinPE add-on.");
         if (File.Exists(iso)) File.Delete(iso);
         var r = await AdkCmdAsync($"MakeWinPEMedia /ISO \"{workDir.TrimEnd('\\')}\" \"{iso}\"", log, ct);
         return File.Exists(iso)
