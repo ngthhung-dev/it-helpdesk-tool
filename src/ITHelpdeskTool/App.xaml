@@ -74,6 +74,18 @@
             <DataTemplate DataType="{x:Type vm:UserFoldersViewModel}">
                 <v:UserFoldersPage/>
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:PrinterViewModel}">
+                <v:PrinterPage/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:OutlookViewModel}">
+                <v:OutlookPage/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:PreviewViewModel}">
+                <v:PreviewPage/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:MultiZaloViewModel}">
+                <v:MultiZaloPage/>
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:AboutViewModel}">
                 <v:AboutPage/>
             </DataTemplate>

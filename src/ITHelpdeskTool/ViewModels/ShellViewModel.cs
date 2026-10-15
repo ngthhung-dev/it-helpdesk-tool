@@ -69,10 +69,10 @@ public sealed partial class ShellViewModel : ObservableObject
             ]),
             new("TIỆN ÍCH",
             [
-                Item("printer", "Máy in", "\uE749", 3),
-                Item("outlook", "Dữ liệu Outlook", "\uE715", 3),
-                Item("preview", "Xem trước file", "\uE890", 3),
-                Item("zalo", "Multi-Zalo", "\uE8BD", 3),
+                Item("printer", "Máy in", "\uE749", 1, () => new PrinterViewModel()),
+                Item("outlook", "Dữ liệu Outlook", "\uE715", 1, () => new OutlookViewModel()),
+                Item("preview", "Xem trước file", "\uE890", 1, () => new PreviewViewModel()),
+                Item("zalo", "Multi-Zalo", "\uE8BD", 1, () => new MultiZaloViewModel()),
             ]),
         ];
 

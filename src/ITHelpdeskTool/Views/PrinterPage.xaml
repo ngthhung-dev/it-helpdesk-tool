@@ -185,7 +185,7 @@
                                     </StackPanel>
                                 </DockPanel>
                                 <DockPanel Margin="0,12,0,0">
-                                    <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" VerticalAlignment="Top" Margin="8,0,0,0" Command="{Binding FixSharingCommand}">
+                                    <Button DockPanel.Dock="Right" VerticalAlignment="Top" Margin="8,0,0,0" Command="{Binding FixSharingCommand}">
                                         <Button.Style>
                                             <Style TargetType="Button" BasedOn="{StaticResource BtnSmall}">
                                                 <Setter Property="Content" Value="Áp dụng"/>
