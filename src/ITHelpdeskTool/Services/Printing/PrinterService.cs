@@ -117,7 +117,7 @@ public static class PrinterService
         var r = await Ps($"Remove-Printer -Name {Q(p.Name)}", $"Đã gỡ máy in {p.Name}.", "Không gỡ được máy in");
         // Dọn cổng TCP/IP không còn máy in nào dùng
         if (r.Ok && !p.IsNetwork && Regex.IsMatch(p.Port, @"^(IP_|\d+\.\d+\.\d+\.\d+)"))
-            await ProcessRunner.PowerShellAsync($"if (-not (Get-Printer | Where-Object PortName -eq {Q(p.Port)})) {{ Remove-PrinterPort -Name {Q(p.Port)} -ErrorAction SilentlyContinue }}");
+            await ProcessRunner.PowerShellAsync($"for ($i = 0; $i -lt 10; $i++) {{ if (Get-Printer | Where-Object PortName -eq {Q(p.Port)}) {{ break }}; Remove-PrinterPort -Name {Q(p.Port)} -ErrorAction SilentlyContinue; if (-not (Get-PrinterPort -Name {Q(p.Port)} -ErrorAction SilentlyContinue)) {{ break }}; Start-Sleep -Milliseconds 700 }}");
         return r;
     }
 

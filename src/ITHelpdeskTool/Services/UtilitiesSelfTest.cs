@@ -176,9 +176,21 @@ public static class UtilitiesSelfTest
             Check(File.Exists(p.Launcher), "chưa tạo MoZalo.vbs");
             Need(MultiZaloService.StartMain());
             await Task.Delay(15000);
+            var mainOk = MultiZaloService.IsRunning(MultiZaloService.MainDataDir);
+            var before = Process.GetProcessesByName("Zalo").Length;
             Need(MultiZaloService.Start(p));
             for (var i = 0; i < 30 && !MultiZaloService.IsRunning(p.DataDir); i++) await Task.Delay(1000);
-            Check(MultiZaloService.IsRunning(p.DataDir), "hồ sơ phụ chưa chạy (không thấy lockfile trong " + p.DataDir + ")");
+            if (!MultiZaloService.IsRunning(p.DataDir))
+            {
+                // Chẩn đoán: chạy thẳng bằng wscript để xem file .vbs có lỗi không
+                var files = Directory.Exists(p.Folder) ? Directory.GetFiles(p.Folder, "*", SearchOption.AllDirectories).Length : 0;
+                var after = Process.GetProcessesByName("Zalo").Length;
+                var cs = await ProcessRunner.RunAsync(Path.Combine(Environment.SystemDirectory, "cscript.exe"), $"//nologo \"{p.Launcher}\"");
+                await Task.Delay(20000);
+                var direct = MultiZaloService.IsRunning(p.DataDir);
+                var files2 = Directory.Exists(p.Folder) ? Directory.GetFiles(p.Folder, "*", SearchOption.AllDirectories).Length : 0;
+                throw new InvalidOperationException($"qua explorer: không chạy (main {mainOk}, tiến trình {before}→{after}, file hồ sơ {files}) · cscript: mã {cs.ExitCode} {cs.Text} · sau cscript chạy={direct}, file {files2}");
+            }
             Check(MultiZaloService.IsRunning(MultiZaloService.MainDataDir), "Zalo chính không chạy");
             var windows = Process.GetProcessesByName("Zalo").Count(x => x.MainWindowHandle != IntPtr.Zero);
             Check(windows >= 2, $"chỉ có {windows} cửa sổ Zalo");
