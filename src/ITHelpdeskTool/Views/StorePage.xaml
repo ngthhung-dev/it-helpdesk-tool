@@ -104,22 +104,23 @@
                     </DockPanel>
                 </Border>
 
+                <!-- Danh mục + tóm tắt: ghim cùng đầu trang -->
+                <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Categories}" Margin="0,0,0,6">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <RadioButton Style="{StaticResource ChipRadio}" GroupName="storeCat" Content="{Binding Label}" IsChecked="{Binding IsSelected}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Làm mới trạng thái" Command="{Binding RefreshInstalledCommand}"/>
+                    <TextBlock Text="{Binding Summary}" Style="{StaticResource Hint}" VerticalAlignment="Center"/>
+                </DockPanel>
+
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
                     <StackPanel>
-                        <ItemsControl ItemsSource="{Binding Categories}" Margin="0,0,0,6">
-                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <RadioButton Style="{StaticResource ChipRadio}" GroupName="storeCat" Content="{Binding Label}" IsChecked="{Binding IsSelected}"/>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
-                        <DockPanel Margin="0,0,0,8">
-                            <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Làm mới trạng thái" Command="{Binding RefreshInstalledCommand}"/>
-                            <TextBlock Text="{Binding Summary}" Style="{StaticResource Hint}" VerticalAlignment="Center"/>
-                        </DockPanel>
-
                         <!-- Tìm trên kho winget -->
                         <Border Style="{StaticResource Card}" Margin="0,0,0,10" Padding="16,10" Visibility="{Binding SearchText, Converter={x:Static core:Converters.NonEmptyVis}}">
                             <DockPanel>
