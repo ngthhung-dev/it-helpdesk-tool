@@ -18,7 +18,7 @@ jobs:
         shell: pwsh
         run: |
           $out = & "tools/${{ github.event.inputs.script }}" 2>&1 | Out-String
-          $lines = $out -split "`n"
+          $lines = $out -split "`r?`n"
           for ($i = 0; $i -lt $lines.Count; $i += 20) {
             $chunk = ($lines[$i..([Math]::Min($i + 19, $lines.Count - 1))] -join '%0A') -replace '::', ': :'
             Write-Host "::notice title=out $i::$chunk"
