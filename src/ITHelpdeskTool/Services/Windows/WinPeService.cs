@@ -52,6 +52,9 @@ public static class WinPeService
         catch { return ""; }
     }
 
+    /// <summary>Phiên bản ADK có WinPE add-on tương ứng trên winget (hai gói phải cùng phiên bản).</summary>
+    public const string PairedVersion = "10.1.26100.2454";
+
     /// <summary>Cài Windows ADK (Deployment Tools) và WinPE add-on qua winget (nguồn Microsoft).</summary>
     public static async Task<OpResult> InstallAdkAsync(Action<string> log, CancellationToken ct)
     {
@@ -59,16 +62,18 @@ public static class WinPeService
         {
             log("Đang cài Windows ADK (Deployment Tools)…");
             var r = await WingetService.InstallAsync("Microsoft.WindowsADK", "Windows ADK", l => { if (StoreInstaller.Stage(l) is { } s) log(s); }, ct,
-                "--override \"/quiet /norestart /features OptionId.DeploymentTools\"");
+                $"--version {PairedVersion} --override \"/quiet /norestart /features OptionId.DeploymentTools\"");
             log(r.Message);
             if (!r.Ok) return r;
         }
         if (!HasPeAddon)
         {
             log("Đang cài Windows PE add-on (khoảng 1–2 GB)…");
-            var r = await WingetService.InstallAsync("Microsoft.WindowsADK.WinPEAddon", "Windows PE add-on", l => { if (StoreInstaller.Stage(l) is { } s) log(s); }, ct);
+            var r = await WingetService.InstallAsync("Microsoft.WindowsADK.WinPEAddon", "Windows PE add-on", l => { if (StoreInstaller.Stage(l) is { } s) log(s); }, ct,
+                $"--version {PairedVersion}");
             log(r.Message);
-            if (!r.Ok) return r;
+            if (!r.Ok)
+                return OpResult.Fail($"{r.Message}. WinPE add-on phải cùng phiên bản với Windows ADK ({AdkVersion()}) — gỡ ADK rồi cài lại từ đây, hoặc tải cặp ADK + WinPE add-on cùng phiên bản trên trang Microsoft.");
         }
         return HasAdk && HasPeAddon ? OpResult.Success("Windows ADK và WinPE add-on đã sẵn sàng.") : OpResult.Fail("Đã chạy bộ cài nhưng vẫn chưa thấy Windows ADK / WinPE add-on.");
     }

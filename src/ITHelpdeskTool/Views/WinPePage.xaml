@@ -32,9 +32,9 @@
 
     <Grid Margin="28,4,22,20">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="1.3*"/>
             <ColumnDefinition Width="12"/>
-            <ColumnDefinition Width="400"/>
+            <ColumnDefinition Width="*" MinWidth="280"/>
         </Grid.ColumnDefinitions>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
@@ -46,16 +46,16 @@
                 <!-- ADK -->
                 <Border Style="{StaticResource Card}" Margin="0,0,0,12" IsEnabled="{Binding IsIdle}">
                     <DockPanel>
-                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Style="{StaticResource LinkButton}" Content="Trang Microsoft" Margin="0,0,12,0" Command="{Binding OpenAdkPageCommand}" VerticalAlignment="Center"/>
-                            <Button Style="{StaticResource BtnPrimary}" Content="Cài Windows ADK" Command="{Binding InstallAdkCommand}"
-                                    Visibility="{Binding HasAdk, Converter={x:Static core:Converters.NotVis}}"/>
-                        </StackPanel>
                         <TextBlock DockPanel.Dock="Left" Text="&#xE73E;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource GoodBrush}" Margin="0,0,12,0"
-                                   VerticalAlignment="Center" Visibility="{Binding HasAdk, Converter={StaticResource BoolVis}}"/>
+                                   VerticalAlignment="Top" Visibility="{Binding HasAdk, Converter={StaticResource BoolVis}}"/>
                         <StackPanel>
                             <TextBlock Text="Windows ADK" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
                             <TextBlock Text="{Binding AdkText}" Style="{StaticResource Hint}"/>
+                            <WrapPanel Margin="0,8,0,0">
+                                <Button Style="{StaticResource BtnPrimary}" Content="Cài Windows ADK" Command="{Binding InstallAdkCommand}" Margin="0,0,14,0"
+                                        Visibility="{Binding HasAdk, Converter={x:Static core:Converters.NotVis}}"/>
+                                <Button Style="{StaticResource LinkButton}" Content="Trang Microsoft" Command="{Binding OpenAdkPageCommand}" VerticalAlignment="Center"/>
+                            </WrapPanel>
                         </StackPanel>
                     </DockPanel>
                 </Border>

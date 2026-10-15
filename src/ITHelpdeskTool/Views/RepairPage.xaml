@@ -25,9 +25,9 @@
 
     <Grid Margin="28,4,22,20">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="1.25*"/>
             <ColumnDefinition Width="12"/>
-            <ColumnDefinition Width="420"/>
+            <ColumnDefinition Width="*" MinWidth="300"/>
         </Grid.ColumnDefinitions>
 
         <!-- ===== Trái: công cụ ===== -->
@@ -39,26 +39,24 @@
 
                 <!-- Sửa tự động -->
                 <Border Style="{StaticResource Card}" Margin="0,0,0,12" Background="{StaticResource AccentSoftBrush}" BorderBrush="{StaticResource AccentBrush}">
-                    <DockPanel>
-                        <Button DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Command="{Binding AutoRepairCommand}" VerticalAlignment="Center" IsEnabled="{Binding IsIdle}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE90F;" Style="{StaticResource Icon}" FontSize="13"/>
-                                <TextBlock Text="Sửa tự động" Margin="8,0,0,0"/>
-                            </StackPanel>
-                        </Button>
-                        <StackPanel Margin="0,0,16,0">
-                            <TextBlock Text="Sửa file hệ thống tự động" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
-                            <TextBlock Style="{StaticResource Hint}" Text="Tạo điểm khôi phục → DISM RestoreHealth → SFC. Dùng khi Windows chạy chập chờn, lỗi ứng dụng hệ thống, cập nhật hỏng."/>
-                            <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,0">
-                                <Run Text="Nguồn sửa DISM:"/> <Run Text="{Binding SourceText, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
-                            </TextBlock>
-                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                <Button Style="{StaticResource LinkButton}" Content="Dùng bộ cài ISO làm nguồn…" Margin="0,0,12,0" Command="{Binding PickSourceCommand}"
-                                        ToolTip="Khi máy không có mạng hoặc DISM báo không tìm thấy file nguồn"/>
-                                <Button Style="{StaticResource LinkButton}" Content="Dùng Windows Update" Command="{Binding ClearSourceCommand}"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </DockPanel>
+                    <StackPanel>
+                        <TextBlock Text="Sửa file hệ thống tự động" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                        <TextBlock Style="{StaticResource Hint}" Text="Tạo điểm khôi phục → DISM RestoreHealth → SFC. Dùng khi Windows chạy chập chờn, lỗi ứng dụng hệ thống, cập nhật hỏng."/>
+                        <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,0">
+                            <Run Text="Nguồn sửa DISM:"/> <Run Text="{Binding SourceText, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
+                        </TextBlock>
+                        <WrapPanel Margin="0,10,0,0">
+                            <Button Style="{StaticResource BtnPrimary}" Command="{Binding AutoRepairCommand}" IsEnabled="{Binding IsIdle}" Margin="0,0,14,6">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE90F;" Style="{StaticResource Icon}" FontSize="13"/>
+                                    <TextBlock Text="Sửa tự động" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource LinkButton}" Content="Dùng bộ cài ISO làm nguồn…" Margin="0,0,12,6" VerticalAlignment="Center" Command="{Binding PickSourceCommand}"
+                                    ToolTip="Khi máy không có mạng hoặc DISM báo không tìm thấy file nguồn"/>
+                            <Button Style="{StaticResource LinkButton}" Content="Dùng Windows Update" Margin="0,0,0,6" VerticalAlignment="Center" Command="{Binding ClearSourceCommand}"/>
+                        </WrapPanel>
+                    </StackPanel>
                 </Border>
 
                 <ItemsControl ItemsSource="{Binding Groups}">
@@ -79,11 +77,9 @@
                                                             <TextBlock Text="{Binding Tool.Glyph}" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
                                                         </Border>
                                                         <StackPanel>
-                                                            <StackPanel Orientation="Horizontal">
-                                                                <TextBlock Text="{Binding Tool.Title}" Foreground="{StaticResource TextBrush}"/>
-                                                                <TextBlock Text="  · cần khởi động lại" FontSize="11.5" Foreground="{StaticResource WarnBrush}" VerticalAlignment="Center"
-                                                                           Visibility="{Binding Tool.NeedsRestart, Converter={StaticResource BoolVis}}"/>
-                                                            </StackPanel>
+                                                            <TextBlock Text="{Binding Tool.Title}" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                                                            <TextBlock Text="Cần khởi động lại" FontSize="11.5" Foreground="{StaticResource WarnBrush}"
+                                                                       Visibility="{Binding Tool.NeedsRestart, Converter={StaticResource BoolVis}}"/>
                                                             <TextBlock Text="{Binding Tool.Description}" Style="{StaticResource Hint}"/>
                                                             <ProgressBar IsIndeterminate="True" Height="3" Margin="0,6,0,0" Visibility="{Binding IsRunning, Converter={StaticResource BoolVis}}"/>
                                                             <TextBlock x:Name="Res" Text="{Binding Result}" Style="{StaticResource EmptyHidden}" Margin="0,4,0,0" Foreground="{StaticResource GoodBrush}"/>
