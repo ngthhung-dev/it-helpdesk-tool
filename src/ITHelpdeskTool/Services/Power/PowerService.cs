@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using ITHelpdeskTool.Services.SysConfig;
 using static ITHelpdeskTool.Services.ProcessRunner;
@@ -98,6 +99,14 @@ public static class PowerService
     // ================= Gói nguồn =================
     public static async Task<List<PowerPlan>> ListAsync()
     {
+        // Ưu tiên API powrprof (không phụ thuộc chữ/ngôn ngữ/định dạng output của powercfg)
+        try
+        {
+            var api = await Task.Run(ListViaApi);
+            if (api.Count > 0) return api;
+        }
+        catch (Exception ex) { Log.Warn($"Power API: {ex.Message}"); }
+
         var r = await ConsoleAsync("powercfg.exe", "/list");
         if (!r.Success) throw new InvalidOperationException(OpResult.FirstLine(r.Text));
         var list = new List<PowerPlan>();
@@ -105,12 +114,71 @@ public static class PowerService
         {
             var m = GuidRx.Match(line);
             if (!m.Success) continue;
+            var guid = m.Value.ToLowerInvariant();
             var open = line.IndexOf('(', m.Index + m.Length);
             var close = line.LastIndexOf(')');
-            var name = open > 0 && close > open ? line[(open + 1)..close].Trim() : m.Value;
-            list.Add(new PowerPlan(m.Value.ToLowerInvariant(), name, line.TrimEnd().EndsWith('*')));
+            var name = open > 0 && close > open ? line[(open + 1)..close].Trim() : FriendlyName(guid) ?? BuiltIn.GetValueOrDefault(guid, guid);
+            list.Add(new PowerPlan(guid, name, line.TrimEnd().EndsWith('*')));
         }
         return list;
+    }
+
+    // ================= API powrprof.dll =================
+    [DllImport("powrprof.dll")] private static extern uint PowerEnumerate(IntPtr root, IntPtr scheme, IntPtr sub, uint flags, uint index, byte[]? buffer, ref uint size);
+    [DllImport("powrprof.dll")] private static extern uint PowerReadFriendlyName(IntPtr root, ref Guid scheme, IntPtr sub, IntPtr setting, byte[]? buffer, ref uint size);
+    [DllImport("powrprof.dll")] private static extern uint PowerGetActiveScheme(IntPtr user, out IntPtr active);
+    [DllImport("powrprof.dll")] private static extern uint PowerReadACValueIndex(IntPtr root, ref Guid scheme, ref Guid sub, ref Guid setting, out uint value);
+    [DllImport("powrprof.dll")] private static extern uint PowerReadDCValueIndex(IntPtr root, ref Guid scheme, ref Guid sub, ref Guid setting, out uint value);
+    [DllImport("kernel32.dll")] private static extern IntPtr LocalFree(IntPtr p);
+
+    /// <summary>Danh sách gói nguồn qua PowerEnumerate + tên qua PowerReadFriendlyName.</summary>
+    public static List<PowerPlan> ListViaApi()
+    {
+        var active = ActiveScheme();
+        var list = new List<PowerPlan>();
+        for (uint i = 0; ; i++)
+        {
+            var buf = new byte[16];
+            uint size = 16;
+            var rc = PowerEnumerate(IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, 16 /*ACCESS_SCHEME*/, i, buf, ref size);
+            if (rc == 259 /*ERROR_NO_MORE_ITEMS*/) break;
+            if (rc != 0) throw new InvalidOperationException($"PowerEnumerate lỗi {rc}");
+            var g = new Guid(buf).ToString();
+            list.Add(new PowerPlan(g, FriendlyName(g) ?? BuiltIn.GetValueOrDefault(g, g), g == active));
+        }
+        return list;
+    }
+
+    public static string? ActiveScheme()
+    {
+        if (PowerGetActiveScheme(IntPtr.Zero, out var p) != 0 || p == IntPtr.Zero) return null;
+        try { return Marshal.PtrToStructure<Guid>(p).ToString(); }
+        finally { LocalFree(p); }
+    }
+
+    /// <summary>Tên gói nguồn (theo ngôn ngữ Windows), null nếu không đọc được.</summary>
+    public static string? FriendlyName(string scheme)
+    {
+        try
+        {
+            var g = Guid.Parse(scheme);
+            uint size = 0;
+            if (PowerReadFriendlyName(IntPtr.Zero, ref g, IntPtr.Zero, IntPtr.Zero, null, ref size) != 0 || size == 0) return null;
+            var buf = new byte[size];
+            if (PowerReadFriendlyName(IntPtr.Zero, ref g, IntPtr.Zero, IntPtr.Zero, buf, ref size) != 0) return null;
+            var name = System.Text.Encoding.Unicode.GetString(buf, 0, (int)size).TrimEnd('\0').Trim();
+            return name.Length == 0 ? null : name;
+        }
+        catch { return null; }
+    }
+
+    /// <summary>Giá trị AC/DC đang có hiệu lực của một thiết lập (null nếu máy không có thiết lập này).</summary>
+    public static PowerValue? ReadValue(string scheme, string sub, string setting)
+    {
+        var g = Guid.Parse(scheme); var s = Guid.Parse(sub); var t = Guid.Parse(setting);
+        if (PowerReadACValueIndex(IntPtr.Zero, ref g, ref s, ref t, out var ac) != 0) return null;
+        if (PowerReadDCValueIndex(IntPtr.Zero, ref g, ref s, ref t, out var dc) != 0) dc = ac;
+        return new PowerValue((int)ac, (int)dc);
     }
 
     public static async Task<OpResult> SetActiveAsync(PowerPlan p)
@@ -175,6 +243,22 @@ public static class PowerService
     /// bắt đầu bằng dòng có GUID; hai số hex cuối cùng của khối là giá trị đang đặt khi cắm điện và khi dùng pin.
     /// </summary>
     public static async Task<Dictionary<string, PowerValue>> ReadSettingsAsync(string planGuid)
+    {
+        // API trước — không phụ thuộc định dạng output powercfg (đổi theo bản Windows / ngôn ngữ)
+        var map = await Task.Run(() =>
+        {
+            var d = new Dictionary<string, PowerValue>();
+            foreach (var s in Settings)
+                try { if (ReadValue(planGuid, s.Sub, s.Setting) is { } v) d[s.Key] = v; } catch { }
+            return d;
+        });
+        if (map.Count > 0) return map;
+        Log.Warn($"Power API không đọc được thiết lập của {planGuid} — dùng powercfg /qh");
+        return await ReadSettingsQhAsync(planGuid);
+    }
+
+    /// <summary>Đọc qua powercfg /qh: khối của mỗi thiết lập bắt đầu bằng dòng có GUID, hai số hex cuối là AC/DC.</summary>
+    public static async Task<Dictionary<string, PowerValue>> ReadSettingsQhAsync(string planGuid)
     {
         var r = await ConsoleAsync("powercfg.exe", $"/qh {planGuid}");
         if (!r.Success) throw new InvalidOperationException(OpResult.FirstLine(r.Text));

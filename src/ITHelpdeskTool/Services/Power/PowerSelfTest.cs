@@ -46,6 +46,19 @@ public static class PowerSelfTest
             return string.Join(" | ", v.Select(x => $"{x.Key}: AC={x.Value.Ac} DC={x.Value.Dc}"));
         });
 
+        await Do("api.match", async () =>
+        {
+            // API powrprof phải khớp với output powercfg (tên gói, gói đang dùng, giá trị thiết lập)
+            var api = PowerService.ListViaApi();
+            Check(api.All(p => p.Name != p.Guid), "có gói không đọc được tên: " + string.Join(", ", api.Where(p => p.Name == p.Guid).Select(p => p.Guid)));
+            Check(api.Count(p => p.IsActive) == 1 && api.First(p => p.IsActive).Guid == original!.Guid, "gói đang dùng lệch");
+            var a = await PowerService.ReadSettingsAsync(original!.Guid);
+            var q = await PowerService.ReadSettingsQhAsync(original!.Guid);
+            var diff = q.Where(kv => !a.TryGetValue(kv.Key, out var v) || v != kv.Value).Select(kv => $"{kv.Key}: qh={kv.Value} api={a.GetValueOrDefault(kv.Key)}").ToList();
+            Check(diff.Count == 0, string.Join("; ", diff));
+            return $"{api.Count} gói: {string.Join(", ", api.Select(p => p.Name))} · {a.Count} thiết lập khớp /qh";
+        });
+
         await Do("add.ultimate", async () =>
         {
             var (r, g) = await PowerService.AddBuiltInAsync(PowerService.Ultimate);
