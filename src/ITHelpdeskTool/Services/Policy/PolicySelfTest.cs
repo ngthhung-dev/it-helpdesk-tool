@@ -173,8 +173,8 @@ public static class PolicySelfTest
             UsbWhitelistService.AllowVirtual = true;
             var dir = Path.Combine(Path.GetTempPath(), "ithd-usbwl");
             Directory.CreateDirectory(dir);
-            var a = Path.Combine(dir, "a.vhdx"); var b = Path.Combine(dir, "b.vhdx");
-            foreach (var f in new[] { a, b }) if (File.Exists(f)) File.Delete(f);
+            var a = Path.Combine(dir, "a.vhdx"); var b = Path.Combine(dir, "b.vhdx"); var c = Path.Combine(dir, "c.vhdx");
+            foreach (var f in new[] { a, b, c }) if (File.Exists(f)) File.Delete(f);
             async Task<ProcessResult> Diskpart(string script, int seconds = 120)
             {
                 var dp = Path.Combine(dir, "dp.txt");
@@ -216,32 +216,33 @@ public static class PolicySelfTest
                 // Tắt → ổ B được nhận lại
                 Need(await UsbWhitelistService.DisableAsync());
                 Check(!UsbWhitelistService.IsEnabled() && UsbWhitelistService.AllowedIds().Count == 0, "chưa tắt sạch");
-                // Cắm lại ổ B (lúc bị chặn, diskpart chờ quá giờ và tự tháo ổ ra)
-                var re = await Diskpart($"select vdisk file=\"{b}\"\r\nattach vdisk\r\n", 90);
-                log.Add("gắn lại B: " + string.Join(" / ", re.Text.Split('\n').Select(x => x.Trim()).Where(x => x.Length > 0).TakeLast(3)));
+                // Cắm ổ mới C (ổ B bị kẹt ở trạng thái mở dở sau khi diskpart chờ quá giờ — chỉ là chuyện của ổ ảo)
+                var re = await Diskpart($"create vdisk file=\"{c}\" maximum=256 type=expandable\r\nselect vdisk file=\"{c}\"\r\nattach vdisk\r\n", 90);
+                log.Add("gắn C: " + string.Join(" / ", re.Text.Split('\n').Select(x => x.Trim()).Where(x => x.Length > 0).TakeLast(2)));
                 using (var rk = Registry.LocalMachine.OpenSubKey(UsbWhitelistService.Key))
                     log.Add("reg sau tắt: " + (rk is null ? "không có" : string.Join(",", rk.GetValueNames())));
                 var after = new List<UsbStorage>();
-                for (var i = 0; i < 20 && after.Count < 2; i++)
+                for (var i = 0; i < 20 && !after.Any(x => !x.InstanceId.Equals(okDisk.InstanceId, StringComparison.OrdinalIgnoreCase)); i++)
                 {
                     await Task.Delay(1500);
                     if (i == 6) await ProcessRunner.ConsoleAsync("pnputil.exe", "/scan-devices");
                     after = await UsbWhitelistService.PresentAsync();
                 }
                 log.Add($"sau khi tắt: {after.Count} ổ");
-                if (after.Count < 2)
+                var newOk = after.Any(x => !x.InstanceId.Equals(okDisk.InstanceId, StringComparison.OrdinalIgnoreCase));
+                if (!newOk)
                 {
                     var dbg = await ProcessRunner.PowerShellAsync("Get-PnpDevice | Where-Object { $_.InstanceId -like '*VIRTUAL_DISK*' -or $_.InstanceId -like 'SCSI\\DISK*' } | ForEach-Object { \"$($_.InstanceId) [$($_.Class)] $($_.Status) present=$($_.Present)\" }; Get-DiskImage -ImagePath $env:ITHD_B | Format-List Attached,Number | Out-String",
                         env: new Dictionary<string, string> { ["ITHD_B"] = b });
                     log.Add("pnp: " + dbg.Text.Replace("\r", "").Replace("\n", " | "));
                 }
-                Check(after.Count == 2, $"tắt rồi mà ổ B chưa được nhận ({after.Count} ổ) · {string.Join(" · ", log)}");
+                Check(newOk, $"tắt rồi mà ổ mới cắm vẫn không được nhận ({after.Count} ổ) · {string.Join(" · ", log)}");
                 return string.Join(" · ", log);
             }
             finally
             {
                 if (UsbWhitelistService.IsEnabled()) await UsbWhitelistService.DisableAsync();
-                await Diskpart($"select vdisk file=\"{a}\"\r\ndetach vdisk\r\nselect vdisk file=\"{b}\"\r\ndetach vdisk\r\n", 60);
+                await Diskpart($"select vdisk file=\"{a}\"\r\ndetach vdisk\r\nselect vdisk file=\"{b}\"\r\ndetach vdisk\r\nselect vdisk file=\"{c}\"\r\ndetach vdisk\r\n", 60);
                 try { Directory.Delete(dir, true); } catch { }
                 UsbWhitelistService.AllowVirtual = false;
             }
