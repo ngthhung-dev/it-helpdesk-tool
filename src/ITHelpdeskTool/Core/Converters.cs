@@ -63,6 +63,8 @@ public static class Converters
     public static readonly NonEmptyToVisibility NonEmptyVis = new();
     public static readonly ZeroToVisibility ZeroVis = new();
     public static readonly BoolToVisibility NotVis = new() { Invert = true };
+    /// <summary>Khác null → Visible.</summary>
+    public static readonly NullToVisibility NotNullVis = new();
     public static readonly AllFalseToVisibility AllFalseVis = new();
 }
 

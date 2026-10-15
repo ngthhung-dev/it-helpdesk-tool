@@ -1,0 +1,241 @@
+<UserControl x:Class="ITHelpdeskTool.Views.PrinterPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:core="clr-namespace:ITHelpdeskTool.Core"
+             xmlns:vm="clr-namespace:ITHelpdeskTool.ViewModels"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:PrinterViewModel}"
+             d:DesignWidth="1200" d:DesignHeight="1000">
+
+    <UserControl.Resources>
+        <core:BoolToVisibility x:Key="BoolVis"/>
+        <core:BoolToVisibility x:Key="NotBoolVis" Invert="True"/>
+        <Style x:Key="Hint" TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="TextTrimming" Value="None"/>
+        </Style>
+        <Style x:Key="Act" TargetType="Button" BasedOn="{StaticResource BtnSmall}">
+            <Setter Property="Margin" Value="0,0,6,6"/>
+            <Setter Property="CommandParameter" Value="{Binding}"/>
+        </Style>
+        <Style x:Key="AddSeg" TargetType="RadioButton" BasedOn="{StaticResource Segment}">
+            <Setter Property="GroupName" Value="printerAdd"/>
+        </Style>
+        <Style x:Key="Label" TargetType="TextBlock" BasedOn="{StaticResource Caption}">
+            <Setter Property="Margin" Value="0,12,0,6"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,4,22,28">
+            <StackPanel>
+                <DockPanel Margin="0,0,0,14">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Style="{StaticResource BtnSmall}" Content="Settings" Margin="0,0,6,0" Command="{Binding OpenSettingsCommand}"/>
+                        <Button Style="{StaticResource BtnSmall}" Content="Print Management" Margin="0,0,6,0" Command="{Binding OpenPrintManagementCommand}"/>
+                        <Button Style="{StaticResource BtnSmall}" Content="Đọc lại" Command="{Binding RefreshCommand}"/>
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="Máy in" Style="{StaticResource H1}"/>
+                        <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" FontSize="13" TextWrapping="Wrap"
+                                   Text="Thêm máy in qua IP hoặc máy chia sẻ, đặt mặc định, in thử, xoá lệnh in kẹt, chia sẻ trong mạng LAN, sửa lỗi thường gặp."/>
+                    </StackPanel>
+                </DockPanel>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.5*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*" MinWidth="300"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Danh sách -->
+                    <StackPanel IsEnabled="{Binding IsIdle}">
+                        <DockPanel Margin="0,0,0,8">
+                            <CheckBox DockPanel.Dock="Right" IsChecked="{Binding ShowVirtual}" Content="Hiện máy in ảo"/>
+                            <TextBlock Text="{Binding Summary}" Style="{StaticResource Hint}" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <TextBlock Text="Chưa có máy in nào — thêm máy in ở khung bên phải." Style="{StaticResource Hint}"
+                                   Visibility="{Binding Printers.Count, Converter={x:Static core:Converters.ZeroVis}}"/>
+                        <ItemsControl ItemsSource="{Binding Printers}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource Card}" Margin="0,0,0,10" Padding="16,12">
+                                        <StackPanel>
+                                            <DockPanel>
+                                                <Border x:Name="Badge" DockPanel.Dock="Right" CornerRadius="6" Padding="8,2" Background="#1A34D399" VerticalAlignment="Top">
+                                                    <TextBlock x:Name="BadgeT" Text="{Binding P.StatusText}" FontSize="11.5" Foreground="{StaticResource GoodBrush}"/>
+                                                </Border>
+                                                <TextBlock DockPanel.Dock="Left" Text="&#xE749;" Style="{StaticResource Icon}" FontSize="20" Foreground="{StaticResource AccentBrush}" Margin="0,2,12,0" VerticalAlignment="Top"/>
+                                                <StackPanel>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding P.Name}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="  ★ mặc định" FontSize="12" Foreground="{StaticResource WarnBrush}" VerticalAlignment="Center"
+                                                                   Visibility="{Binding P.IsDefault, Converter={StaticResource BoolVis}}"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding P.Detail}" Style="{StaticResource Hint}"/>
+                                                </StackPanel>
+                                            </DockPanel>
+                                            <WrapPanel Margin="0,10,0,0">
+                                                <Button Style="{StaticResource Act}" Content="Đặt mặc định" Visibility="{Binding P.IsDefault, Converter={StaticResource NotBoolVis}}"
+                                                        Command="{Binding DataContext.SetDefaultCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button Style="{StaticResource Act}" Content="In thử" Command="{Binding DataContext.TestPageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button Style="{StaticResource Act}" Content="Lệnh in" Command="{Binding DataContext.ToggleJobsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button Style="{StaticResource Act}" Content="Xoá lệnh in kẹt" Visibility="{Binding P.Jobs, Converter={x:Static core:Converters.CountVis}}"
+                                                        Command="{Binding DataContext.ClearJobsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button Style="{StaticResource Act}" Content="Tuỳ chọn in" Command="{Binding DataContext.PreferencesCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button Style="{StaticResource Act}" Content="Thuộc tính" Command="{Binding DataContext.PropertiesCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button x:Name="BShare" Style="{StaticResource Act}" Content="Chia sẻ" Command="{Binding DataContext.ShareCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button Style="{StaticResource Act}" Content="Đổi tên" Command="{Binding DataContext.RenameCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button Style="{StaticResource Act}" Content="Gỡ" Foreground="{StaticResource BadBrush}" Command="{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                            </WrapPanel>
+                                            <StackPanel Visibility="{Binding ShowJobs, Converter={StaticResource BoolVis}}" Margin="0,4,0,0">
+                                                <TextBlock Text="Không có lệnh in nào đang chờ." Style="{StaticResource Hint}" Visibility="{Binding Jobs.Count, Converter={x:Static core:Converters.ZeroVis}}"/>
+                                                <ItemsControl ItemsSource="{Binding Jobs}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <DockPanel Margin="0,4,0,0">
+                                                                <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Huỷ" CommandParameter="{Binding}"
+                                                                        Command="{Binding DataContext.CancelJobCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                                <TextBlock FontSize="12" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis">
+                                                                    <Run Text="{Binding Document, Mode=OneWay}"/> <Run Text="·" Foreground="{StaticResource FaintBrush}"/>
+                                                                    <Run Text="{Binding User, Mode=OneWay}" Foreground="{StaticResource MutedBrush}"/> <Run Text="·" Foreground="{StaticResource FaintBrush}"/>
+                                                                    <Run Text="{Binding Status, Mode=OneWay}" Foreground="{StaticResource WarnBrush}"/>
+                                                                </TextBlock>
+                                                            </DockPanel>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding P.Tone}" Value="Warn">
+                                            <Setter TargetName="Badge" Property="Background" Value="#1AFBBF24"/>
+                                            <Setter TargetName="BadgeT" Property="Foreground" Value="{StaticResource WarnBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding P.Tone}" Value="Bad">
+                                            <Setter TargetName="Badge" Property="Background" Value="#1AF87171"/>
+                                            <Setter TargetName="BadgeT" Property="Foreground" Value="{StaticResource BadBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding P.Shared}" Value="True">
+                                            <Setter TargetName="BShare" Property="Content" Value="Ngừng chia sẻ"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding P.IsNetwork}" Value="True">
+                                            <Setter TargetName="BShare" Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- Bên phải -->
+                    <StackPanel Grid.Column="2" IsEnabled="{Binding IsIdle}">
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Thêm máy in" Style="{StaticResource H2}"/>
+                                <Border Style="{StaticResource Card}" Padding="3" CornerRadius="8" HorizontalAlignment="Left" Margin="0,10,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource AddSeg}" IsChecked="{Binding AddByIp}" Content="Qua địa chỉ IP"/>
+                                        <RadioButton Style="{StaticResource AddSeg}" IsChecked="{Binding AddShared}" Content="Máy in chia sẻ"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <StackPanel Visibility="{Binding AddByIp, Converter={StaticResource BoolVis}}">
+                                    <TextBlock Text="Địa chỉ IP máy in" Style="{StaticResource Label}"/>
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Kiểm tra" Margin="8,0,0,0" Command="{Binding ProbeCommand}"/>
+                                        <TextBox Style="{StaticResource InputBox}" Text="{Binding Ip, UpdateSourceTrigger=PropertyChanged}" Tag="vd 192.168.1.250" FontFamily="{StaticResource MonoFont}"/>
+                                    </DockPanel>
+                                    <TextBlock Text="{Binding ProbeText}" Style="{StaticResource Hint}" Margin="0,4,0,0"/>
+                                    <TextBlock Text="Tên hiển thị" Style="{StaticResource Label}"/>
+                                    <TextBox Style="{StaticResource InputBox}" Text="{Binding NewName, UpdateSourceTrigger=PropertyChanged}" Tag="vd Máy in phòng kế toán"/>
+                                    <TextBlock Text="Driver" Style="{StaticResource Label}"/>
+                                    <ComboBox ItemsSource="{Binding Drivers}" SelectedItem="{Binding Driver}"/>
+                                    <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,0"
+                                               Text="Chưa có driver của hãng? Cài driver từ trang hãng (HP, Canon, Brother…) trước, rồi bấm “Đọc lại”. Máy in mạng đời mới dùng được “Microsoft IPP Class Driver”."/>
+                                </StackPanel>
+
+                                <StackPanel Visibility="{Binding AddShared, Converter={StaticResource BoolVis}}">
+                                    <TextBlock Text="Đường dẫn máy in chia sẻ" Style="{StaticResource Label}"/>
+                                    <TextBox Style="{StaticResource InputBox}" Text="{Binding Unc, UpdateSourceTrigger=PropertyChanged}" Tag="\\TEN-MAY\TenMayIn" FontFamily="{StaticResource MonoFont}"/>
+                                    <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,0" Text="Gặp lỗi 0x0000011b: bấm “Sửa lỗi kết nối máy in chia sẻ” ở khung dưới trên máy đang chia sẻ."/>
+                                </StackPanel>
+
+                                <Button Style="{StaticResource BtnPrimary}" HorizontalAlignment="Left" Margin="0,14,0,0" Command="{Binding AddCommand}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE710;" Style="{StaticResource Icon}" FontSize="13"/>
+                                        <TextBlock Text="Thêm máy in" Margin="8,0,0,0"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Sửa lỗi" Style="{StaticResource H2}"/>
+                                <DockPanel Margin="0,10,0,0">
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Chạy" Command="{Binding RestartSpoolerCommand}" VerticalAlignment="Top" Margin="8,0,0,0"/>
+                                    <StackPanel>
+                                        <TextBlock Text="Khởi động lại Print Spooler" Foreground="{StaticResource TextBrush}"/>
+                                        <TextBlock Style="{StaticResource Hint}" Text="Xoá lệnh in kẹt của mọi máy in — dùng khi in không ra, máy in báo lỗi liên tục."/>
+                                    </StackPanel>
+                                </DockPanel>
+                                <DockPanel Margin="0,12,0,0">
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" VerticalAlignment="Top" Margin="8,0,0,0" Command="{Binding FixSharingCommand}">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource BtnSmall}">
+                                                <Setter Property="Content" Value="Áp dụng"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding RpcEnforced}" Value="False"><Setter Property="Content" Value="Khôi phục mặc định"/></DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <StackPanel>
+                                        <TextBlock Text="Sửa lỗi kết nối máy in chia sẻ (0x0000011b)" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                                        <TextBlock Style="{StaticResource Hint}" Text="Chạy trên máy đang chia sẻ máy in. Hạ mức bảo mật dịch vụ in — chỉ dùng trong mạng nội bộ tin cậy."/>
+                                        <TextBlock Text="Đang áp dụng trên máy này" FontSize="12" Foreground="{StaticResource WarnBrush}"
+                                                   Visibility="{Binding RpcEnforced, Converter={StaticResource NotBoolVis}}"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <ItemsControl ItemsSource="{Binding ActionLog}" Margin="0,10,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock FontSize="12" TextWrapping="Wrap" Margin="0,0,0,3">
+                                        <Run Text="{Binding Time, Mode=OneWay}" Foreground="{StaticResource FaintBrush}"/>
+                                        <Run Text="{Binding Text, Mode=OneWay}">
+                                            <Run.Style>
+                                                <Style TargetType="Run">
+                                                    <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Ok}" Value="False"><Setter Property="Foreground" Value="{StaticResource BadBrush}"/></DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Run.Style>
+                                        </Run>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20" CornerRadius="20" Padding="18,9"
+                Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource TextBrush}"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

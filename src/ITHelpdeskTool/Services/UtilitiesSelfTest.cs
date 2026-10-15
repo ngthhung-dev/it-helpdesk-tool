@@ -1,0 +1,202 @@
+using System.Diagnostics;
+using System.IO;
+using ITHelpdeskTool.Services.Outlook;
+using ITHelpdeskTool.Services.Preview;
+using ITHelpdeskTool.Services.Printing;
+using ITHelpdeskTool.Services.Zalo;
+using static ITHelpdeskTool.Services.SelfTestKit;
+
+namespace ITHelpdeskTool.Services;
+
+/// <summary>Nhóm Tiện ích: máy in, dữ liệu Outlook, xem trước / kiểm tra file, Multi-Zalo. --selftest utilities</summary>
+public static class UtilitiesSelfTest
+{
+    public static async Task<int> RunToFileAsync(string path)
+    {
+        var t = new SelfTestKit();
+        var work = Path.Combine(Path.GetTempPath(), "ithd-util");
+        if (Directory.Exists(work)) try { Directory.Delete(work, true); } catch { }
+        Directory.CreateDirectory(work);
+
+        // ---------- Máy in ----------
+        string? driver = null;
+        await t.Do("printer.list", async () =>
+        {
+            var list = await PrinterService.ListAsync();
+            var drivers = await PrinterService.DriversAsync();
+            driver = new[] { "Generic / Text Only", "Microsoft PS Class Driver", "Microsoft Print To PDF" }.FirstOrDefault(drivers.Contains) ?? drivers.FirstOrDefault();
+            Check(driver is not null, "không có driver nào");
+            return $"{list.Count} máy in: {string.Join(", ", list.Select(p => $"{p.Name} ({p.StatusText})"))} · {drivers.Count} driver · dùng {driver}";
+        });
+
+        await t.Do("printer.add.manage", async () =>
+        {
+            var (online, detail) = await PrinterService.ProbeAsync("127.0.0.1");
+            Check(!online, "127.0.0.1 không phải máy in");
+            Need(await PrinterService.AddByIpAsync("127.0.0.1", "ITHD Test", driver!));
+            PrinterInfo P(string n) => PrinterService.ListAsync().GetAwaiter().GetResult().First(p => p.Name == n);
+            var p = await Task.Run(() => P("ITHD Test"));
+            Check(p.Port == "IP_127.0.0.1" && p.Driver == driver, p.Detail);
+            Need(await PrinterService.SetDefaultAsync(p));
+            p = await Task.Run(() => P("ITHD Test"));
+            Check(p.IsDefault, "chưa là mặc định");
+            Need(await PrinterService.RenameAsync(p, "ITHD Test 2"));
+            p = await Task.Run(() => P("ITHD Test 2"));
+            var share = await PrinterService.ShareAsync(p, true, "ITHDTest");
+            var shared = share.Ok && (await Task.Run(() => P("ITHD Test 2"))).Shared;
+            if (share.Ok) Need(await PrinterService.ShareAsync(p, false));
+            var tp = await PrinterService.TestPageAsync(p);
+            await Task.Delay(1500);
+            var jobs = await PrinterService.JobsAsync(p.Name);
+            Need(await PrinterService.ClearJobsAsync(p));
+            await Task.Delay(1000);
+            var after = await PrinterService.JobsAsync(p.Name);
+            Need(await PrinterService.RemoveAsync(p));
+            var gone = (await PrinterService.ListAsync()).All(x => x.Name != "ITHD Test 2");
+            Check(gone, "chưa gỡ máy in");
+            var portLeft = (await ProcessRunner.PowerShellAsync("@(Get-PrinterPort -Name 'IP_127.0.0.1' -ErrorAction SilentlyContinue).Count")).Output.Trim();
+            Check(portLeft == "0", "chưa dọn cổng IP_127.0.0.1");
+            return $"thêm / mặc định / đổi tên ok · chia sẻ: {(shared ? "ok" : share.Message)} · in thử: {tp.Message} · lệnh in {jobs.Count} → {after.Count} · gỡ + dọn cổng ok · probe: {detail}";
+        });
+
+        await t.Do("printer.rpcfix", async () =>
+        {
+            var before = PrinterService.RpcPrivacyEnforced();
+            Need(await PrinterService.SetRpcPrivacyAsync(false));
+            Check(!PrinterService.RpcPrivacyEnforced(), "chưa áp dụng");
+            Need(await PrinterService.SetRpcPrivacyAsync(true));
+            Check(PrinterService.RpcPrivacyEnforced(), "chưa khôi phục");
+            return $"ban đầu: {(before ? "mặc định" : "đã hạ")} → hạ → khôi phục ok";
+        });
+
+        // ---------- Outlook ----------
+        var local = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Outlook");
+        var docs = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Outlook Files");
+        await t.Do("outlook.find.backup", async () =>
+        {
+            Directory.CreateDirectory(local);
+            Directory.CreateDirectory(docs);
+            await File.WriteAllBytesAsync(Path.Combine(local, "ithd@test.com.ost"), new byte[3 * 1024 * 1024]);
+            await File.WriteAllBytesAsync(Path.Combine(docs, "Archive.pst"), new byte[2 * 1024 * 1024]);
+            var files = OutlookService.FindDataFiles();
+            Check(files.Any(f => f.Name == "Archive.pst" && !f.IsOst) && files.Any(f => f.Name == "ithd@test.com.ost" && f.IsOst), string.Join(", ", files.Select(f => f.Name)));
+            var r = await OutlookService.BackupAsync(files.Where(f => f.Name is "Archive.pst" or "ithd@test.com.ost").ToList(), work, _ => { }, CancellationToken.None);
+            Check(r.Ok, r.Message);
+            var dest = Directory.GetDirectories(work, "Outlook-*").Single();
+            Check(File.Exists(Path.Combine(dest, "Archive.pst")) && new FileInfo(Path.Combine(dest, "ithd@test.com.ost")).Length == 3 * 1024 * 1024, "thiếu file sao lưu");
+            return $"{r.Message} · Outlook: {OutlookService.OutlookExe() ?? "chưa cài"} · ScanPST: {OutlookService.ScanPstExe() ?? "không có"}";
+        });
+
+        await t.Do("outlook.rebuild.ost", async () =>
+        {
+            var ost = OutlookService.FindDataFiles().First(f => f.Name == "ithd@test.com.ost");
+            Need(await OutlookService.RebuildOstAsync(ost));
+            Check(!File.Exists(ost.Path) && Directory.GetFiles(local, "ithd@test.com.ost.*.bak").Length == 1, "chưa đổi tên OST");
+            Check(!(await OutlookService.RebuildOstAsync(OutlookService.FindDataFiles().First(f => f.Name == "Archive.pst"))).Ok, "PST không được dựng lại");
+            foreach (var f in Directory.GetFiles(local, "ithd@test.com.ost*")) File.Delete(f);
+            File.Delete(Path.Combine(docs, "Archive.pst"));
+            return "đổi tên .bak ok · chặn PST ok";
+        });
+
+        await t.Do("outlook.signatures", async () =>
+        {
+            Directory.CreateDirectory(OutlookService.SignaturesDir);
+            var sig = Path.Combine(OutlookService.SignaturesDir, "ITHD Test.htm");
+            await File.WriteAllTextAsync(sig, "<p>Chữ ký thử</p>");
+            var zip = Path.Combine(work, "sig.zip");
+            Need(OutlookService.BackupSignatures(zip));
+            File.Delete(sig);
+            Need(OutlookService.RestoreSignatures(zip));
+            Check(File.ReadAllText(sig).Contains("Chữ ký thử"), "khôi phục sai");
+            File.Delete(sig);
+            return "sao lưu / khôi phục ok";
+        });
+
+        // ---------- Xem trước ----------
+        await t.Do("preview.settings", async () =>
+        {
+            var a = PreviewService.PreviewHandlersOn; var b = PreviewService.ThumbnailsOn; var c = PreviewService.NetworkThumbnailsOn;
+            PreviewService.PreviewHandlersOn = !a; PreviewService.ThumbnailsOn = !b; PreviewService.NetworkThumbnailsOn = !c;
+            Check(PreviewService.PreviewHandlersOn == !a && PreviewService.ThumbnailsOn == !b && PreviewService.NetworkThumbnailsOn == !c, "không đổi được");
+            PreviewService.PreviewHandlersOn = a; PreviewService.ThumbnailsOn = b; PreviewService.NetworkThumbnailsOn = c;
+            var s = PreviewService.Supports();
+            await Task.CompletedTask;
+            return string.Join(" | ", s.Select(x => $"{x.Ext}: {(x.Ok ? x.Handler : "—")}"));
+        });
+
+        await t.Do("preview.inspect", async () =>
+        {
+            var fake = Path.Combine(work, "hoadon.pdf.exe");
+            File.Copy(Path.Combine(Environment.SystemDirectory, "notepad.exe"), fake);
+            var r1 = await PreviewService.InspectAsync(fake);
+            Check(r1.ExtMismatch && r1.RealType.Contains("GIẢ ĐUÔI"), r1.RealType);
+            var renamed = Path.Combine(work, "baocao.pdf");
+            File.Copy(fake, renamed);
+            var r2 = await PreviewService.InspectAsync(renamed);
+            Check(r2.ExtMismatch && r2.RealType.StartsWith("Chương trình"), "exe đổi đuôi .pdf phải bị phát hiện");
+            var txt = Path.Combine(work, "ghichu.txt");
+            await File.WriteAllTextAsync(txt, "Xin chào\nDòng 2");
+            await File.WriteAllTextAsync(txt + ":Zone.Identifier", "[ZoneTransfer]\r\nZoneId=3\r\nHostUrl=https://example.com/ghichu.txt\r\n");
+            var r3 = await PreviewService.InspectAsync(txt);
+            Check(r3.FromInternet && r3.HostUrl == "https://example.com/ghichu.txt" && r3.Text!.Contains("Dòng 2") && !r3.ExtMismatch, $"{r3.ZoneText} · {r3.Text}");
+            Need(PreviewService.Unblock(txt));
+            Check(!(await PreviewService.InspectAsync(txt)).FromInternet, "chưa bỏ chặn");
+            await File.WriteAllTextAsync(txt + ":Zone.Identifier", "[ZoneTransfer]\r\nZoneId=3\r\n");
+            var u = await PreviewService.UnblockFolderAsync(work);
+            Check(u.Ok && u.Message.Contains(" 1 file"), u.Message);
+            var real = Path.Combine(Environment.SystemDirectory, "notepad.exe");
+            var r4 = await PreviewService.InspectAsync(real);
+            Check(!r4.ExtMismatch && r4.Sha256.Length == 64, "notepad");
+            Check(PreviewService.Sniff([0x25, 0x50, 0x44, 0x46, 0x2D]).Type == "PDF" && PreviewService.Sniff([0x89, 0x50, 0x4E, 0x47]).Type == "Ảnh PNG", "nhận dạng PDF / PNG");
+            return $"giả đuôi ok · đổi đuôi ok · nguồn tải + bỏ chặn ok · notepad: {r4.Signature}";
+        });
+
+        // ---------- Multi-Zalo ----------
+        await t.Do("zalo.install", async () =>
+        {
+            if (MultiZaloService.AppExe() is null)
+            {
+                var r = await Store.StoreInstaller.InstallAsync(Store.StoreCatalog.Find("zalo")!);
+                Check(r.Ok, r.Message);
+                for (var i = 0; i < 30 && MultiZaloService.AppExe() is null; i++) await Task.Delay(1000);
+            }
+            Check(MultiZaloService.AppExe() is { } e && e.Contains("Zalo-"), "không thấy Zalo.exe trong thư mục phiên bản: " + MultiZaloService.AppExe());
+            await Task.Delay(8000);
+            await MultiZaloService.CloseAllAsync();
+            return $"{MultiZaloService.AppExe()} · {MultiZaloService.Version()}";
+        });
+
+        var zbase = Path.Combine(work, "MultiZalo");
+        await t.Do("zalo.two.accounts", async () =>
+        {
+            foreach (var old in MultiZaloService.Load()) MultiZaloService.Delete(old);
+            Need(MultiZaloService.Create("Zalo Test A", zbase));
+            Check(!MultiZaloService.Create("zalo test a", zbase).Ok, "trùng tên phải báo lỗi");
+            var p = MultiZaloService.Load().Single();
+            Check(File.Exists(p.Launcher), "chưa tạo MoZalo.vbs");
+            Need(MultiZaloService.StartMain());
+            await Task.Delay(15000);
+            Need(MultiZaloService.Start(p));
+            for (var i = 0; i < 30 && !MultiZaloService.IsRunning(p.DataDir); i++) await Task.Delay(1000);
+            Check(MultiZaloService.IsRunning(p.DataDir), "hồ sơ phụ chưa chạy (không thấy lockfile trong " + p.DataDir + ")");
+            Check(MultiZaloService.IsRunning(MultiZaloService.MainDataDir), "Zalo chính không chạy");
+            var windows = Process.GetProcessesByName("Zalo").Count(x => x.MainWindowHandle != IntPtr.Zero);
+            Check(windows >= 2, $"chỉ có {windows} cửa sổ Zalo");
+            Need(MultiZaloService.CreateShortcut(p));
+            var lnk = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Zalo - Zalo Test A.lnk");
+            Check(File.Exists(lnk), "chưa có lối tắt");
+            Need(MultiZaloService.Rename(p, "Zalo Test B"));
+            Check(File.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Zalo - Zalo Test B.lnk")) && !File.Exists(lnk), "đổi tên lối tắt");
+            var size = Fmt.Size(MultiZaloService.Size(p.Folder));
+            Check(!MultiZaloService.Delete(MultiZaloService.Load().Single()).Ok, "đang mở phải chặn xoá");
+            await MultiZaloService.CloseAllAsync();
+            await Task.Delay(2000);
+            Need(MultiZaloService.Delete(MultiZaloService.Load().Single()));
+            Check(!Directory.Exists(p.Folder) && MultiZaloService.Load().Count == 0, "chưa xoá hồ sơ");
+            return $"2 tài khoản chạy song song · {windows} cửa sổ · hồ sơ phụ {size} · lối tắt / đổi tên / xoá ok";
+        });
+
+        try { Directory.Delete(work, true); } catch { }
+        return await t.ToFileAsync(path);
+    }
+}

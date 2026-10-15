@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       suite:
-        description: 'Bộ test: sysconfig, policy, startup, power, tweaks, cleanup, uninstall, store, fonts, office, windows, storage'
+        description: 'Bộ test: sysconfig, policy, startup, power, tweaks, cleanup, uninstall, store, fonts, office, windows, storage, utilities'
         default: 'sysconfig'
       minutes:
         description: 'Thời gian chờ tối đa (phút)'
