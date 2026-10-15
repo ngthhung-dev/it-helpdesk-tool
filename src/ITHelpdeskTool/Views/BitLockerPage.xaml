@@ -172,6 +172,13 @@
                                         <Condition Binding="{Binding V.On}" Value="True"/>
                                     </MultiDataTrigger.Conditions>
                                     <Setter TargetName="BLock" Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding V.IsOs}" Value="False"/>
+                                        <Condition Binding="{Binding V.On}" Value="True"/>
+                                        <Condition Binding="{Binding DataContext.OsProtected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"/>
+                                    </MultiDataTrigger.Conditions>
                                     <Setter TargetName="BAuto" Property="Visibility" Value="Visible"/>
                                 </MultiDataTrigger>
                                 <MultiDataTrigger>

@@ -31,6 +31,7 @@ public sealed partial class BitLockerViewModel : PageViewModel
     [ObservableProperty] private string _tpmText = "";
     [ObservableProperty] private bool _domainJoined;
     [ObservableProperty] private bool _entraJoined;
+    [ObservableProperty] private bool _osProtected;
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsIdle))] private bool _isBusy;
     public bool IsIdle => !IsBusy;
@@ -85,6 +86,7 @@ public sealed partial class BitLockerViewModel : PageViewModel
             var shown = Volumes.Where(v => v.ShowKeys).Select(v => v.V.MountPoint).ToHashSet();
             Volumes.Clear();
             foreach (var v in list) Volumes.Add(new BitLockerRow(v) { ShowKeys = shown.Contains(v.MountPoint) });
+            OsProtected = list.Any(v => v.IsOs && v.On);
         }
         catch (Exception ex) { AddLog($"Không đọc được trạng thái BitLocker: {ex.Message}", false); }
     }
@@ -153,7 +155,7 @@ public sealed partial class BitLockerViewModel : PageViewModel
             var again = DialogWindow.AskPassword("Nhập lại mật khẩu", "Nhập lại để xác nhận:", allowEmpty: false);
             if (again != pw) { DialogWindow.Info("Không khớp", "Hai lần nhập mật khẩu không giống nhau."); return; }
         }
-        await Run($"Đang bật BitLocker cho {v.MountPoint}…", () => BitLockerService.EnableAsync(v, pw, autoUnlock: !v.IsOs, skipHardwareTest: false));
+        await Run($"Đang bật BitLocker cho {v.MountPoint}…", () => BitLockerService.EnableAsync(v, pw, autoUnlock: !v.IsOs && OsProtected, skipHardwareTest: false));
         // Nhắc lưu mã khôi phục ngay
         if (Volumes.FirstOrDefault(x => x.V.MountPoint == v.MountPoint) is { V.HasRecovery: true } row)
         {

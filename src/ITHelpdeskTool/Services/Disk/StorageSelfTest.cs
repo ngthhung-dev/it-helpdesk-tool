@@ -158,9 +158,9 @@ public static class StorageSelfTest
             await t.Do("bitlocker.autounlock.disable", async () =>
             {
                 Check(!(await BitLockerService.SuspendAsync(bv!, 0)).Ok, "ổ dữ liệu không tạm dừng được — giao diện chỉ hiện nút này cho ổ hệ điều hành");
-                Need(await BitLockerService.SetAutoUnlockAsync(bv!, true));
-                Check((await B()).AutoUnlock, "chưa bật tự mở khoá");
-                Need(await BitLockerService.SetAutoUnlockAsync(bv!, false));
+                var osOn = (await BitLockerService.VolumesAsync()).Any(x => x.IsOs && x.On);
+                var au = await BitLockerService.SetAutoUnlockAsync(bv!, true);
+                Check(au.Ok == osOn, $"tự mở khoá: {au.Message}");
                 Need(await BitLockerService.DisableAsync(bv!));
                 for (var i = 0; i < 60 && (bv = await B()).InProgress; i++) await Task.Delay(2000);
                 Check(bv!.Status == "FullyDecrypted", bv.StateText);

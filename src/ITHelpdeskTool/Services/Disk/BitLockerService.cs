@@ -200,9 +200,13 @@ public static class BitLockerService
     public static Task<OpResult> LockAsync(BitLockerVolume v) =>
         Ps($"Lock-BitLocker -MountPoint {Q(v.MountPoint)} -ForceDismount | Out-Null", $"Đã khoá {v.MountPoint}.", "Không khoá được");
 
-    public static Task<OpResult> SetAutoUnlockAsync(BitLockerVolume v, bool on) =>
-        Ps($"{(on ? "Enable" : "Disable")}-BitLockerAutoUnlock -MountPoint {Q(v.MountPoint)} | Out-Null",
+    public static async Task<OpResult> SetAutoUnlockAsync(BitLockerVolume v, bool on)
+    {
+        if (on && !(await VolumesAsync()).Any(x => x.IsOs && x.On))
+            return OpResult.Fail("Tự mở khoá ổ dữ liệu chỉ dùng được khi ổ Windows đã bật BitLocker.");
+        return await Ps($"{(on ? "Enable" : "Disable")}-BitLockerAutoUnlock -MountPoint {Q(v.MountPoint)} | Out-Null",
             on ? $"{v.MountPoint} sẽ tự mở khoá trên máy này." : $"Đã tắt tự mở khoá {v.MountPoint}.", "Không đổi được tự mở khoá");
+    }
 
     /// <summary>Định dạng đúng của mã khôi phục: 8 nhóm 6 chữ số.</summary>
     public static bool IsRecoveryFormat(string s) =>
