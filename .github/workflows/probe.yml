@@ -1,0 +1,25 @@
+name: Probe
+
+# Chạy thử một script PowerShell trong tools/ trên máy Windows của GitHub (dùng khi cần kiểm tra hành vi của phần mềm bên ngoài).
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: 'Tên file trong tools/'
+        default: 'probe.ps1'
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Chạy
+        shell: pwsh
+        run: |
+          $out = & "tools/${{ github.event.inputs.script }}" 2>&1 | Out-String
+          $lines = $out -split "`n"
+          for ($i = 0; $i -lt $lines.Count; $i += 20) {
+            $chunk = ($lines[$i..([Math]::Min($i + 19, $lines.Count - 1))] -join '%0A') -replace '::', ': :'
+            Write-Host "::notice title=out $i::$chunk"
+          }
