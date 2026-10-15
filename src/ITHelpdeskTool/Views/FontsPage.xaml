@@ -11,6 +11,7 @@
     <UserControl.Resources>
         <core:BoolToVisibility x:Key="BoolVis"/>
         <core:BoolToVisibility x:Key="NotBoolVis" Invert="True"/>
+        <core:LegacySampleConverter x:Key="LegacySample"/>
 
         <Style x:Key="Hint" TargetType="TextBlock" BasedOn="{StaticResource Muted}">
             <Setter Property="FontSize" Value="12"/>
@@ -157,7 +158,14 @@
                                                 </Border>
                                                 <TextBlock Text="{Binding Info.FileName}" Style="{StaticResource Hint}" VerticalAlignment="Center"/>
                                             </StackPanel>
-                                            <TextBlock Text="{Binding DataContext.Sample, RelativeSource={RelativeSource AncestorType=UserControl}}" FontFamily="{Binding Family}" Style="{StaticResource SampleText}"/>
+                                            <TextBlock FontFamily="{Binding Family}" Style="{StaticResource SampleText}">
+                                                <TextBlock.Text>
+                                <MultiBinding Converter="{StaticResource LegacySample}">
+                                    <Binding Path="DataContext.Sample" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                    <Binding Path="Info.Family"/>
+                                </MultiBinding>
+                            </TextBlock.Text>
+                                            </TextBlock>
                                             <TextBlock Text="{Binding Result}" Style="{StaticResource EmptyHidden}" Foreground="{StaticResource GoodBrush}"/>
                                         </StackPanel>
                                     </DockPanel>
@@ -309,10 +317,41 @@
                                 <TextBlock Text="Font mã cũ VNI/TCVN3" Style="{StaticResource BadgeText}" Foreground="{StaticResource WarnBrush}"/>
                             </Border>
                         </WrapPanel>
-                        <TextBlock Text="{Binding Sample}" FontFamily="{Binding Selected.Family}" FontSize="13" TextWrapping="Wrap" Foreground="{StaticResource TextBrush}" Margin="0,14,0,0"/>
-                        <TextBlock Text="{Binding Sample}" FontFamily="{Binding Selected.Family}" FontSize="20" TextWrapping="Wrap" Foreground="{StaticResource TextBrush}" Margin="0,10,0,0"/>
-                        <TextBlock Text="{Binding Sample}" FontFamily="{Binding Selected.Family}" FontSize="32" TextWrapping="Wrap" Foreground="{StaticResource TextBrush}" Margin="0,10,0,0"/>
-                        <TextBlock Text="AaBbCc ĂăÂâĐđÊêÔôƠơƯư ẤấỀềỔổỮữỴỵ" FontFamily="{Binding Selected.Family}" FontSize="20" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,12,0,0"/>
+                        <TextBlock Style="{StaticResource Hint}" Foreground="{StaticResource WarnBrush}" Margin="0,6,0,0" TextWrapping="Wrap"
+                                   Visibility="{Binding Selected.Legacy, Converter={StaticResource BoolVis}}"
+                                   Text="Chữ mẫu đã được đổi sang bảng mã của font để xem đúng dấu. Gõ trong Word: chọn bảng mã TCVN3 (font .Vn…) hoặc VNI Windows (font VNI-…) trong UniKey."/>
+                        <TextBlock FontFamily="{Binding Selected.Family}" FontSize="13" TextWrapping="Wrap" Foreground="{StaticResource TextBrush}" Margin="0,14,0,0">
+                            <TextBlock.Text>
+                                <MultiBinding Converter="{StaticResource LegacySample}">
+                                    <Binding Path="Sample"/>
+                                    <Binding Path="Selected.FamilyName"/>
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                        <TextBlock FontFamily="{Binding Selected.Family}" FontSize="20" TextWrapping="Wrap" Foreground="{StaticResource TextBrush}" Margin="0,10,0,0">
+                            <TextBlock.Text>
+                                <MultiBinding Converter="{StaticResource LegacySample}">
+                                    <Binding Path="Sample"/>
+                                    <Binding Path="Selected.FamilyName"/>
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                        <TextBlock FontFamily="{Binding Selected.Family}" FontSize="32" TextWrapping="Wrap" Foreground="{StaticResource TextBrush}" Margin="0,10,0,0">
+                            <TextBlock.Text>
+                                <MultiBinding Converter="{StaticResource LegacySample}">
+                                    <Binding Path="Sample"/>
+                                    <Binding Path="Selected.FamilyName"/>
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                        <TextBlock FontFamily="{Binding Selected.Family}" FontSize="20" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,12,0,0">
+                            <TextBlock.Text>
+                                <MultiBinding Converter="{StaticResource LegacySample}">
+                                    <Binding Source="AaBbCc ĂăÂâĐđÊêÔôƠơƯư ẤấỀềỔổỮữỴỵ"/>
+                                    <Binding Path="Selected.FamilyName"/>
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
                             </StackPanel>
                         </ScrollViewer>
                     </DockPanel>

@@ -226,6 +226,19 @@ public static class FontSelfTest
             }
         });
 
+        await t.Do("legacy.encoding", async () =>
+        {
+            var tc = LegacyVnEncoding.Convert("Việt Nam đẹp", ".VnTime");
+            var tcH = LegacyVnEncoding.Convert("Việt Nam", ".VnTimeH");
+            var vni = LegacyVnEncoding.Convert("Việt Nam đẹp", "VNI-Times");
+            Check(tc == "Vi\u00D6t Nam \u00AE\u00D1p", $"TCVN3 sai: {tc}");
+            Check(tcH == "vi\u00D6t nam", $"TCVN3 chữ hoa (H) sai: {tcH}");
+            Check(vni == "Vie\u00E4t Nam \u00F1e\u00EFp", $"VNI sai: {vni}");
+            Check(LegacyVnEncoding.Convert("Việt", "Arial") == "Việt", "font Unicode không được đổi");
+            await Task.CompletedTask;
+            return $"TCVN3 \"{tc}\" · VNI \"{vni}\"";
+        });
+
         await t.Do("collect.zip", async () =>
         {
             var zip = Path.Combine(Path.GetTempPath(), "ithd-fonts.zip");
