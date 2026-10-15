@@ -62,6 +62,7 @@ public static class Converters
     public static readonly CountToVisibility CountVis = new();
     public static readonly NonEmptyToVisibility NonEmptyVis = new();
     public static readonly ZeroToVisibility ZeroVis = new();
+    public static readonly BoolToVisibility NotVis = new() { Invert = true };
     public static readonly AllFalseToVisibility AllFalseVis = new();
 }
 

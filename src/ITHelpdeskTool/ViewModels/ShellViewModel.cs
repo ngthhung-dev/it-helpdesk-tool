@@ -55,11 +55,11 @@ public sealed partial class ShellViewModel : ObservableObject
             ]),
             new("WINDOWS",
             [
-                Item("wininstall", "Cài Windows", "\uE7F8", 3),
-                Item("winpe", "WinPE", "\uE756", 3),
-                Item("usb", "Tạo USB boot", "\uE88E", 3),
-                Item("iso", "Tải ISO", "\uE958", 3),
-                Item("repair", "Sửa lỗi Windows", "\uE90F", 2),
+                Item("wininstall", "Cài Windows", "\uE7F8", 1, () => new WinInstallViewModel()),
+                Item("winpe", "WinPE", "\uE756", 1, () => new WinPeViewModel()),
+                Item("usb", "Tạo USB boot", "\uE88E", 1, () => new UsbViewModel()),
+                Item("iso", "Tải ISO", "\uE958", 1, () => new IsoViewModel()),
+                Item("repair", "Sửa lỗi Windows", "\uE90F", 1, () => new RepairViewModel()),
             ]),
             new("Ổ ĐĨA & DỮ LIỆU",
             [

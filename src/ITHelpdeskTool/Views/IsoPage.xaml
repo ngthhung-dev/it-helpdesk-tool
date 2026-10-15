@@ -1,0 +1,153 @@
+<UserControl x:Class="ITHelpdeskTool.Views.IsoPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:core="clr-namespace:ITHelpdeskTool.Core"
+             xmlns:vm="clr-namespace:ITHelpdeskTool.ViewModels"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:IsoViewModel}"
+             d:DesignWidth="1200" d:DesignHeight="1000">
+
+    <UserControl.Resources>
+        <core:BoolToVisibility x:Key="BoolVis"/>
+        <Style x:Key="Hint" TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="TextTrimming" Value="None"/>
+        </Style>
+        <Style x:Key="CardIcon" TargetType="Border">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+            <Setter Property="Margin" Value="0,0,12,0"/>
+        </Style>
+        <Style x:Key="EmptyHidden" TargetType="TextBlock" BasedOn="{StaticResource Hint}">
+            <Style.Triggers>
+                <Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,4,22,28">
+            <StackPanel>
+                <TextBlock Text="Tải ISO" Style="{StaticResource H1}"/>
+                <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,14" FontSize="13" TextWrapping="Wrap"
+                           Text="Chỉ tải Windows từ nguồn chính thức của Microsoft, rồi kiểm tra mã SHA-256 để chắc chắn file ISO nguyên vẹn."/>
+
+                <TextBlock Text="{Binding Message}" FontSize="13" Margin="0,0,0,10">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource EmptyHidden}">
+                            <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding MessageOk}" Value="False"><Setter Property="Foreground" Value="{StaticResource BadBrush}"/></DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <!-- Nguồn tải -->
+                <Border Style="{StaticResource Card}" Margin="0,0,0,12" IsEnabled="{Binding IsIdle}">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,6">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Mở thư mục Downloads" Command="{Binding OpenDownloadsCommand}" VerticalAlignment="Center"/>
+                            <Border Style="{StaticResource CardIcon}">
+                                <TextBlock Text="&#xE896;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Nguồn tải chính thức" Style="{StaticResource H2}" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <ItemsControl ItemsSource="{Binding Downloads}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
+                                        <DockPanel>
+                                            <Button x:Name="Btn" DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Mở trang" VerticalAlignment="Center" Margin="12,0,0,0"
+                                                    Command="{Binding DataContext.GetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Name}" Foreground="{StaticResource TextBrush}"/>
+                                                <TextBlock Text="{Binding Description}" Style="{StaticResource Hint}"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding Tool}" Value="True">
+                                            <Setter TargetName="Btn" Property="Content" Value="Tải về &amp; chạy"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Style="{StaticResource Hint}" Margin="0,10,0,0"
+                                   Text="Công cụ tải về được kiểm tra chữ ký số Microsoft trước khi chạy. Trang tải ISO Windows 11 có ghi mã SHA-256 của từng ngôn ngữ — dùng mục bên dưới để đối chiếu."/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Kiểm tra ISO -->
+                <Border Style="{StaticResource Card}" IsEnabled="{Binding IsIdle}">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,8">
+                            <Button DockPanel.Dock="Right" Content="Chọn file ISO…" Command="{Binding PickIsoCommand}" VerticalAlignment="Center"/>
+                            <Border Style="{StaticResource CardIcon}">
+                                <TextBlock Text="&#xE958;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Kiểm tra file ISO" Style="{StaticResource H2}" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <TextBlock Text="Chọn file ISO Windows để xem các phiên bản bên trong và kiểm tra mã SHA-256." Style="{StaticResource Hint}"
+                                   Visibility="{Binding HasIso, Converter={x:Static core:Converters.NotVis}}"/>
+
+                        <StackPanel Visibility="{Binding HasIso, Converter={StaticResource BoolVis}}">
+                            <TextBlock FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap">
+                                <Run Text="{Binding IsoPath, Mode=OneWay}"/> <Run Text="·" Foreground="{StaticResource FaintBrush}"/> <Run Text="{Binding IsoSize, Mode=OneWay}" Foreground="{StaticResource MutedBrush}"/>
+                            </TextBlock>
+                            <TextBlock Text="{Binding MediaText}" Style="{StaticResource Hint}" Margin="0,6,0,0"/>
+                            <ItemsControl ItemsSource="{Binding Editions}" Margin="0,6,0,0">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="6" Background="{StaticResource Surface2Brush}" Padding="8,3" Margin="0,0,6,6">
+                                            <TextBlock Text="{Binding Display}" FontSize="12" Foreground="{StaticResource TextBrush}"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <Button Style="{StaticResource BtnSmall}" Content="Mở nội dung ISO" Margin="0,0,6,0" Command="{Binding OpenMountedCommand}"/>
+                                <Button Style="{StaticResource BtnSmall}" Content="Gỡ ổ ISO" Command="{Binding UnmountCommand}"/>
+                            </StackPanel>
+
+                            <TextBlock Text="Mã SHA-256 trên trang Microsoft" Style="{StaticResource Caption}" Margin="0,16,0,6"/>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Content="Tính SHA-256" Margin="8,0,0,0" Command="{Binding HashCommand}"/>
+                                <TextBox Style="{StaticResource InputBox}" Text="{Binding Expected, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}"
+                                         Tag="Dán mã băm để so khớp (không bắt buộc)"/>
+                            </DockPanel>
+                            <ProgressBar Height="3" Margin="0,8,0,0" Value="{Binding HashProgress}" Maximum="100"
+                                         Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}"/>
+                            <TextBlock Text="{Binding Hash}" FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="{StaticResource TextBrush}" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                            <TextBlock x:Name="Res" Text="{Binding HashResult}" Margin="0,4,0,0" FontSize="13">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource EmptyHidden}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HashTone}" Value="Good"><Setter Property="Foreground" Value="{StaticResource GoodBrush}"/></DataTrigger>
+                                            <DataTrigger Binding="{Binding HashTone}" Value="Bad"><Setter Property="Foreground" Value="{StaticResource BadBrush}"/></DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20" CornerRadius="20" Padding="18,9"
+                Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource TextBrush}"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

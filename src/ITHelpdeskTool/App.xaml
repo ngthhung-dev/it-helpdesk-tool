@@ -50,6 +50,21 @@
             <DataTemplate DataType="{x:Type vm:OfficeViewModel}">
                 <v:OfficePage/>
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:WinInstallViewModel}">
+                <v:WinInstallPage/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:WinPeViewModel}">
+                <v:WinPePage/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:UsbViewModel}">
+                <v:UsbPage/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:IsoViewModel}">
+                <v:IsoPage/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:RepairViewModel}">
+                <v:RepairPage/>
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:AboutViewModel}">
                 <v:AboutPage/>
             </DataTemplate>

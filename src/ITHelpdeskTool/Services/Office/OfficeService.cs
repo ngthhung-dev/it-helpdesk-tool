@@ -269,13 +269,11 @@ public static class OfficeService
             status?.Invoke("Đang tải Office Deployment Tool…");
             await Downloader.DownloadAsync(OdtUrl, WorkDir, "setup.exe", ct: ct);
         }
-        var sig = await ProcessRunner.PowerShellAsync(
-            $"$s = Get-AuthenticodeSignature -LiteralPath {ProcessRunner.PsQuote(path)}; \"$($s.Status)|$($s.SignerCertificate.Subject)\"", ct: ct);
-        var parts = sig.Output.Trim().Split('|', 2);
-        if (parts[0] != "Valid" || parts.Length < 2 || !parts[1].Contains("O=Microsoft Corporation", StringComparison.OrdinalIgnoreCase))
+        var (ok, detail) = await Downloader.IsMicrosoftSignedAsync(path, ct);
+        if (!ok)
         {
             try { File.Delete(path); } catch { }
-            throw new InvalidOperationException($"File ODT tải về không có chữ ký hợp lệ của Microsoft ({sig.Output.Trim()}).");
+            throw new InvalidOperationException($"File ODT tải về không có chữ ký hợp lệ của Microsoft ({detail}).");
         }
         return path;
     }

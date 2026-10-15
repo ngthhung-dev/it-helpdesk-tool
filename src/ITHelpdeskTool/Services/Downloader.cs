@@ -101,5 +101,15 @@ public static class Downloader
         throw new InvalidOperationException($"Bản phát hành mới nhất của {repo} không có file phù hợp");
     }
 
+    /// <summary>File có chữ ký số hợp lệ của Microsoft Corporation không (Authenticode).</summary>
+    public static async Task<(bool Ok, string Detail)> IsMicrosoftSignedAsync(string path, CancellationToken ct = default)
+    {
+        var sig = await ProcessRunner.PowerShellAsync(
+            $"$s = Get-AuthenticodeSignature -LiteralPath {ProcessRunner.PsQuote(path)}; \"$($s.Status)|$($s.SignerCertificate.Subject)\"", ct: ct);
+        var parts = sig.Output.Trim().Split('|', 2);
+        var ok = parts[0] == "Valid" && parts.Length == 2 && parts[1].Contains("O=Microsoft Corporation", StringComparison.OrdinalIgnoreCase);
+        return (ok, sig.Output.Trim());
+    }
+
     public static Task<string> GetStringAsync(string url, CancellationToken ct = default) => Http.GetStringAsync(url, ct);
 }
