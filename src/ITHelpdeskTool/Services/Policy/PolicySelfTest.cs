@@ -216,6 +216,8 @@ public static class PolicySelfTest
                 // Tắt → ổ B được nhận lại
                 Need(await UsbWhitelistService.DisableAsync());
                 Check(!UsbWhitelistService.IsEnabled() && UsbWhitelistService.AllowedIds().Count == 0, "chưa tắt sạch");
+                // Cắm lại ổ B (lúc bị chặn, diskpart chờ quá giờ và tự tháo ổ ra)
+                await Diskpart($"select vdisk file=\"{b}\"\r\nattach vdisk\r\n", 90);
                 var after = new List<UsbStorage>();
                 for (var i = 0; i < 20 && after.Count < 2; i++)
                 {
