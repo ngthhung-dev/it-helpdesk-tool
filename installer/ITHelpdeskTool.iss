@@ -3,7 +3,7 @@
 ; Bước 2: mở file này bằng Inno Setup Compiler rồi Build (Ctrl+F9)
 
 #ifndef AppVersion
-  #define AppVersion "2.3.4"
+  #define AppVersion "1.0.0"
 #endif
 #define AppName "IT Helpdesk Tool"
 #define AppExe "ITHelpdeskTool.exe"
@@ -42,9 +42,11 @@ ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
 MinVersion=10.0.19041
 WizardStyle=modern
+ShowLanguageDialog=no
 
 [Languages]
-Name: "en"; MessagesFile: "compiler:Default.isl"
+; Giao diện bộ cài tiếng Việt (bản dịch tiếng Việt của Inno Setup, Files/Languages/Unofficial/Vietnamese.isl)
+Name: "vi"; MessagesFile: "Languages\Vietnamese.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "Tạo biểu tượng ngoài Desktop"; GroupDescription: "Tuỳ chọn:"
