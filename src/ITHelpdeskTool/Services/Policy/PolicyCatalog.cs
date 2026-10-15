@@ -101,6 +101,18 @@ public static class PolicyCatalog
             "Ô tìm kiếm chỉ tìm file và ứng dụng trong máy, nhanh hơn và không gửi từ khoá ra ngoài.",
             PolicyScope.User, PolicyEffect.Relogon, [new(@"SOFTWARE\Policies\Microsoft\Windows\Explorer", "DisableSearchBoxSuggestions", 1)]),
 
+        new("user.noinstall", GroupUser, "Chặn cài đặt ứng dụng",
+            "Không chạy được file cài đặt tải từ Internet (chỉ cho cài từ Microsoft Store), không cài được phần mềm kiểu riêng cho từng người dùng. Tài khoản thường vốn đã không cài được phần mềm cho cả máy. Áp dụng cho mọi tài khoản.",
+            PolicyScope.Machine, PolicyEffect.Immediate,
+            [
+                // Settings › Apps › Advanced app settings › "Choose where to get apps" = Microsoft Store only
+                new(@"SOFTWARE\Policies\Microsoft\Windows Defender\SmartScreen", "ConfigureAppInstallControlEnabled", 1),
+                new(@"SOFTWARE\Policies\Microsoft\Windows Defender\SmartScreen", "ConfigureAppInstallControl", "StoreOnly"),
+                // Windows Installer: bỏ qua kiểu cài riêng cho từng người dùng (không cần quyền admin)
+                new(@"SOFTWARE\Policies\Microsoft\Windows\Installer", "DisableUserInstalls", 1),
+            ],
+            Warning: "Chặn cả file .exe tải về chạy ngay không cần cài. Admin vẫn cài được phần mềm từ USB / ổ mạng hoặc qua trang App Store của app này."),
+
         // ===================== Thiết bị =====================
         new("dev.noautorun", GroupDevice, "Tắt AutoRun/AutoPlay mọi ổ",
             "Cắm USB/đĩa không tự chạy gì — chặn kiểu virus lây qua USB.",

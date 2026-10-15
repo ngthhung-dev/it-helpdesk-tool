@@ -51,6 +51,22 @@ public static class PolicySelfTest
             }));
         }
 
+        // Bật "Chặn cài đặt ứng dụng" thì admin vẫn cài được qua winget (trang App Store của app)
+        await Do("noinstall.winget", async () =>
+        {
+            var p = PolicyCatalog.All.First(x => x.Key == "user.noinstall");
+            if (Store.WingetService.Locate() is null) return "không có winget — bỏ qua";
+            Need(PolicyService.Apply(p, true, null));
+            try
+            {
+                var r = await Store.WingetService.InstallAsync("7zip.7zip", "7-Zip");
+                Check(r.Ok, "winget không cài được khi bật chặn: " + r.Message);
+                var u = await Store.WingetService.UninstallAsync("7zip.7zip", "7-Zip");
+                return $"{r.Message} · {u.Message}";
+            }
+            finally { PolicyService.Apply(p, false, null); }
+        });
+
         // Giá trị động (giữ phiên bản Windows) phải ghi đúng bản đang chạy
         await Do("machine.pinversion.values", () => Task.Run(() =>
         {
