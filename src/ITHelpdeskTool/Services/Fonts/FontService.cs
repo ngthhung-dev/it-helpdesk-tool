@@ -247,6 +247,21 @@ public static class FontService
         catch (Exception ex) { return OpResult.Fail($"Không gỡ được {f.Name}: {ex.Message}"); }
     }
 
+    /// <summary>Gỡ nhiều font một lần: chạy song song, báo WM_FONTCHANGE một lần ở cuối.</summary>
+    public static List<(InstalledFont Font, OpResult Result)> UninstallMany(IReadOnlyList<InstalledFont> fonts, Action<int>? progress = null)
+    {
+        var results = new (InstalledFont, OpResult)[fonts.Count];
+        var done = 0;
+        Parallel.For(0, fonts.Count, new ParallelOptions { MaxDegreeOfParallelism = Math.Clamp(Environment.ProcessorCount, 2, 8) }, i =>
+        {
+            results[i] = (fonts[i], Uninstall(fonts[i], broadcast: false));
+            var n = Interlocked.Increment(ref done);
+            if (n % 25 == 0) progress?.Invoke(n);
+        });
+        Broadcast();
+        return [.. results];
+    }
+
     // ================= Gom file từ lựa chọn =================
     /// <summary>File font từ danh sách file/thư mục/zip người dùng chọn (zip được giải nén vào thư mục tạm).</summary>
     public static List<string> Collect(IEnumerable<string> paths)

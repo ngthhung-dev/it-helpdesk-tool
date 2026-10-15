@@ -156,8 +156,7 @@ public static class FontSelfTest
             Check(mine.All(f => map.TryGetValue(f.File, out var r) && r.Vietnamese && r.Family == "Be Vietnam Pro"), "phân tích sai");
             Check(tCached < tScan || tScan < 200, $"bộ đệm không nhanh hơn ({tCached} vs {tScan} ms)");
             sw.Restart();
-            var fail = mine.Select(f => FontService.Uninstall(f, broadcast: false)).Count(r => !r.Ok);
-            FontService.Broadcast();
+            var fail = FontService.UninstallMany(mine).Count(r => !r.Result.Ok);
             var tDel = sw.ElapsedMilliseconds;
             Check(fail == 0, $"{fail} font gỡ lỗi");
             Check(FontService.ReadInstalled(false).All(f => !f.RegName.StartsWith("ITHD Test ")), "còn sót registry");

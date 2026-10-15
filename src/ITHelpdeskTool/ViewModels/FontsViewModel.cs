@@ -412,18 +412,14 @@ public sealed partial class FontsViewModel : PageViewModel
         IProgress<int> rep = progress;
         try
         {
-            await Task.Run(() =>
+            rep.Report(0);
+            var byFont = rows.ToDictionary(r => r.Font);
+            var res = await Task.Run(() => FontService.UninstallMany(rows.Select(r => r.Font).ToList(), rep.Report));
+            foreach (var (font, r) in res)
             {
-                for (var i = 0; i < rows.Count; i++)
-                {
-                    if (i % 10 == 0) rep.Report(i + 1);
-                    var r = FontService.Uninstall(rows[i].Font, broadcast: false);
-                    if (r.Ok) { lock (removed) removed.Add(rows[i]); restart |= r.NeedsRestart; }
-                    else lock (fails) fails.Add(r.Message);
-                }
-                BusyText = "Đang báo cho các ứng dụng…";
-                FontService.Broadcast();
-            });
+                if (r.Ok) { removed.Add(byFont[font]); restart |= r.NeedsRestart; }
+                else fails.Add(r.Message);
+            }
         }
         finally { IsBusy = false; }
 
