@@ -108,6 +108,7 @@ public sealed partial class FontsViewModel : PageViewModel
     // ---- Đã cài ----
     private List<InstalledFontRow>? _all;
     private bool _loadingInstalled;
+    private bool _selectFirst;
     private CancellationTokenSource? _scanCts;
     /// <summary>Danh sách đang hiện (đã lọc) — thay cả danh sách một lần thay vì ẩn từng dòng, để cuộn ảo hoá mượt.</summary>
     [ObservableProperty] private IReadOnlyList<InstalledFontRow> _installedView = [];
@@ -159,6 +160,7 @@ public sealed partial class FontsViewModel : PageViewModel
         switch (ShellViewModel.StartSubPage)
         {
             case "installed": TabNew = false; TabInstalled = true; break;
+            case "installed-sel": _selectFirst = true; TabNew = false; TabInstalled = true; break;  // chụp màn hình khung xem trước
             case "google": TabNew = false; TabGoogle = true; break;
             case "demo":
                 // Xem trước bằng font có sẵn của Windows (dùng khi chụp màn hình)
@@ -305,6 +307,7 @@ public sealed partial class FontsViewModel : PageViewModel
             InstalledSummary = $"{list.Count:N0} font · {list.Count(f => !f.IsSystem):N0} font cài thêm · {Fmt.Size(list.Sum(f => f.Size))}";
             UpdateCounts();
             ApplyFilter();
+            if (_selectFirst) { _selectFirst = false; Selected = InstalledView.FirstOrDefault(r => r.Font.Name.StartsWith("Segoe UI")) ?? InstalledView.FirstOrDefault(); }
             Log.Info($"Fonts: đọc {list.Count} font trong {sw.ElapsedMilliseconds} ms");
         }
         finally { IsBusy = false; _loadingInstalled = false; }
