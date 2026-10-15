@@ -78,14 +78,44 @@
             </Style.Triggers>
         </Style>
 
+        <!-- Chip mục lục: sáng lên khi mục đang hiện (giống lúc rê chuột) -->
+        <Style x:Key="IndexChip" TargetType="Button" BasedOn="{StaticResource Chip}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1" CornerRadius="14" Padding="10,4">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="ToolButton" TargetType="Button" BasedOn="{StaticResource BtnBase}">
             <Setter Property="Margin" Value="8,0,0,0"/>
         </Style>
     </UserControl.Resources>
 
-    <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" Padding="28,4,22,28">
-        <StackPanel>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
+        <!-- Phần ghim cố định: đầu trang + mục lục -->
+        <StackPanel Margin="28,4,22,8">
             <!-- ===== Đầu trang ===== -->
             <DockPanel Margin="0,0,0,14">
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
@@ -138,13 +168,13 @@
             </Border>
 
             <!-- ===== Mục lục ===== -->
-            <ItemsControl ItemsSource="{Binding Sections}" Margin="0,0,0,8">
+            <ItemsControl ItemsSource="{Binding Sections}" Margin="0,0,0,4">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Button Style="{StaticResource Chip}" Click="Chip_Click" ToolTip="Đến mục này">
+                        <Button Style="{StaticResource IndexChip}" Click="Chip_Click" ToolTip="Đến mục này">
                             <StackPanel Orientation="Horizontal">
                                 <Ellipse Style="{StaticResource StateDot}" Margin="0,0,7,0"/>
                                 <TextBlock Text="{Binding Title}"/>
@@ -153,6 +183,10 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+        </StackPanel>
+
+    <ScrollViewer x:Name="Scroller" Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="28,6,22,28" ScrollChanged="Scroller_ScrollChanged">
+        <StackPanel>
 
             <!-- ===== Điểm cần chú ý ===== -->
             <Border Style="{StaticResource Card}" Margin="0,0,0,12">
@@ -299,4 +333,5 @@
             </ItemsControl>
         </StackPanel>
     </ScrollViewer>
+    </Grid>
 </UserControl>

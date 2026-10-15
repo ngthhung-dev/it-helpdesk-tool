@@ -75,6 +75,8 @@ public sealed partial class ReportSection(string key, string title, string glyph
     public string Glyph { get; } = glyph;
 
     [ObservableProperty] private SectionState _state = SectionState.Waiting;
+    /// <summary>Đang hiện ở đầu vùng cuộn → chip mục lục sáng lên.</summary>
+    [ObservableProperty] private bool _isActive;
     [ObservableProperty] private string _message = "";
     [ObservableProperty] private IReadOnlyList<ReportField> _fields = [];
     [ObservableProperty] private IReadOnlyList<ReportTable> _tables = [];
