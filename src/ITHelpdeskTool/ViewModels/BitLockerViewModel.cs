@@ -207,5 +207,70 @@ public sealed partial class BitLockerViewModel : PageViewModel
     [RelayCommand] private Task AutoUnlockAsync(BitLockerRow r) => Run("Đang đổi tự mở khoá…", () => BitLockerService.SetAutoUnlockAsync(r.V, !r.V.AutoUnlock));
 
     [RelayCommand] private void OpenMyKeys() => ShellLauncher.Open("https://aka.ms/myrecoverykey");
-    [RelayCommand] private void OpenControlPanel() => ShellLauncher.Open("control.exe", "/name Microsoft.BitLockerDriveEncryption");
+    /// <summary>
+    /// Mở “BitLocker Drive Encryption” trong Control Panel. control.exe gọi từ tiến trình quyền admin thường không hiện gì,
+    /// nên mở qua Explorer bằng CLSID; Windows Home không có mục này → mở Device encryption trong Settings.
+    /// </summary>
+    [RelayCommand]
+    private void OpenControlPanel()
+    {
+        if (!Available) { ShellLauncher.Open("ms-settings:deviceencryption"); return; }
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", "shell:::{D9EF8727-CAC2-4e60-809E-86F80A666C91}") { UseShellExecute = true });
+        }
+        catch { ShellLauncher.Open("control.exe", "/name Microsoft.BitLockerDriveEncryption"); }
+    }
+
+    // ================= Sao lưu tất cả mã khôi phục =================
+    public bool CanBackupDirectory => DomainJoined || EntraJoined;
+    partial void OnDomainJoinedChanged(bool value) => OnPropertyChanged(nameof(CanBackupDirectory));
+    partial void OnEntraJoinedChanged(bool value) => OnPropertyChanged(nameof(CanBackupDirectory));
+
+    private bool CheckAnyKeys()
+    {
+        if (Volumes.Any(v => v.V.HasRecovery)) return true;
+        DialogWindow.Info("Chưa có mã khôi phục",
+            Volumes.Any(v => v.V.Encrypted)
+                ? "Các ổ đã mã hoá chưa có mã khôi phục — bấm “Thêm mã khôi phục” ở từng ổ trước."
+                : "Chưa có ổ nào bật BitLocker nên chưa có mã khôi phục để sao lưu. Mã khôi phục được tạo khi bật BitLocker.");
+        return false;
+    }
+
+    [RelayCommand]
+    private void BackupAllKeys()
+    {
+        if (!CheckAnyKeys()) return;
+        var dlg = new SaveFileDialog
+        {
+            Title = "Lưu mã khôi phục BitLocker (nên chọn USB / ổ không mã hoá)",
+            Filter = "Văn bản (*.txt)|*.txt",
+            FileName = $"BitLocker-Keys-{Environment.MachineName}-{DateTime.Now:yyyyMMdd}.txt",
+        };
+        if (dlg.ShowDialog() != true) return;
+        var r = BitLockerService.SaveAllRecovery(Volumes.Select(v => v.V).ToList(), dlg.FileName);
+        AddLog(r.Message, r.Ok);
+        if (!r.Ok) { DialogWindow.Info("Chưa lưu", r.Message, error: true); return; }
+        ShellLauncher.Open("explorer.exe", $"/select,\"{dlg.FileName}\"");
+    }
+
+    [RelayCommand]
+    private void PrintKeys()
+    {
+        if (!CheckAnyKeys()) return;
+        var tmp = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"BitLocker-Keys-{Environment.MachineName}.txt");
+        var r = BitLockerService.SaveAllRecovery(Volumes.Select(v => v.V).ToList(), tmp, csv: false);
+        if (!r.Ok) { DialogWindow.Info("Chưa in được", r.Message, error: true); return; }
+        ShellLauncher.Open("notepad.exe", $"/p \"{tmp}\"");
+        AddLog("Đã gửi mã khôi phục tới máy in mặc định.", true);
+        // Xoá bản tạm sau khi Notepad đã đọc xong
+        _ = Task.Delay(TimeSpan.FromSeconds(30)).ContinueWith(_ => { try { System.IO.File.Delete(tmp); } catch { } });
+    }
+
+    [RelayCommand]
+    private Task BackupAllDirectoryAsync()
+    {
+        if (!CheckAnyKeys()) return Task.CompletedTask;
+        return Run("Đang sao lưu mã khôi phục…", () => BitLockerService.BackupAllToDirectoryAsync(Volumes.Select(v => v.V).ToList(), entra: EntraJoined));
+    }
 }

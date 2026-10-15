@@ -140,6 +140,13 @@ public static class StorageSelfTest
                 Need(BitLockerService.SaveRecovery(bv, file));
                 Check(File.ReadAllText(file).Contains(bv.Protectors.First(p => p.Type == "RecoveryPassword").RecoveryPassword), "file thiếu mã");
                 Check(!BitLockerService.SaveRecovery(bv, Path.Combine(vol!.Root, "key.txt")).Ok, "phải chặn lưu mã lên chính ổ đó");
+                var all = await BitLockerService.VolumesAsync();
+                var allFile = Path.Combine(work, "all-keys.txt");
+                Need(BitLockerService.SaveAllRecovery(all, allFile));
+                var rp = bv.Protectors.First(p => p.Type == "RecoveryPassword").RecoveryPassword;
+                Check(File.ReadAllText(allFile).Contains(rp) && File.ReadAllText(Path.ChangeExtension(allFile, ".csv")).Contains(rp), "file sao lưu tất cả thiếu mã");
+                Check(!BitLockerService.SaveAllRecovery(all, Path.Combine(vol!.Root, "all.txt")).Ok, "phải chặn lưu lên ổ đã mã hoá");
+                Check(!BitLockerService.SaveAllRecovery(all.Where(x => !x.HasRecovery).ToList(), allFile).Ok, "không có mã phải báo lỗi");
                 return $"{bv.StateText} · {bv.Detail}";
             });
             await t.Do("bitlocker.lock.unlock", async () =>

@@ -132,6 +132,67 @@ public static class BitLockerService
         return OpResult.Success($"Đã lưu mã khôi phục ổ {v.MountPoint} vào {path}.");
     }
 
+    /// <summary>
+    /// Sao lưu mã khôi phục của mọi ổ đã mã hoá vào một file (.txt, kèm .csv nếu muốn).
+    /// Không cho lưu lên ổ đã mã hoá đang có trong danh sách (mất ổ đó là mất luôn mã).
+    /// </summary>
+    public static OpResult SaveAllRecovery(IReadOnlyList<BitLockerVolume> volumes, string path, bool csv = true)
+    {
+        var withKeys = volumes.Where(v => v.HasRecovery).ToList();
+        if (withKeys.Count == 0)
+            return OpResult.Fail(volumes.Any(v => v.Encrypted)
+                ? "Các ổ đã mã hoá chưa có mã khôi phục — bấm “Thêm mã khôi phục” ở từng ổ trước."
+                : "Chưa có ổ nào bật BitLocker nên chưa có mã khôi phục để sao lưu.");
+        var root = Path.GetPathRoot(Path.GetFullPath(path))?.TrimEnd('\\') ?? "";
+        if (volumes.Any(v => v.Encrypted && v.MountPoint.TrimEnd('\\').Equals(root, StringComparison.OrdinalIgnoreCase)))
+            return OpResult.Fail($"Ổ {root} đang được mã hoá — lưu mã khôi phục ra USB / ổ khác / máy khác.");
+
+        var sb = new StringBuilder();
+        sb.AppendLine("SAO LƯU MÃ KHÔI PHỤC BITLOCKER / BITLOCKER RECOVERY KEYS");
+        sb.AppendLine($"Máy: {Environment.MachineName} · Người lưu: {Environment.UserName} · Lúc: {DateTime.Now:dd/MM/yyyy HH:mm}");
+        sb.AppendLine("Khi Windows hỏi mã khôi phục, đối chiếu “Mã định danh” hiện trên màn hình với mã bên dưới.");
+        sb.AppendLine("Giữ file này ở nơi an toàn (USB cất riêng, in giấy, kho mật khẩu). Ai có mã này đều mở được ổ.");
+        sb.AppendLine(new string('=', 78));
+        foreach (var v in withKeys)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"Ổ {v.MountPoint} · {v.Detail} · {v.StateText}");
+            foreach (var p in v.Protectors.Where(p => p.Type == "RecoveryPassword"))
+            {
+                sb.AppendLine($"  Mã định danh (Key ID): {p.Id.Trim('{', '}')}");
+                sb.AppendLine($"  Mã khôi phục:          {p.RecoveryPassword}");
+            }
+        }
+        File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
+
+        if (csv)
+        {
+            var c = new StringBuilder("Computer,Drive,VolumeType,KeyId,RecoveryPassword,SavedAt\r\n");
+            foreach (var v in withKeys)
+                foreach (var p in v.Protectors.Where(p => p.Type == "RecoveryPassword"))
+                    c.Append($"{Environment.MachineName},{v.MountPoint},{v.VolumeType},{p.Id.Trim('{', '}')},{p.RecoveryPassword},{DateTime.Now:yyyy-MM-dd HH:mm}\r\n");
+            File.WriteAllText(Path.ChangeExtension(path, ".csv"), c.ToString(), new UTF8Encoding(true));
+        }
+        var n = withKeys.Sum(v => v.Protectors.Count(p => p.Type == "RecoveryPassword"));
+        return OpResult.Success($"Đã sao lưu {n} mã khôi phục của {withKeys.Count} ổ vào {path}" + (csv ? " (kèm file .csv)." : "."));
+    }
+
+    /// <summary>Sao lưu mọi mã khôi phục lên AD / Entra (máy đã tham gia domain / Entra ID).</summary>
+    public static async Task<OpResult> BackupAllToDirectoryAsync(IReadOnlyList<BitLockerVolume> volumes, bool entra)
+    {
+        var list = volumes.Where(v => v.HasRecovery).ToList();
+        if (list.Count == 0) return OpResult.Fail("Chưa có mã khôi phục nào để sao lưu.");
+        var fails = new List<string>();
+        foreach (var v in list)
+        {
+            var r = await BackupToDirectoryAsync(v, entra);
+            if (!r.Ok) fails.Add(r.Message);
+        }
+        return fails.Count == 0
+            ? OpResult.Success($"Đã sao lưu mã khôi phục của {list.Count} ổ lên {(entra ? "Microsoft Entra ID" : "Active Directory")}.")
+            : OpResult.Fail(string.Join(" ", fails));
+    }
+
     public static Task<OpResult> AddRecoveryPasswordAsync(BitLockerVolume v) =>
         Ps($"Add-BitLockerKeyProtector -MountPoint {Q(v.MountPoint)} -RecoveryPasswordProtector | Out-Null",
             $"Đã thêm mã khôi phục cho ổ {v.MountPoint} — hãy lưu lại ngay.", "Không thêm được mã khôi phục");
