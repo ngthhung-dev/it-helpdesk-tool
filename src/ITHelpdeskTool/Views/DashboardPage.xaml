@@ -34,6 +34,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -63,13 +64,14 @@
                 </TextBlock>
             </StackPanel>
         </DockPanel>
+        <c:SectionIndex Grid.Row="1" Target="{Binding ElementName=PageScroller}" Margin="28,-6,22,6"/>
 
     <!-- Phần cuộn bên dưới (đầu trang ghim cố định) -->
-    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="28,6,22,28">
+    <ScrollViewer Grid.Row="2" x:Name="PageScroller" VerticalScrollBarVisibility="Auto" Padding="28,6,22,28">
         <StackPanel>
 
             <!-- ===== 4 thẻ số liệu ===== -->
-            <UniformGrid Columns="4" Margin="-6,0,-6,0">
+            <UniformGrid c:SectionIndex.Title="Tài nguyên" Columns="4" Margin="-6,0,-6,0">
 
                 <!-- CPU -->
                 <Border Style="{StaticResource Card}" Margin="6" Padding="18,16,18,10">
@@ -158,7 +160,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Phần cứng -->
-                <Border Style="{StaticResource Card}">
+                <Border c:SectionIndex.Title="Cấu hình máy" Style="{StaticResource Card}">
                     <StackPanel>
                         <TextBlock Text="Cấu hình máy" Style="{StaticResource H2}" Margin="0,0,0,14"/>
 
@@ -227,7 +229,7 @@
                 </Border>
 
                 <!-- Ổ đĩa -->
-                <Border Grid.Column="2" Style="{StaticResource Card}">
+                <Border c:SectionIndex.Title="Ổ đĩa" Grid.Column="2" Style="{StaticResource Card}">
                     <StackPanel>
                         <TextBlock Text="Ổ đĩa" Style="{StaticResource H2}" Margin="0,0,0,14"/>
                         <ItemsControl ItemsSource="{Binding Drives}">
@@ -266,7 +268,7 @@
             </Grid>
 
             <!-- ===== Công cụ nhanh ===== -->
-            <TextBlock Text="Mở nhanh công cụ Windows" Style="{StaticResource H2}" Margin="0,24,0,12"/>
+            <TextBlock c:SectionIndex.Title="Mở nhanh" Text="Mở nhanh công cụ Windows" Style="{StaticResource H2}" Margin="0,24,0,12"/>
             <ItemsControl ItemsSource="{Binding QuickTools}" Margin="-5,0">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>

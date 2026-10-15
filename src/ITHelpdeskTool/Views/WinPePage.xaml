@@ -1,6 +1,7 @@
 <UserControl x:Class="ITHelpdeskTool.Views.WinPePage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:ITHelpdeskTool.Controls"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:core="clr-namespace:ITHelpdeskTool.Core"
@@ -36,15 +37,24 @@
             <ColumnDefinition Width="12"/>
             <ColumnDefinition Width="*" MinWidth="280"/>
         </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
+        <!-- Đầu trang ghim cố định -->
+        <StackPanel Grid.ColumnSpan="3">
+            <TextBlock Text="WinPE" Style="{StaticResource H1}"/>
+            <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,14" FontSize="13" TextWrapping="Wrap"
+                       Text="Tạo môi trường cứu hộ Windows PE bằng Windows ADK chính thức của Microsoft — khởi động từ USB để sao lưu dữ liệu, sửa boot, chạy DISM, mở khoá BitLocker khi Windows không vào được."/>
+            <c:SectionIndex Target="{Binding ElementName=PageScroller}" Margin="0,0,0,2"/>
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" x:Name="PageScroller" VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
             <StackPanel>
-                <TextBlock Text="WinPE" Style="{StaticResource H1}"/>
-                <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,14" FontSize="13" TextWrapping="Wrap"
-                           Text="Tạo môi trường cứu hộ Windows PE bằng Windows ADK chính thức của Microsoft — khởi động từ USB để sao lưu dữ liệu, sửa boot, chạy DISM, mở khoá BitLocker khi Windows không vào được."/>
 
                 <!-- ADK -->
-                <Border Style="{StaticResource Card}" Margin="0,0,0,12" IsEnabled="{Binding IsIdle}">
+                <Border c:SectionIndex.Title="Windows ADK" Style="{StaticResource Card}" Margin="0,0,0,12" IsEnabled="{Binding IsIdle}">
                     <DockPanel>
                         <TextBlock DockPanel.Dock="Left" Text="&#xE73E;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource GoodBrush}" Margin="0,0,12,0"
                                    VerticalAlignment="Top" Visibility="{Binding HasAdk, Converter={StaticResource BoolVis}}"/>
@@ -61,7 +71,7 @@
                 </Border>
 
                 <!-- Tuỳ chọn -->
-                <Border Style="{StaticResource Card}" IsEnabled="{Binding IsIdle}">
+                <Border c:SectionIndex.Title="Tuỳ chọn WinPE" Style="{StaticResource Card}" IsEnabled="{Binding IsIdle}">
                     <StackPanel>
                         <TextBlock Text="Tuỳ chọn WinPE" Style="{StaticResource H2}"/>
 
@@ -138,7 +148,7 @@
         </ScrollViewer>
 
         <!-- Tiến độ -->
-        <Border Grid.Column="2" Style="{StaticResource Card}" Padding="0">
+        <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource Card}" Padding="0">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Top" Margin="16,12,16,8">
                     <DockPanel>
