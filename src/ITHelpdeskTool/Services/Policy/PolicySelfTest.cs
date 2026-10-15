@@ -180,7 +180,12 @@ public static class PolicySelfTest
         {
             var (r, path) = await PolicyService.GpResultAsync();
             Check(r.Ok && path is not null && new FileInfo(path).Length > 1000, r.Message);
-            return $"{r.Message} ({new FileInfo(path!).Length / 1024} KB)";
+            // Báo cáo tự tạo (dùng trên Windows Home, nơi gpresult /h không có)
+            var (r2, own) = await PolicyService.GpResultAsync(forceOwn: true);
+            Check(r2.Ok && own is not null, r2.Message);
+            var html = await File.ReadAllTextAsync(own!);
+            Check(html.Contains("Policy đang bật") && html.Contains("HKEY_LOCAL_MACHINE"), "báo cáo tự tạo thiếu nội dung");
+            return $"{r.Message} ({new FileInfo(path!).Length / 1024} KB) · tự tạo: {new FileInfo(own!).Length / 1024} KB";
         });
 
         // ===== Chỉ cho dùng USB được duyệt (thử bằng 2 ổ ảo VHDX coi như USB) =====

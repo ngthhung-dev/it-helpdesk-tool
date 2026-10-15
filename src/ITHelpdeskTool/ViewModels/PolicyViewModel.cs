@@ -368,13 +368,13 @@ public sealed partial class PolicyViewModel : PageViewModel
     {
         if (IsBusy) return;
         IsBusy = true;
-        BusyText = "Đang tạo báo cáo gpresult…";
+        BusyText = "Đang tạo báo cáo policy…";
         (OpResult Result, string? Path) r;
-        try { r = await PolicyService.GpResultAsync(); }
+        try { r = await PolicyService.GpResultAsync(TargetUser?.Sid); }
         finally { IsBusy = false; }
         AddLog(r.Result.Message, r.Result.Ok);
         if (r.Path is not null) ShellLauncher.Open(r.Path);
-        else DialogWindow.Info("gpresult", r.Result.Message, error: true);
+        else DialogWindow.Info("Báo cáo policy", r.Result.Message, error: true);
     }
 
     [RelayCommand]

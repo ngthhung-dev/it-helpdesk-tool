@@ -249,14 +249,129 @@ public static class PolicyService
         return OpResult.From(r, "Đã cập nhật Group Policy (gpupdate /force).", "gpupdate lỗi");
     }
 
-    public static async Task<(OpResult Result, string? Path)> GpResultAsync()
+    /// <summary>
+    /// Báo cáo policy đang áp dụng. Dùng gpresult /h nếu Windows hỗ trợ (Pro trở lên); bản Home không có báo cáo HTML của gpresult
+    /// → app tự tạo báo cáo: policy của app đang bật + toàn bộ giá trị trong các nhánh Policies của registry (máy và người dùng).
+    /// </summary>
+    public static async Task<(OpResult Result, string? Path)> GpResultAsync(string? userSid = null, bool forceOwn = false)
     {
-        var path = Path.Combine(Path.GetTempPath(), $"GPResult_{Environment.MachineName}_{DateTime.Now:yyyyMMdd-HHmmss}.html");
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
-        var r = await ProcessRunner.ConsoleAsync("gpresult.exe", $"/h \"{path}\" /f", cts.Token);
-        return File.Exists(path)
-            ? (OpResult.Success("Đã tạo báo cáo Group Policy (gpresult)."), path)
-            : (OpResult.Fail($"Không tạo được báo cáo: {OpResult.FirstLine(r.Text)}"), null);
+        var stamp = $"{Environment.MachineName}_{DateTime.Now:yyyyMMdd-HHmmss}";
+        string? why = null;
+        if (!forceOwn)
+        {
+            var path = Path.Combine(Path.GetTempPath(), $"GPResult_{stamp}.html");
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+            var r = await ProcessRunner.ConsoleAsync("gpresult.exe", $"/h \"{path}\" /f", cts.Token);
+            if (File.Exists(path)) return (OpResult.Success("Đã tạo báo cáo Group Policy (gpresult)."), path);
+            why = OpResult.FirstLine(r.Text);
+            Log.Info($"gpresult /h không dùng được ({why}) — tự tạo báo cáo");
+        }
+        try
+        {
+            var own = Path.Combine(Path.GetTempPath(), $"PolicyReport_{stamp}.html");
+            var gpr = await ProcessRunner.ConsoleAsync("gpresult.exe", "/r");
+            await File.WriteAllTextAsync(own, await Task.Run(() => BuildReport(userSid, gpr.Success ? gpr.Output : null)), Encoding.UTF8);
+            return (OpResult.Success(why is null ? "Đã tạo báo cáo policy." : "Đã tạo báo cáo policy (Windows này không có báo cáo HTML của gpresult nên app tự tổng hợp)."), own);
+        }
+        catch (Exception ex) { return (OpResult.Fail($"Không tạo được báo cáo: {ex.Message}"), null); }
+    }
+
+    private static readonly string[] PolicyRoots =
+    [
+        @"SOFTWARE\Policies",
+        @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies",
+        @"SOFTWARE\WOW6432Node\Policies",
+    ];
+
+    private static string BuildReport(string? userSid, string? gpresultText)
+    {
+        static string H(string? s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+        var me = System.Security.Principal.WindowsIdentity.GetCurrent();
+        userSid ??= me.User?.Value;
+        var states = ReadStates(userSid);
+        var sb = new StringBuilder();
+        sb.Append("""
+            <!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Báo cáo policy</title><style>
+            body{font-family:Segoe UI,Arial,sans-serif;margin:32px;color:#1f2937;background:#f8fafc}
+            h1{font-size:24px;margin:0 0 4px}h2{font-size:17px;margin:28px 0 8px;border-bottom:2px solid #e5e7eb;padding-bottom:4px}
+            h3{font-size:14px;margin:16px 0 6px;color:#374151}.muted{color:#6b7280;font-size:13px}
+            table{border-collapse:collapse;width:100%;font-size:13px;background:#fff}td,th{border:1px solid #e5e7eb;padding:5px 8px;text-align:left;vertical-align:top}
+            th{background:#f1f5f9}code{font-family:Consolas,monospace;font-size:12px;word-break:break-all}.on{color:#059669;font-weight:600}
+            pre{background:#fff;border:1px solid #e5e7eb;padding:12px;font-size:12px;white-space:pre-wrap}
+            </style></head><body>
+            """);
+        sb.Append($"<h1>Báo cáo policy đang áp dụng</h1><div class='muted'>Máy {H(Environment.MachineName)} · {H(RuntimeInformation.OSDescription)} · " +
+                  $"tạo lúc {DateTime.Now:HH:mm dd/MM/yyyy} bởi IT Helpdesk Tool</div>");
+
+        // 1) Policy của app đang bật
+        sb.Append("<h2>Policy đang bật (theo danh mục của app)</h2>");
+        var on = PolicyCatalog.All.Where(p => states.GetValueOrDefault(p.Key)).ToList();
+        if (on.Count == 0) sb.Append("<p class='muted'>Không có policy nào trong danh mục đang bật.</p>");
+        else
+        {
+            sb.Append("<table><tr><th>Nhóm</th><th>Policy</th><th>Phạm vi</th><th>Mô tả</th></tr>");
+            foreach (var p in on)
+                sb.Append($"<tr><td>{H(p.Group)}</td><td class='on'>{H(p.Title)}</td><td>{(p.Scope == PolicyScope.Machine ? "Cả máy" : "Người dùng")}</td><td>{H(p.Description)}</td></tr>");
+            sb.Append("</table>");
+        }
+
+        // 2) Toàn bộ giá trị policy trong registry (kể cả do phần mềm khác / domain đặt)
+        void Dump(RegistryKey root, string label)
+        {
+            sb.Append($"<h3>{H(label)}</h3>");
+            var rows = new List<(string Key, string Name, string Value)>();
+            foreach (var r in PolicyRoots)
+            {
+                using var k = root.OpenSubKey(r);
+                if (k is not null) Collect(k, root.Name + "\\" + r, rows, 0);
+            }
+            if (rows.Count == 0) { sb.Append("<p class='muted'>Không có giá trị nào.</p>"); return; }
+            sb.Append("<table><tr><th>Khoá</th><th>Tên</th><th>Giá trị</th></tr>");
+            foreach (var (key, name, value) in rows)
+                sb.Append($"<tr><td><code>{H(key)}</code></td><td>{H(name)}</td><td><code>{H(value)}</code></td></tr>");
+            sb.Append("</table>");
+        }
+        sb.Append("<h2>Giá trị policy trong registry</h2><div class='muted'>Gồm cả policy do phần mềm khác, Intune hay domain đặt.</div>");
+        Dump(Registry.LocalMachine, "Máy (HKLM)");
+        try
+        {
+            if (userSid is not null)
+            {
+                using var hive = UserHive.Open(userSid);
+                Dump(hive.Root, $"Người dùng ({userSid})");
+            }
+        }
+        catch (Exception ex) { sb.Append($"<p class='muted'>Không đọc được policy người dùng: {H(ex.Message)}</p>"); }
+
+        // 3) gpresult /r (dạng chữ) nếu có
+        if (!string.IsNullOrWhiteSpace(gpresultText))
+            sb.Append("<h2>gpresult /r</h2><pre>").Append(H(gpresultText)).Append("</pre>");
+        sb.Append("</body></html>");
+        return sb.ToString();
+    }
+
+    private static void Collect(RegistryKey k, string path, List<(string, string, string)> rows, int depth)
+    {
+        if (depth > 12 || rows.Count > 5000) return;
+        foreach (var n in k.GetValueNames())
+        {
+            object? v;
+            try { v = k.GetValue(n, null, RegistryValueOptions.DoNotExpandEnvironmentNames); } catch { continue; }
+            var text = v switch
+            {
+                byte[] b => BitConverter.ToString(b.Take(64).ToArray()) + (b.Length > 64 ? "…" : ""),
+                string[] a => string.Join(" | ", a),
+                int i => $"{i} (0x{i:X})",
+                long l => l.ToString(CultureInfo.InvariantCulture),
+                null => "",
+                _ => v.ToString() ?? "",
+            };
+            rows.Add((path, n.Length == 0 ? "(Mặc định)" : n, text));
+        }
+        foreach (var sub in k.GetSubKeyNames())
+        {
+            try { using var c = k.OpenSubKey(sub); if (c is not null) Collect(c, path + "\\" + sub, rows, depth + 1); } catch { }
+        }
     }
 
     public static bool HasGpedit() => File.Exists(Path.Combine(Environment.SystemDirectory, "gpedit.msc"));
