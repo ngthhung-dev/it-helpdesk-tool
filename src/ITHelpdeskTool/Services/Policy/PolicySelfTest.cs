@@ -59,9 +59,9 @@ public static class PolicySelfTest
             Need(PolicyService.Apply(p, true, null));
             try
             {
-                var r = await Store.WingetService.InstallAsync("7zip.7zip", "7-Zip");
+                var r = await Store.WingetService.InstallAsync("Notepad++.Notepad++", "Notepad++");
                 Check(r.Ok, "winget không cài được khi bật chặn: " + r.Message);
-                var u = await Store.WingetService.UninstallAsync("7zip.7zip", "7-Zip");
+                var u = await Store.WingetService.UninstallAsync("Notepad++.Notepad++", "Notepad++");
                 return $"{r.Message} · {u.Message}";
             }
             finally { PolicyService.Apply(p, false, null); }
