@@ -13,6 +13,7 @@
     <AssemblyName>ITHelpdeskTool</AssemblyName>
     <RootNamespace>ITHelpdeskTool</RootNamespace>
     <NoWarn>$(NoWarn);MVVMTK0045</NoWarn>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <!-- Thông tin hiển thị trong Properties > Details của file .exe -->

@@ -65,6 +65,15 @@
             <DataTemplate DataType="{x:Type vm:RepairViewModel}">
                 <v:RepairPage/>
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:BitLockerViewModel}">
+                <v:BitLockerPage/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:DiskViewModel}">
+                <v:DiskPage/>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:UserFoldersViewModel}">
+                <v:UserFoldersPage/>
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:AboutViewModel}">
                 <v:AboutPage/>
             </DataTemplate>

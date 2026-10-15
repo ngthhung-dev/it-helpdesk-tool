@@ -63,9 +63,9 @@ public sealed partial class ShellViewModel : ObservableObject
             ]),
             new("Ổ ĐĨA & DỮ LIỆU",
             [
-                Item("bitlocker", "BitLocker", "\uE72E", 3),
-                Item("disk", "Công cụ ổ đĩa", "\uEDA2", 3),
-                Item("userfolders", "Chuyển thư mục", "\uE8DE", 3),
+                Item("bitlocker", "BitLocker", "\uE72E", 1, () => new BitLockerViewModel()),
+                Item("disk", "Công cụ ổ đĩa", "\uEDA2", 1, () => new DiskViewModel()),
+                Item("userfolders", "Chuyển thư mục", "\uE8DE", 1, () => new UserFoldersViewModel()),
             ]),
             new("TIỆN ÍCH",
             [

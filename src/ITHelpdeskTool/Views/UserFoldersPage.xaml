@@ -1,0 +1,124 @@
+<UserControl x:Class="ITHelpdeskTool.Views.UserFoldersPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:core="clr-namespace:ITHelpdeskTool.Core"
+             xmlns:vm="clr-namespace:ITHelpdeskTool.ViewModels"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:UserFoldersViewModel}"
+             d:DesignWidth="1200" d:DesignHeight="900">
+
+    <UserControl.Resources>
+        <core:BoolToVisibility x:Key="BoolVis"/>
+        <core:BoolToVisibility x:Key="NotBoolVis" Invert="True"/>
+        <Style x:Key="Hint" TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="TextTrimming" Value="None"/>
+        </Style>
+        <Style x:Key="Badge" TargetType="Border">
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="6,1"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Background" Value="#14FFFFFF"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,4,22,28">
+            <StackPanel>
+                <TextBlock Text="Chuyển thư mục" Style="{StaticResource H1}"/>
+                <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" FontSize="13" TextWrapping="Wrap"
+                           Text="Chuyển Desktop, Documents, Downloads, Pictures… sang ổ khác để giải phóng ổ C: và giữ dữ liệu an toàn khi cài lại Windows. Mọi ứng dụng vẫn tìm thấy thư mục như cũ."/>
+                <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,14">
+                    <Run Text="Tài khoản:"/> <Run Text="{Binding Account, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
+                    <Run Text=" · "/><Run Text="{Binding SystemFree, Mode=OneWay}"/>
+                </TextBlock>
+
+                <Border Style="{StaticResource Card}" IsEnabled="{Binding IsIdle}">
+                    <StackPanel>
+                        <ItemsControl ItemsSource="{Binding Folders}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
+                                        <DockPanel>
+                                            <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsChecked}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                            <TextBlock DockPanel.Dock="Left" Text="{Binding F.Glyph}" Style="{StaticResource Icon}" FontSize="18" Foreground="{StaticResource AccentBrush}"
+                                                       VerticalAlignment="Center" Margin="0,0,14,0"/>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button Style="{StaticResource BtnSmall}" Content="Mở" Margin="0,0,6,0" CommandParameter="{Binding}"
+                                                        Command="{Binding DataContext.OpenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button Style="{StaticResource BtnSmall}" Content="Trả về mặc định" CommandParameter="{Binding}"
+                                                        Visibility="{Binding IsDefault, Converter={StaticResource NotBoolVis}}"
+                                                        Command="{Binding DataContext.RestoreCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,12,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding F.Name}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding SizeText}" Style="{StaticResource Hint}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                                    <Border Style="{StaticResource Badge}" Background="#1A34D399" Visibility="{Binding OnSystemDrive, Converter={StaticResource NotBoolVis}}">
+                                                        <TextBlock Text="Đã ở ổ khác" FontSize="10.5" Foreground="{StaticResource GoodBrush}"/>
+                                                    </Border>
+                                                    <Border Style="{StaticResource Badge}" Background="#1AFBBF24" Visibility="{Binding OneDrive, Converter={StaticResource BoolVis}}">
+                                                        <TextBlock Text="Trong OneDrive" FontSize="10.5" Foreground="{StaticResource WarnBrush}"/>
+                                                    </Border>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Path}" FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Status}" FontSize="12" TextWrapping="Wrap" Visibility="{Binding Status, Converter={x:Static core:Converters.NonEmptyVis}}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding StatusOk}" Value="False"><Setter Property="Foreground" Value="{StaticResource BadBrush}"/></DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="Chuyển các thư mục đã chọn vào" Style="{StaticResource Caption}" Margin="0,16,0,6"/>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="Chọn thư mục…" Margin="8,0,0,0" Command="{Binding PickBaseCommand}"/>
+                            <TextBox Style="{StaticResource InputBox}" Text="{Binding BasePath, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}"/>
+                        </DockPanel>
+                        <ItemsControl ItemsSource="{Binding Bases}" Margin="0,8,0,0">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource Chip}" Content="{Binding}" CommandParameter="{Binding}"
+                                            Command="{Binding DataContext.UseBaseCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,0" Text="Mỗi thư mục được đặt trong một thư mục con cùng tên, vd D:\Users\ten\Documents."/>
+
+                        <DockPanel Margin="0,16,0,0">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Command="{Binding MoveSelectedCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE8DE;" Style="{StaticResource Icon}" FontSize="13"/>
+                                    <TextBlock Text="Chuyển thư mục đã chọn" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource BtnSmall}" Content="Đọc lại" Command="{Binding RefreshCommand}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20" CornerRadius="20" Padding="18,9"
+                Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource TextBrush}"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

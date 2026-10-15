@@ -1,0 +1,205 @@
+<UserControl x:Class="ITHelpdeskTool.Views.DiskPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:core="clr-namespace:ITHelpdeskTool.Core"
+             xmlns:vm="clr-namespace:ITHelpdeskTool.ViewModels"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:DiskViewModel}"
+             d:DesignWidth="1200" d:DesignHeight="1200">
+
+    <UserControl.Resources>
+        <core:BoolToVisibility x:Key="BoolVis"/>
+        <Style x:Key="Hint" TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="TextTrimming" Value="None"/>
+        </Style>
+        <Style x:Key="CardIcon" TargetType="Border">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+            <Setter Property="Margin" Value="0,0,12,0"/>
+        </Style>
+        <Style x:Key="Act" TargetType="Button" BasedOn="{StaticResource BtnSmall}">
+            <Setter Property="Margin" Value="0,0,6,6"/>
+            <Setter Property="CommandParameter" Value="{Binding}"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,4,22,28">
+            <StackPanel>
+                <DockPanel Margin="0,0,0,14">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Style="{StaticResource BtnSmall}" Content="Disk Management" Margin="0,0,6,0" Command="{Binding OpenDiskMgmtCommand}"/>
+                        <Button Style="{StaticResource BtnSmall}" Content="Đọc lại" Command="{Binding RefreshCommand}"/>
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="Công cụ ổ đĩa" Style="{StaticResource H1}"/>
+                        <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" FontSize="13" TextWrapping="Wrap"
+                                   Text="Sức khoẻ ổ cứng, tối ưu, kiểm tra lỗi, đo tốc độ, đổi tên / ký tự, mở rộng, định dạng và xem thư mục nào chiếm dung lượng."/>
+                    </StackPanel>
+                </DockPanel>
+
+                <!-- Ổ vật lý -->
+                <ItemsControl ItemsSource="{Binding Disks}" Margin="0,0,0,2">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource Card}" Width="340" Margin="0,0,10,10" Padding="16,12">
+                                <DockPanel>
+                                    <Border x:Name="Badge" DockPanel.Dock="Right" CornerRadius="6" Padding="8,2" Background="#1A34D399" VerticalAlignment="Top">
+                                        <TextBlock x:Name="BadgeT" Text="{Binding HealthText}" FontSize="11.5" Foreground="{StaticResource GoodBrush}"/>
+                                    </Border>
+                                    <TextBlock DockPanel.Dock="Left" Text="&#xEDA2;" Style="{StaticResource Icon}" FontSize="20" Foreground="{StaticResource AccentBrush}" Margin="0,2,12,0" VerticalAlignment="Top"/>
+                                    <StackPanel>
+                                        <TextBlock Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis">
+                                            <Run Text="Ổ"/> <Run Text="{Binding Number, Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding Model, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding Detail}" Style="{StaticResource Hint}"/>
+                                        <TextBlock Text="Ổ chứa Windows" FontSize="11.5" Foreground="{StaticResource AccentBrush}" Visibility="{Binding IsSystem, Converter={StaticResource BoolVis}}"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Tone}" Value="Warn">
+                                    <Setter TargetName="Badge" Property="Background" Value="#1AFBBF24"/>
+                                    <Setter TargetName="BadgeT" Property="Foreground" Value="{StaticResource WarnBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Tone}" Value="Bad">
+                                    <Setter TargetName="Badge" Property="Background" Value="#1AF87171"/>
+                                    <Setter TargetName="BadgeT" Property="Foreground" Value="{StaticResource BadBrush}"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Phân vùng -->
+                <Border Style="{StaticResource Card}" Margin="0,0,0,12" IsEnabled="{Binding IsIdle}">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,4">
+                            <Border Style="{StaticResource CardIcon}">
+                                <TextBlock Text="&#xE8B7;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Phân vùng" Style="{StaticResource H2}" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <ItemsControl ItemsSource="{Binding Volumes}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,12">
+                                        <StackPanel>
+                                            <DockPanel>
+                                                <TextBlock DockPanel.Dock="Right" Text="{Binding V.SpaceText}" Style="{StaticResource Hint}" VerticalAlignment="Center"/>
+                                                <TextBlock Foreground="{StaticResource TextBrush}" FontWeight="SemiBold">
+                                                    <Run Text="{Binding V.Display, Mode=OneWay}"/>
+                                                    <Run x:Name="Sys" Text="" Foreground="{StaticResource AccentBrush}" FontWeight="Normal" FontSize="12"/>
+                                                </TextBlock>
+                                            </DockPanel>
+                                            <ProgressBar Height="6" Margin="0,6,0,8" Maximum="100" Value="{Binding V.UsedPercent, Mode=OneWay}"/>
+                                            <WrapPanel>
+                                                <Button Style="{StaticResource Act}" Content="Mở" Command="{Binding DataContext.OpenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button Style="{StaticResource Act}" Content="Xem dung lượng" Command="{Binding DataContext.AnalyzeVolumeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button Style="{StaticResource Act}" Content="Tối ưu" ToolTip="SSD: TRIM · HDD: chống phân mảnh" Command="{Binding DataContext.OptimizeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button Style="{StaticResource Act}" Content="Kiểm tra lỗi" Command="{Binding DataContext.CheckCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button Style="{StaticResource Act}" Content="Đo tốc độ" Command="{Binding DataContext.SpeedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button Style="{StaticResource Act}" Content="Đổi tên" Command="{Binding DataContext.RenameCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button x:Name="Letter" Style="{StaticResource Act}" Content="Đổi ký tự" Command="{Binding DataContext.ChangeLetterCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button Style="{StaticResource Act}" Content="Mở rộng" Visibility="{Binding V.CanExtend, Converter={StaticResource BoolVis}}"
+                                                        Command="{Binding DataContext.ExtendCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button x:Name="Fmt" Style="{StaticResource Act}" Content="Định dạng" Foreground="{StaticResource BadBrush}"
+                                                        Command="{Binding DataContext.FormatCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                            </WrapPanel>
+                                            <TextBlock x:Name="Res" Text="{Binding Result}" FontSize="12" TextWrapping="Wrap" Foreground="{StaticResource GoodBrush}"
+                                                       Visibility="{Binding Result, Converter={x:Static core:Converters.NonEmptyVis}}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding V.IsProtected}" Value="True">
+                                            <Setter TargetName="Sys" Property="Text" Value="· ổ hệ thống"/>
+                                            <Setter TargetName="Letter" Property="Visibility" Value="Collapsed"/>
+                                            <Setter TargetName="Fmt" Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ResultOk}" Value="False">
+                                            <Setter TargetName="Res" Property="Foreground" Value="{StaticResource BadBrush}"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- Phân tích dung lượng -->
+                <Border Style="{StaticResource Card}" IsEnabled="{Binding IsIdle}">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,6">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center"
+                                        Visibility="{Binding AnalyzePath, Converter={x:Static core:Converters.NonEmptyVis}}">
+                                <Button Style="{StaticResource BtnSmall}" Content="Lên một cấp" Margin="0,0,6,0" Command="{Binding UpCommand}"/>
+                                <Button Style="{StaticResource BtnSmall}" Content="Mở thư mục" Command="{Binding OpenFolderCommand}"/>
+                            </StackPanel>
+                            <Border Style="{StaticResource CardIcon}">
+                                <TextBlock Text="&#xE9D9;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Thư mục nào chiếm dung lượng?" Style="{StaticResource H2}" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource Hint}" Text="Bấm “Xem dung lượng” ở một phân vùng, rồi bấm vào thư mục để xem sâu hơn."
+                                   Visibility="{Binding Folders.Count, Converter={x:Static core:Converters.ZeroVis}}"/>
+                        <TextBlock FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="{StaticResource TextBrush}">
+                            <Run Text="{Binding AnalyzePath, Mode=OneWay}"/> <Run Text="{Binding AnalyzeSummary, Mode=OneWay}" Foreground="{StaticResource MutedBrush}"/>
+                        </TextBlock>
+                        <ItemsControl ItemsSource="{Binding Folders}" Margin="0,6,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Cursor="Hand" Command="{Binding DataContext.DrillCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="Bd" Background="Transparent" CornerRadius="6" Padding="8,5">
+                                                    <ContentPresenter/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="{StaticResource HoverBrush}"/></Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="22"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="160"/>
+                                                <ColumnDefinition Width="90"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock x:Name="Ico" Text="&#xE8B7;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource WarnBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding F.Name}" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                            <ProgressBar Grid.Column="2" Height="6" Maximum="100" Value="{Binding Percent, Mode=OneWay}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding SizeText}" Foreground="{StaticResource TextBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Button>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding F.IsDir}" Value="False">
+                                            <Setter TargetName="Ico" Property="Text" Value="&#xE8A5;"/>
+                                            <Setter TargetName="Ico" Property="Foreground" Value="{StaticResource MutedBrush}"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20" CornerRadius="20" Padding="18,9"
+                Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource TextBrush}"/>
+                <Button Style="{StaticResource LinkButton}" Content="Dừng" Margin="14,0,0,0" Command="{Binding StopCommand}"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
