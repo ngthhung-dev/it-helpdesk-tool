@@ -75,10 +75,52 @@ public static class MultiZaloService
         var p = new ZaloProfile { Name = name, Folder = Path.Combine(baseDir, Safe(name)) };
         Directory.CreateDirectory(Path.Combine(p.Folder, @"AppData\Roaming"));
         Directory.CreateDirectory(Path.Combine(p.Folder, @"AppData\Local"));
+        LinkUserFolders(p);
         WriteLauncher(p);
         list.Add(p);
         Save(list);
         return OpResult.Success($"Đã tạo hồ sơ “{name}” tại {p.Folder}.");
+    }
+
+    private static readonly Environment.SpecialFolder[] Linked =
+    [
+        Environment.SpecialFolder.DesktopDirectory, Environment.SpecialFolder.MyDocuments, Environment.SpecialFolder.MyPictures,
+        Environment.SpecialFolder.MyVideos, Environment.SpecialFolder.MyMusic,
+    ];
+
+    /// <summary>Thư mục trong hồ sơ trỏ (junction) tới thư mục thật của người dùng.</summary>
+    private static IEnumerable<(string Link, string Target)> Links(ZaloProfile p)
+    {
+        foreach (var f in Linked)
+        {
+            var target = Environment.GetFolderPath(f);
+            if (target.Length > 0) yield return (Path.Combine(p.Folder, Path.GetFileName(target)), target);
+        }
+        var dl = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+        yield return (Path.Combine(p.Folder, "Downloads"), dl);
+    }
+
+    private static void LinkUserFolders(ZaloProfile p)
+    {
+        foreach (var (link, target) in Links(p))
+        {
+            if (Directory.Exists(link) || !Directory.Exists(target)) continue;
+            ProcessRunner.ConsoleAsync("cmd.exe", $"/c mklink /J \"{link}\" \"{target}\"").GetAwaiter().GetResult();
+        }
+    }
+
+    /// <summary>Gỡ các junction trước khi xoá hồ sơ để không bao giờ xoá nhầm vào thư mục thật.</summary>
+    private static void UnlinkUserFolders(ZaloProfile p)
+    {
+        foreach (var (link, _) in Links(p))
+        {
+            try
+            {
+                var di = new DirectoryInfo(link);
+                if (di.Exists && di.Attributes.HasFlag(FileAttributes.ReparsePoint)) di.Delete(false);
+            }
+            catch { }
+        }
     }
 
     /// <summary>
@@ -111,6 +153,7 @@ public static class MultiZaloService
             Set env = sh.Environment("Process")
             env("APPDATA") = "{V(Path.Combine(p.Folder, @"AppData\Roaming"))}"
             env("LOCALAPPDATA") = "{V(Path.Combine(p.Folder, @"AppData\Local"))}"
+            env("USERPROFILE") = "{V(p.Folder)}"
             sh.Run Chr(34) & exe & Chr(34), 1, False
             """;
         Directory.CreateDirectory(p.Folder);
@@ -122,7 +165,8 @@ public static class MultiZaloService
     public static OpResult Start(ZaloProfile p)
     {
         if (AppExe() is null) return OpResult.Fail("Máy chưa cài Zalo PC — cài ở trang App Store.");
-        if (!File.Exists(p.Launcher)) WriteLauncher(p);
+        WriteLauncher(p);
+        LinkUserFolders(p);
         Process.Start(new ProcessStartInfo("explorer.exe", $"\"{p.Launcher}\"") { UseShellExecute = true });
         return OpResult.Success($"Đang mở Zalo “{p.Name}”.");
     }
@@ -196,6 +240,9 @@ public static class MultiZaloService
     public static OpResult Delete(ZaloProfile p)
     {
         if (IsRunning(p.DataDir)) return OpResult.Fail($"Zalo “{p.Name}” đang mở — đóng trước khi xoá.");
+        UnlinkUserFolders(p);
+        if (Links(p).Any(l => Directory.Exists(l.Link) && new DirectoryInfo(l.Link).Attributes.HasFlag(FileAttributes.ReparsePoint)))
+            return OpResult.Fail("Không gỡ được liên kết thư mục trong hồ sơ — dừng để không xoá nhầm dữ liệu thật.");
         try { if (Directory.Exists(p.Folder)) Directory.Delete(p.Folder, true); }
         catch (Exception ex) { return OpResult.Fail($"Không xoá được thư mục: {ex.Message}"); }
         var lnk = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), $"Zalo - {Safe(p.Name)}.lnk");

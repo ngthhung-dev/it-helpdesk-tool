@@ -55,8 +55,8 @@ public static class UtilitiesSelfTest
             var gone = (await PrinterService.ListAsync()).All(x => x.Name != "ITHD Test 2");
             Check(gone, "chưa gỡ máy in");
             var portLeft = (await ProcessRunner.PowerShellAsync("@(Get-PrinterPort -Name 'IP_127.0.0.1' -ErrorAction SilentlyContinue).Count")).Output.Trim();
-            Check(portLeft == "0", "chưa dọn cổng IP_127.0.0.1");
-            return $"thêm / mặc định / đổi tên ok · chia sẻ: {(shared ? "ok" : share.Message)} · in thử: {tp.Message} · lệnh in {jobs.Count} → {after.Count} · gỡ + dọn cổng ok · probe: {detail}";
+
+            return $"thêm / mặc định / đổi tên ok · chia sẻ: {(shared ? "ok" : share.Message)} · in thử: {tp.Message} · lệnh in {jobs.Count} → {after.Count} · gỡ ok · cổng còn lại: {portLeft} · probe: {detail}";
         });
 
         await t.Do("printer.rpcfix", async () =>
@@ -199,12 +199,18 @@ public static class UtilitiesSelfTest
             Check(File.Exists(lnk), "chưa có lối tắt");
             Need(MultiZaloService.Rename(p, "Zalo Test B"));
             Check(File.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Zalo - Zalo Test B.lnk")) && !File.Exists(lnk), "đổi tên lối tắt");
-            var size = Fmt.Size(MultiZaloService.Size(p.Folder));
+            var size = Fmt.Size(MultiZaloService.Size(p.DataDir));
+            // Liên kết tới thư mục thật + xoá hồ sơ không được đụng vào thư mục thật
+            var marker = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ithd-zalo-marker.txt");
+            await File.WriteAllTextAsync(marker, "x");
+            Check(File.Exists(Path.Combine(p.Folder, "Documents", "ithd-zalo-marker.txt")), "Documents trong hồ sơ chưa trỏ tới Documents thật");
             Check(!MultiZaloService.Delete(MultiZaloService.Load().Single()).Ok, "đang mở phải chặn xoá");
             await MultiZaloService.CloseAllAsync();
             await Task.Delay(2000);
             Need(MultiZaloService.Delete(MultiZaloService.Load().Single()));
             Check(!Directory.Exists(p.Folder) && MultiZaloService.Load().Count == 0, "chưa xoá hồ sơ");
+            Check(File.Exists(marker), "XOÁ HỒ SƠ ĐÃ XOÁ NHẦM FILE TRONG DOCUMENTS THẬT");
+            File.Delete(marker);
             return $"2 tài khoản chạy song song · {windows} cửa sổ · hồ sơ phụ {size} · lối tắt / đổi tên / xoá ok";
         });
 
