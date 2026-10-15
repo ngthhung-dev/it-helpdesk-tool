@@ -177,6 +177,55 @@ public static class FontSelfTest
             return $"{list.Count} font (thêm {N}): tạo {tMake} ms · đọc danh sách {tRead} ms · phân tích {tScan} ms · lần 2 (bộ đệm) {tCached} ms · gỡ {N + 20} font {tDel} ms (hẹn xoá sau khởi động lại: {later})";
         });
 
+        await t.Do("filter.ui", async () =>
+        {
+            // Một font cài thêm có dấu tiếng Việt để bộ lọc "cài thêm" có dữ liệu
+            var lex = FontService.Read(files.First(f => f.Contains("Lexend")));
+            Need(FontService.Install(lex, allUsers: false));
+            try
+            {
+                return await System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
+                {
+                    var vm = new ITHelpdeskTool.ViewModels.FontsViewModel();
+                    await vm.LoadInstalledCommand.ExecuteAsync(null);
+                    for (var i = 0; i < 300 && !vm.Scanned; i++) await Task.Delay(100);
+                    Check(vm.Scanned, "chưa phân tích xong");
+                    var log = new List<string>();
+                    // Bấm nút lọc giống WPF: nút mới bật TRƯỚC, nút cũ tắt SAU
+                    void Lang(Action on, Action off) { on(); off(); }
+                    void Expect(string name, Func<ITHelpdeskTool.ViewModels.InstalledFontRow, bool> ok)
+                    {
+                        var bad = vm.InstalledView.Count(r => !ok(r));
+                        Check(bad == 0, $"{name}: {bad}/{vm.InstalledView.Count} dòng sai bộ lọc");
+                        log.Add($"{name} {vm.InstalledView.Count}");
+                    }
+                    Lang(() => vm.LangLegacy = true, () => vm.LangAll = false); Expect("legacy", r => r.Legacy);
+                    Lang(() => vm.LangNone = true, () => vm.LangLegacy = false); Expect("none", r => !r.Vietnamese && !r.Legacy);
+                    Lang(() => vm.ScopeWindows = true, () => vm.ScopeAll = false); Expect("windows+none", r => r.Font.IsSystem && !r.Vietnamese && !r.Legacy);
+                    Lang(() => vm.LangVn = true, () => vm.LangNone = false); Expect("windows+vn", r => r.Font.IsSystem && r.Vietnamese);
+                    Lang(() => vm.ScopeAdded = true, () => vm.ScopeWindows = false); Expect("added+vn", r => !r.Font.IsSystem && r.Vietnamese);
+                    Check(vm.InstalledView.Any(r => r.Font.RegName == lex.RegName), "không thấy font Lexend vừa cài");
+
+                    vm.SelectInstalledCommand.Execute("visible");
+                    Check(vm.CheckedCount == vm.InstalledView.Count, $"chọn {vm.CheckedCount} / đang hiện {vm.InstalledView.Count}");
+                    Lang(() => vm.ScopeAll = true, () => vm.ScopeAdded = false);
+                    Lang(() => vm.LangNone = true, () => vm.LangVn = false);
+                    vm.SelectInstalledCommand.Execute("visible");
+                    var want = vm.InstalledView.Count(r => r.CanRemove);
+                    Check(vm.CheckedCount == want, $"chọn lại: {vm.CheckedCount} ≠ {want} (phải bỏ chọn font không còn hiện)");
+                    vm.SelectInstalledCommand.Execute("none");
+                    Check(vm.CheckedCount == 0, "bỏ chọn chưa hết");
+                    Lang(() => vm.LangAll = true, () => vm.LangNone = false);
+                    return string.Join(" · ", log);
+                }).Task.Unwrap();
+            }
+            finally
+            {
+                var inst = FontService.ReadInstalled(false).FirstOrDefault(f => f.Scope == FontScope.User && f.RegName == lex.RegName);
+                if (inst is not null) FontService.Uninstall(inst);
+            }
+        });
+
         await t.Do("collect.zip", async () =>
         {
             var zip = Path.Combine(Path.GetTempPath(), "ithd-fonts.zip");

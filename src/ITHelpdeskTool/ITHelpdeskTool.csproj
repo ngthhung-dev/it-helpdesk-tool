@@ -18,7 +18,7 @@
 
   <!-- Thông tin hiển thị trong Properties > Details của file .exe -->
   <PropertyGroup>
-    <Version>2.1.5</Version>
+    <Version>2.1.6</Version>
     <FileVersion>$(Version).0</FileVersion>
     <AssemblyVersion>$(Version).0</AssemblyVersion>
     <InformationalVersion>$(Version)</InformationalVersion>

@@ -129,13 +129,21 @@ public sealed partial class FontsViewModel : PageViewModel
     [ObservableProperty] private bool _langVn;
     [ObservableProperty] private bool _langLegacy;
     [ObservableProperty] private bool _langNone;
-    partial void OnScopeAllChanged(bool value) { if (value) ApplyFilter(); }
-    partial void OnScopeWindowsChanged(bool value) { if (value) ApplyFilter(); }
-    partial void OnScopeAddedChanged(bool value) { if (value) ApplyFilter(); }
-    partial void OnLangAllChanged(bool value) { if (value) ApplyFilter(); }
-    partial void OnLangVnChanged(bool value) { if (value) ApplyFilter(); }
-    partial void OnLangLegacyChanged(bool value) { if (value) ApplyFilter(); }
-    partial void OnLangNoneChanged(bool value) { if (value) ApplyFilter(); }
+    // Lưu lựa chọn lọc vào biến riêng: khi bấm nút khác, WPF bật nút mới TRƯỚC rồi mới tắt nút cũ,
+    // nên không được suy ra bộ lọc từ các cờ Scope*/Lang* (lúc đó có 2 cờ cùng true).
+    private enum ScopeF { All, Windows, Added }
+    private enum LangF { All, Vn, Legacy, None }
+    private ScopeF _scope = ScopeF.All;
+    private LangF _lang = LangF.All;
+    private void SetScope(ScopeF f) { _scope = f; ApplyFilter(); }
+    private void SetLang(LangF f) { _lang = f; ApplyFilter(); }
+    partial void OnScopeAllChanged(bool value) { if (value) SetScope(ScopeF.All); }
+    partial void OnScopeWindowsChanged(bool value) { if (value) SetScope(ScopeF.Windows); }
+    partial void OnScopeAddedChanged(bool value) { if (value) SetScope(ScopeF.Added); }
+    partial void OnLangAllChanged(bool value) { if (value) SetLang(LangF.All); }
+    partial void OnLangVnChanged(bool value) { if (value) SetLang(LangF.Vn); }
+    partial void OnLangLegacyChanged(bool value) { if (value) SetLang(LangF.Legacy); }
+    partial void OnLangNoneChanged(bool value) { if (value) SetLang(LangF.None); }
 
     // Số lượng hiện trên nút lọc
     [ObservableProperty] private string _countAll = "";
@@ -332,7 +340,7 @@ public sealed partial class FontsViewModel : PageViewModel
             Scanned = true;
             ScanText = "";
             UpdateCounts();
-            if (!LangAll) ApplyFilter();
+            if (_lang != LangF.All) ApplyFilter();
             Log.Info($"Fonts: phân tích {rows.Count} font trong {sw.ElapsedMilliseconds} ms");
         }
         catch (OperationCanceledException) { }
@@ -354,10 +362,20 @@ public sealed partial class FontsViewModel : PageViewModel
         CountNone = "Không có tiếng Việt" + N(r => !r.Vietnamese && !r.Legacy);
     }
 
-    private bool InScope(InstalledFontRow r) => ScopeAll || (ScopeWindows ? r.Font.IsSystem : !r.Font.IsSystem);
+    private bool InScope(InstalledFontRow r) => _scope switch
+    {
+        ScopeF.Windows => r.Font.IsSystem,
+        ScopeF.Added => !r.Font.IsSystem,
+        _ => true,
+    };
 
-    private bool InLang(InstalledFontRow r) =>
-        LangAll || !Scanned || (LangVn ? r.Vietnamese : LangLegacy ? r.Legacy : !r.Vietnamese && !r.Legacy);
+    private bool InLang(InstalledFontRow r) => !Scanned || _lang switch
+    {
+        LangF.Vn => r.Vietnamese,
+        LangF.Legacy => r.Legacy,
+        LangF.None => !r.Vietnamese && !r.Legacy,
+        _ => true,
+    };
 
     partial void OnFilterChanged(string value) => ApplyFilter();
 
@@ -374,13 +392,20 @@ public sealed partial class FontsViewModel : PageViewModel
         UpdateCounts();
     }
 
-    /// <summary>visible: chọn mọi font cài thêm đang hiện; none: bỏ chọn hết.</summary>
+    /// <summary>visible: chọn đúng các font cài thêm đang hiện (bỏ chọn font bị lọc ẩn); none: bỏ chọn hết.</summary>
     [RelayCommand]
     private void SelectInstalled(string which)
     {
         if (_all is null) return;
-        if (which == "none") foreach (var r in _all) r.IsChecked = false;
-        else foreach (var r in InstalledView) if (r.CanRemove) r.IsChecked = true;
+        var visible = which == "none" ? [] : InstalledView.Where(r => r.CanRemove).ToHashSet();
+        foreach (var r in _all) r.IsChecked = visible.Contains(r);
+    }
+
+    /// <summary>Cho test tự động: chọn bộ lọc bằng tên.</summary>
+    public void SetFilterForTest(string scope, string lang)
+    {
+        ScopeAll = scope == "all"; ScopeWindows = scope == "windows"; ScopeAdded = scope == "added";
+        LangAll = lang == "all"; LangVn = lang == "vn"; LangLegacy = lang == "legacy"; LangNone = lang == "none";
     }
 
     [RelayCommand]
