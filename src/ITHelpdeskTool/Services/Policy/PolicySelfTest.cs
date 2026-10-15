@@ -203,6 +203,7 @@ public static class PolicySelfTest
                 await Task.Delay(8000);
                 var during = await UsbWhitelistService.PresentAsync();
                 log.Add($"khi bật: {during.Count} ổ ({string.Join(", ", during.Select(d => d.InstanceId))}) · attach B: {OpResult.FirstLine(r.Text)}");
+                log.Add($"bị chặn: {string.Join(", ", await UsbWhitelistService.BlockedDiskIdsAsync())}");
                 Check(during.Count == 1 && during[0].InstanceId.Equals(okDisk.InstanceId, StringComparison.OrdinalIgnoreCase), "ổ lạ B vẫn được nhận");
 
                 // Ổ A vẫn ghi được

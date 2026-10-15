@@ -174,7 +174,8 @@ public static class UsbWhitelistService
                     if (denyLeft == 0) { Registry.LocalMachine.DeleteSubKeyTree(Key + @"\DenyDeviceClasses", false); k.DeleteValue("DenyDeviceClasses", false); }
                     foreach (var v in new[] { "DenyDeviceClassesRetroactive", "AllowInstanceIDs", "AllowDenyLayered" }) k.DeleteValue(v, false);
                 }
-            // Quét lại phần cứng để USB đang cắm (bị chặn trước đó) được nhận ngay
+            // Ổ bị chặn lúc trước còn nằm ở trạng thái lỗi (cài bị cấm) → gỡ đi rồi quét lại phần cứng để được cài lại ngay
+            foreach (var id in await BlockedDiskIdsAsync(ct)) await RemoveDeviceAsync(id, ct);
             await ProcessRunner.ConsoleAsync("pnputil.exe", "/scan-devices", ct);
             return OpResult.Success("Đã tắt: mọi USB lưu trữ dùng lại bình thường (USB đang cắm chưa nhận thì rút ra cắm lại).");
         }
@@ -204,6 +205,14 @@ public static class UsbWhitelistService
     {
         var r = await ProcessRunner.ConsoleAsync("pnputil.exe", $"/remove-device \"{id}\"", ct);
         return r.Success;
+    }
+
+    /// <summary>Ổ đĩa đang cắm nhưng báo lỗi (bị chính sách chặn cài).</summary>
+    public static async Task<List<string>> BlockedDiskIdsAsync(CancellationToken ct = default)
+    {
+        var r = await ProcessRunner.PowerShellAsync(
+            "Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue | Where-Object { $_.Status -ne 'OK' -and ($_.Class -eq 'DiskDrive' -or $_.InstanceId -like 'USBSTOR\\*' -or $_.InstanceId -like 'SCSI\\DISK*') } | ForEach-Object { $_.InstanceId }", ct: ct);
+        return r.Output.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
     }
 
     /// <summary>Xoá ổ USB không còn cắm (dấu vết cũ) — trừ ổ được phép.</summary>
