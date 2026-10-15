@@ -224,7 +224,13 @@ public static class PolicySelfTest
                     after = await UsbWhitelistService.PresentAsync();
                 }
                 log.Add($"sau khi tắt: {after.Count} ổ");
-                Check(after.Count == 2, $"tắt rồi mà ổ B chưa được nhận ({after.Count} ổ)");
+                if (after.Count < 2)
+                {
+                    var dbg = await ProcessRunner.PowerShellAsync("Get-PnpDevice | Where-Object { $_.InstanceId -like '*VIRTUAL_DISK*' -or $_.InstanceId -like 'SCSI\\DISK*' } | ForEach-Object { \"$($_.InstanceId) [$($_.Class)] $($_.Status) present=$($_.Present)\" }; Get-DiskImage -ImagePath $env:ITHD_B | Format-List Attached,Number | Out-String",
+                        env: new Dictionary<string, string> { ["ITHD_B"] = b });
+                    log.Add("pnp: " + dbg.Text.Replace("\r", "").Replace("\n", " | "));
+                }
+                Check(after.Count == 2, $"tắt rồi mà ổ B chưa được nhận ({after.Count} ổ) · {string.Join(" · ", log)}");
                 return string.Join(" · ", log);
             }
             finally
