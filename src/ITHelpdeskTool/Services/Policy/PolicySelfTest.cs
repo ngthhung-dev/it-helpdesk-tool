@@ -167,6 +167,74 @@ public static class PolicySelfTest
             return $"{r.Message} ({new FileInfo(path!).Length / 1024} KB)";
         });
 
+        // ===== Chỉ cho dùng USB được duyệt (thử bằng 2 ổ ảo VHDX coi như USB) =====
+        await Do("usb.whitelist", async () =>
+        {
+            UsbWhitelistService.AllowVirtual = true;
+            var dir = Path.Combine(Path.GetTempPath(), "ithd-usbwl");
+            Directory.CreateDirectory(dir);
+            var a = Path.Combine(dir, "a.vhdx"); var b = Path.Combine(dir, "b.vhdx");
+            foreach (var f in new[] { a, b }) if (File.Exists(f)) File.Delete(f);
+            async Task<ProcessResult> Diskpart(string script, int seconds = 120)
+            {
+                var dp = Path.Combine(dir, "dp.txt");
+                await File.WriteAllTextAsync(dp, script);
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(seconds));
+                try { return await ProcessRunner.ConsoleAsync("diskpart.exe", $"/s \"{dp}\"", cts.Token); }
+                catch (OperationCanceledException) { return new ProcessResult(-1, "", "hết giờ"); }
+            }
+            var log = new List<string>();
+            try
+            {
+                await Diskpart($"create vdisk file=\"{a}\" maximum=256 type=expandable\r\nselect vdisk file=\"{a}\"\r\nattach vdisk\r\ncreate partition primary\r\nformat fs=ntfs quick label=USBOK\r\nassign\r\n");
+                await Diskpart($"create vdisk file=\"{b}\" maximum=256 type=expandable\r\n");
+                await Task.Delay(3000);
+                var before = await UsbWhitelistService.PresentAsync();
+                Check(before.Count == 1, $"phải thấy 1 ổ ảo, thấy {before.Count}");
+                var okDisk = before[0];
+                log.Add($"ổ A {okDisk.InstanceId} {okDisk.Letters}");
+
+                Need(await UsbWhitelistService.EnableAsync([okDisk.InstanceId]));
+                Check(UsbWhitelistService.IsEnabled(), "chưa bật");
+                Check(UsbWhitelistService.AllowedIds().Contains(okDisk.InstanceId, StringComparer.OrdinalIgnoreCase), "thiếu ổ A trong danh sách phép");
+
+                // Cắm ổ lạ B → không được nhận
+                var r = await Diskpart($"select vdisk file=\"{b}\"\r\nattach vdisk\r\n", 90);
+                await Task.Delay(8000);
+                var during = await UsbWhitelistService.PresentAsync();
+                log.Add($"khi bật: {during.Count} ổ ({string.Join(", ", during.Select(d => d.InstanceId))}) · attach B: {OpResult.FirstLine(r.Text)}");
+                Check(during.Count == 1 && during[0].InstanceId.Equals(okDisk.InstanceId, StringComparison.OrdinalIgnoreCase), "ổ lạ B vẫn được nhận");
+
+                // Ổ A vẫn ghi được
+                var letter = okDisk.Letters.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+                Check(letter is not null, "ổ A không có ký tự");
+                var tf = Path.Combine(letter! + "\\", "ok.txt");
+                await File.WriteAllTextAsync(tf, "ok");
+                Check(File.ReadAllText(tf) == "ok", "không ghi được vào ổ A");
+
+                // Tắt → ổ B được nhận lại
+                Need(await UsbWhitelistService.DisableAsync());
+                Check(!UsbWhitelistService.IsEnabled() && UsbWhitelistService.AllowedIds().Count == 0, "chưa tắt sạch");
+                var after = new List<UsbStorage>();
+                for (var i = 0; i < 20 && after.Count < 2; i++)
+                {
+                    await Task.Delay(1500);
+                    if (i == 6) await ProcessRunner.ConsoleAsync("pnputil.exe", "/scan-devices");
+                    after = await UsbWhitelistService.PresentAsync();
+                }
+                log.Add($"sau khi tắt: {after.Count} ổ");
+                Check(after.Count == 2, $"tắt rồi mà ổ B chưa được nhận ({after.Count} ổ)");
+                return string.Join(" · ", log);
+            }
+            finally
+            {
+                if (UsbWhitelistService.IsEnabled()) await UsbWhitelistService.DisableAsync();
+                await Diskpart($"select vdisk file=\"{a}\"\r\ndetach vdisk\r\nselect vdisk file=\"{b}\"\r\ndetach vdisk\r\n", 60);
+                try { Directory.Delete(dir, true); } catch { }
+                UsbWhitelistService.AllowVirtual = false;
+            }
+        });
+
         // Dọn tài khoản test
         await Do("cleanup", async () =>
         {
