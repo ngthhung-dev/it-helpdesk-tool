@@ -31,35 +31,42 @@
 
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,4,22,28">
-        <StackPanel>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-            <!-- ===== Đầu trang ===== -->
-            <DockPanel Margin="0,0,0,22">
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Command="{Binding RefreshCommand}" ToolTip="Đọc lại thông tin phần cứng">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" FontSize="13"/>
-                            <TextBlock Text="Làm mới" Margin="8,0,0,0"/>
-                        </StackPanel>
-                    </Button>
-                    <Button Style="{StaticResource BtnPrimary}" Margin="8,0,0,0" Command="{Binding CopyInfoCommand}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE8C8;" Style="{StaticResource Icon}" FontSize="13"/>
-                            <TextBlock Text="{Binding CopyStatus}" Margin="8,0,0,0"/>
-                        </StackPanel>
-                    </Button>
-                </StackPanel>
-                <StackPanel>
-                    <TextBlock Text="{Binding Greeting}" Style="{StaticResource H1}"/>
-                    <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" FontSize="13">
-                        <Run Text="{Binding Hardware.OsName, Mode=OneWay, FallbackValue='Windows'}"/>
-                        <Run Text="{Binding Hardware.OsVersion, Mode=OneWay}"/>
-                        <Run Text=" · Máy chạy liên tục"/>
-                        <Run Text="{Binding UptimeText, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
-                    </TextBlock>
-                </StackPanel>
-            </DockPanel>
+        <!-- ===== Đầu trang ===== -->
+        <DockPanel Margin="28,4,22,16">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Command="{Binding RefreshCommand}" ToolTip="Đọc lại thông tin phần cứng">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE72C;" Style="{StaticResource Icon}" FontSize="13"/>
+                        <TextBlock Text="Làm mới" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource BtnPrimary}" Margin="8,0,0,0" Command="{Binding CopyInfoCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8C8;" Style="{StaticResource Icon}" FontSize="13"/>
+                        <TextBlock Text="{Binding CopyStatus}" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+            <StackPanel>
+                <TextBlock Text="{Binding Greeting}" Style="{StaticResource H1}"/>
+                <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" FontSize="13">
+                    <Run Text="{Binding Hardware.OsName, Mode=OneWay, FallbackValue='Windows'}"/>
+                    <Run Text="{Binding Hardware.OsVersion, Mode=OneWay}"/>
+                    <Run Text=" · Máy chạy liên tục"/>
+                    <Run Text="{Binding UptimeText, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
+                </TextBlock>
+            </StackPanel>
+        </DockPanel>
+
+    <!-- Phần cuộn bên dưới (đầu trang ghim cố định) -->
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="28,6,22,28">
+        <StackPanel>
 
             <!-- ===== 4 thẻ số liệu ===== -->
             <UniformGrid Columns="4" Margin="-6,0,-6,0">
@@ -281,4 +288,5 @@
             </ItemsControl>
         </StackPanel>
     </ScrollViewer>
+    </Grid>
 </UserControl>
