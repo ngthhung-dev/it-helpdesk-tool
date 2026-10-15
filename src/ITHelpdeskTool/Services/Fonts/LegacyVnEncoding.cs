@@ -25,6 +25,9 @@ public static class LegacyVnEncoding
         if (kind == Kind.Tcvn3 && IsTcvn3Upper(family)) text = text.ToLowerInvariant();
         var map = kind == Kind.Tcvn3 ? Tcvn3 : Vni;
         var sb = new System.Text.StringBuilder(text.Length * 2);
+        // Font mã cũ không có dấu câu Unicode → đổi sang ký tự ASCII tương đương
+        text = text.Replace('\u2014', '-').Replace('\u2013', '-').Replace('\u201C', '"').Replace('\u201D', '"')
+                   .Replace('\u2018', '\'').Replace('\u2019', '\'').Replace("\u2026", "...");
         foreach (var ch in text.Normalize(System.Text.NormalizationForm.FormC))
         {
             if (map.TryGetValue(ch, out var s)) sb.Append(s);

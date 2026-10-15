@@ -1,6 +1,7 @@
 <UserControl x:Class="ITHelpdeskTool.Views.FontsPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:ITHelpdeskTool.Controls"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:core="clr-namespace:ITHelpdeskTool.Core"
@@ -158,7 +159,7 @@
                                                 </Border>
                                                 <TextBlock Text="{Binding Info.FileName}" Style="{StaticResource Hint}" VerticalAlignment="Center"/>
                                             </StackPanel>
-                                            <TextBlock FontFamily="{Binding Family}" Style="{StaticResource SampleText}">
+                                            <TextBlock FontFamily="{Binding Family}" Style="{StaticResource SampleText}" Visibility="{Binding Info.Legacy, Converter={StaticResource NotBoolVis}}">
                                                 <TextBlock.Text>
                                 <MultiBinding Converter="{StaticResource LegacySample}">
                                     <Binding Path="DataContext.Sample" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
@@ -166,6 +167,9 @@
                                 </MultiBinding>
                             </TextBlock.Text>
                                             </TextBlock>
+                                            <c:LegacyFontText Text="{Binding DataContext.Sample, RelativeSource={RelativeSource AncestorType=UserControl}}" Wrap="False"
+                                                              FontFile="{Binding Info.Path}" FamilyName="{Binding Info.Family}" FontSize="20" Foreground="{StaticResource TextBrush}" Margin="0,4,0,0"
+                                                              ClipToBounds="True" Visibility="{Binding Info.Legacy, Converter={StaticResource BoolVis}}"/>
                                             <TextBlock Text="{Binding Result}" Style="{StaticResource EmptyHidden}" Foreground="{StaticResource GoodBrush}"/>
                                         </StackPanel>
                                     </DockPanel>
@@ -320,6 +324,7 @@
                         <TextBlock Style="{StaticResource Hint}" Foreground="{StaticResource WarnBrush}" Margin="0,6,0,0" TextWrapping="Wrap"
                                    Visibility="{Binding Selected.Legacy, Converter={StaticResource BoolVis}}"
                                    Text="Chữ mẫu đã được đổi sang bảng mã của font để xem đúng dấu. Gõ trong Word: chọn bảng mã TCVN3 (font .Vn…) hoặc VNI Windows (font VNI-…) trong UniKey."/>
+                        <StackPanel Visibility="{Binding Selected.Legacy, Converter={StaticResource NotBoolVis}}">
                         <TextBlock FontFamily="{Binding Selected.Family}" FontSize="13" TextWrapping="Wrap" Foreground="{StaticResource TextBrush}" Margin="0,14,0,0">
                             <TextBlock.Text>
                                 <MultiBinding Converter="{StaticResource LegacySample}">
@@ -352,6 +357,13 @@
                                 </MultiBinding>
                             </TextBlock.Text>
                         </TextBlock>
+                        </StackPanel>
+                        <StackPanel Visibility="{Binding Selected.Legacy, Converter={StaticResource BoolVis}}">
+                            <c:LegacyFontText Text="{Binding Sample}" FontFile="{Binding Selected.Font.File}" FamilyName="{Binding Selected.FamilyName}" FontSize="13" Foreground="{StaticResource TextBrush}" Margin="0,14,0,0"/>
+                            <c:LegacyFontText Text="{Binding Sample}" FontFile="{Binding Selected.Font.File}" FamilyName="{Binding Selected.FamilyName}" FontSize="20" Foreground="{StaticResource TextBrush}" Margin="0,10,0,0"/>
+                            <c:LegacyFontText Text="{Binding Sample}" FontFile="{Binding Selected.Font.File}" FamilyName="{Binding Selected.FamilyName}" FontSize="32" Foreground="{StaticResource TextBrush}" Margin="0,10,0,0"/>
+                            <c:LegacyFontText Text="AaBbCc ĂăÂâĐđÊêÔôƠơƯư ẤấỀềỔổỮữỴỵ" FontFile="{Binding Selected.Font.File}" FamilyName="{Binding Selected.FamilyName}" FontSize="20" Foreground="{StaticResource MutedBrush}" Margin="0,12,0,0"/>
+                        </StackPanel>
                             </StackPanel>
                         </ScrollViewer>
                     </DockPanel>

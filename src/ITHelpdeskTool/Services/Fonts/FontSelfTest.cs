@@ -239,6 +239,23 @@ public static class FontSelfTest
             return $"TCVN3 \"{tc}\" · VNI \"{vni}\"";
         });
 
+        await t.Do("legacy.render", async () =>
+        {
+            return await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                var arial = Path.Combine(win, "arial.ttf");
+                var face = new System.Windows.Media.GlyphTypeface(new Uri(arial));
+                // Mã TCVN3 của "ư" (0xAD, gạch nối mềm) và "ã" (0xB7) phải ra glyph thật, không bị bỏ
+                Check(ITHelpdeskTool.Controls.LegacyFontText.GlyphFor(face, '\u00AD') != 0 && ITHelpdeskTool.Controls.LegacyFontText.GlyphFor(face, '\u00B7') != 0, "không lấy được glyph 0xAD / 0xB7");
+                var c = new ITHelpdeskTool.Controls.LegacyFontText { Text = "Cộng hòa xã hội chủ nghĩa Việt Nam — Độc lập, Tự do, Hạnh phúc", FontFile = arial, FamilyName = ".VnArial", FontSize = 20 };
+                c.Measure(new System.Windows.Size(200, double.PositiveInfinity));
+                var one = new ITHelpdeskTool.Controls.LegacyFontText { Text = c.Text, FontFile = arial, FamilyName = ".VnArial", FontSize = 20 };
+                one.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
+                Check(c.DesiredSize.Width <= 200.5 && c.DesiredSize.Height > one.DesiredSize.Height * 2, $"xuống dòng sai: {c.DesiredSize} / 1 dòng {one.DesiredSize}");
+                return $"200px → {c.DesiredSize.Height:0} px cao ({c.DesiredSize.Height / one.DesiredSize.Height:0} dòng) · 1 dòng rộng {one.DesiredSize.Width:0}px";
+            });
+        });
+
         await t.Do("collect.zip", async () =>
         {
             var zip = Path.Combine(Path.GetTempPath(), "ithd-fonts.zip");
