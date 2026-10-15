@@ -102,6 +102,9 @@ public static class PolicyCatalog
             PolicyScope.User, PolicyEffect.Relogon, [new(@"SOFTWARE\Policies\Microsoft\Windows\Explorer", "DisableSearchBoxSuggestions", 1)]),
 
         // ===================== Thiết bị =====================
+        new("dev.noautorun", GroupDevice, "Tắt AutoRun/AutoPlay mọi ổ",
+            "Cắm USB/đĩa không tự chạy gì — chặn kiểu virus lây qua USB.",
+            PolicyScope.Machine, PolicyEffect.Immediate, [new(ExpPol, "NoDriveTypeAutoRun", 255)]),
         new("dev.usbblock", GroupDevice, "Chặn USB lưu trữ",
             "USB, ổ cứng gắn ngoài không nhận nữa. Chuột, bàn phím, máy in USB vẫn dùng bình thường.",
             PolicyScope.Machine, PolicyEffect.Immediate,
@@ -112,9 +115,6 @@ public static class PolicyCatalog
             PolicyScope.Machine, PolicyEffect.Immediate,
             [new(@"SYSTEM\CurrentControlSet\Control\StorageDevicePolicies", "WriteProtect", 1)],
             Warning: "Rút USB ra cắm lại mới có hiệu lực."),
-        new("dev.noautorun", GroupDevice, "Tắt AutoRun/AutoPlay mọi ổ",
-            "Cắm USB/đĩa không tự chạy gì — chặn kiểu virus lây qua USB.",
-            PolicyScope.Machine, PolicyEffect.Immediate, [new(ExpPol, "NoDriveTypeAutoRun", 255)]),
 
         // ===================== Ứng dụng & nội dung =====================
         new("app.store", GroupApps, "Tắt Microsoft Store",
