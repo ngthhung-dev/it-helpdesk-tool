@@ -72,28 +72,28 @@
                     <Run Text="Máy mới cài Windows: chọn một bộ có sẵn hoặc tự tích, bấm cài — app tự cài lần lượt, im lặng."/>
                     <Run Text="{Binding WingetText, Mode=OneWay}" Foreground="{StaticResource FaintBrush}"/>
                 </TextBlock>
+                <!-- Bộ có sẵn -->
+                <ItemsControl ItemsSource="{Binding Presets}" Margin="0,12,0,-12">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource PresetCard}" CommandParameter="{Binding}"
+                                    Command="{Binding DataContext.ApplyPresetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding Description}" Style="{StaticResource Hint}" Margin="0,3,0,0"/>
+                                    <TextBlock Style="{StaticResource Hint}" Foreground="{StaticResource AccentBrush}" Margin="0,4,0,0">
+                                        <Run Text="{Binding Ids.Length, Mode=OneWay}"/><Run Text=" phần mềm"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </StackPanel>
 
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
                 <StackPanel>
-                    <!-- Bộ có sẵn -->
-                    <ItemsControl ItemsSource="{Binding Presets}" Margin="0,0,0,2">
-                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Button Style="{StaticResource PresetCard}" CommandParameter="{Binding}"
-                                        Command="{Binding DataContext.ApplyPresetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding Name}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{Binding Description}" Style="{StaticResource Hint}" Margin="0,3,0,0"/>
-                                        <TextBlock Style="{StaticResource Hint}" Foreground="{StaticResource AccentBrush}" Margin="0,4,0,0">
-                                            <Run Text="{Binding Ids.Length, Mode=OneWay}"/><Run Text=" phần mềm"/>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </Button>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
 
                     <!-- Phần mềm -->
                     <Border Style="{StaticResource Card}" Margin="0,0,0,12">
