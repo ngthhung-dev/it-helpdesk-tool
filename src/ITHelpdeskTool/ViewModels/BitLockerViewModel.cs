@@ -51,7 +51,8 @@ public sealed partial class BitLockerViewModel : PageViewModel
 
     private async void Tick(object? s, EventArgs e)
     {
-        if (!IsBusy && Volumes.Any(v => v.V.InProgress)) await RefreshAsync();
+        try { if (!IsBusy && Volumes.Any(v => v.V.InProgress)) await RefreshAsync(); }
+        catch (Exception ex) { Log.Warn($"BitLocker: {ex.Message}"); }   // async void: không để lỗi làm sập app
     }
 
     private void AddLog(string text, bool ok)
