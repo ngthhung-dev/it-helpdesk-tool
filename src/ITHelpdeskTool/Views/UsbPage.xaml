@@ -59,8 +59,8 @@
                     <StackPanel Margin="0,0,12,0">
                         <TextBlock Text="Bộ cài Windows" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
                         <TextBlock Text="Chưa chọn — tải ISO ở trang “Tải ISO”." Style="{StaticResource Hint}" Visibility="{Binding HasSource, Converter={x:Static core:Converters.NotVis}}"/>
-                        <TextBlock Text="{Binding SourceName}" Foreground="{StaticResource TextBrush}" FontSize="12.5" TextWrapping="Wrap"/>
-                        <TextBlock Text="{Binding SourceText}" Style="{StaticResource Hint}"/>
+                        <TextBlock Text="{Binding SourceName}" Foreground="{StaticResource TextBrush}" FontSize="12.5" TextWrapping="Wrap" Visibility="{Binding SourceName, Converter={x:Static core:Converters.NonEmptyVis}}"/>
+                        <TextBlock Text="{Binding SourceText}" Style="{StaticResource Hint}" Visibility="{Binding SourceText, Converter={x:Static core:Converters.NonEmptyVis}}"/>
                     </StackPanel>
                 </DockPanel>
 
