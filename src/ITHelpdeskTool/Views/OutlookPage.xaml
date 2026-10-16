@@ -46,15 +46,8 @@
 
         <ScrollViewer Grid.Row="1" x:Name="PageScroller" VerticalScrollBarVisibility="Auto" Padding="28,6,22,28">
             <StackPanel>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1.4*"/>
-                        <ColumnDefinition Width="12"/>
-                        <ColumnDefinition Width="*" MinWidth="300"/>
-                    </Grid.ColumnDefinitions>
-
                     <!-- File dữ liệu -->
-                    <Border c:SectionIndex.Title="File dữ liệu" Style="{StaticResource Card}" IsEnabled="{Binding IsIdle}" VerticalAlignment="Top">
+                    <Border c:SectionIndex.Title="File dữ liệu" Style="{StaticResource Card}" IsEnabled="{Binding IsIdle}" Margin="0,0,0,12">
                         <StackPanel>
                             <DockPanel Margin="0,0,0,4">
                                 <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Tìm trong thư mục khác…" Command="{Binding AddFolderCommand}" VerticalAlignment="Center"/>
@@ -70,10 +63,11 @@
                                             <DockPanel>
                                                 <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsChecked}" VerticalAlignment="Top" Margin="0,2,12,0"/>
                                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
-                                                    <Button Style="{StaticResource BtnSmall}" Content="Mở thư mục" Margin="0,0,6,0" CommandParameter="{Binding}"
-                                                            Command="{Binding DataContext.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                                                    <Button Style="{StaticResource BtnSmall}" Content="Dựng lại" CommandParameter="{Binding}" Visibility="{Binding F.IsOst, Converter={StaticResource BoolVis}}"
+                                                    <Button Style="{StaticResource BtnSmall}" Content="Dựng lại" Margin="0,0,6,0" CommandParameter="{Binding}" Visibility="{Binding F.IsOst, Converter={StaticResource BoolVis}}"
+                                                            ToolTip="Đổi tên file OST cũ để Outlook tải lại từ máy chủ"
                                                             Command="{Binding DataContext.RebuildOstCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                    <Button Style="{StaticResource BtnSmall}" Content="Mở thư mục" CommandParameter="{Binding}"
+                                                            Command="{Binding DataContext.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                                 </StackPanel>
                                                 <StackPanel Margin="0,0,10,0">
                                                     <TextBlock Text="{Binding F.Name}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
@@ -87,27 +81,41 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0"
-                                       Text="PST là nơi duy nhất chứa thư của tài khoản POP / thư lưu trữ — cần sao lưu. OST chỉ là bản sao từ máy chủ, mất có thể tải lại."/>
-                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                                <Button Style="{StaticResource BtnPrimary}" Command="{Binding BackupCommand}" Margin="0,0,8,0">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE74E;" Style="{StaticResource Icon}" FontSize="13"/>
-                                        <TextBlock Text="Sao lưu file đã chọn…" Margin="8,0,0,0"/>
-                                    </StackPanel>
-                                </Button>
-                                <Button Content="Sửa file PST / OST (ScanPST)" Command="{Binding ScanPstCommand}"/>
-                            </StackPanel>
+                            <DockPanel Margin="0,12,0,0">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                                    <Button Content="Sửa file PST / OST (ScanPST)" Command="{Binding ScanPstCommand}" Margin="0,0,8,0"/>
+                                    <Button Style="{StaticResource BtnPrimary}" Command="{Binding BackupCommand}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE74E;" Style="{StaticResource Icon}" FontSize="13"/>
+                                            <TextBlock Text="Sao lưu file đã chọn…" Margin="8,0,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center"
+                                           Text="PST là nơi duy nhất chứa thư của tài khoản POP / thư lưu trữ — cần sao lưu. OST chỉ là bản sao từ máy chủ, mất có thể tải lại."/>
+                            </DockPanel>
                             <ProgressBar Height="6" Margin="0,10,0,0" Maximum="100" Value="{Binding Progress}" Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}"/>
                         </StackPanel>
                     </Border>
 
-                    <StackPanel Grid.Column="2" IsEnabled="{Binding IsIdle}">
-                        <!-- Sửa lỗi -->
-                        <Border c:SectionIndex.Title="Sửa lỗi Outlook" Style="{StaticResource Card}" Margin="0,0,0,12">
-                            <StackPanel>
-                                <TextBlock Text="Mở Outlook để sửa lỗi" Style="{StaticResource H2}" Margin="0,0,0,6"/>
-                                <Border Style="{StaticResource Row}">
+
+                    <!-- Sửa lỗi -->
+                    <Border c:SectionIndex.Title="Sửa lỗi Outlook" Style="{StaticResource Card}" Margin="0,0,0,12" IsEnabled="{Binding IsIdle}">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="0,0,10,0">
+                                        <Run Text="Hồ sơ mặc định:"/> <Run Text="{Binding DefaultProfile, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
+                                    </TextBlock>
+                                    <Button Style="{StaticResource BtnSmall}" Content="Mail Setup (hồ sơ &amp; file dữ liệu)" Command="{Binding MailSetupCommand}"/>
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Mở Outlook để sửa lỗi" Style="{StaticResource H2}"/>
+                                    <TextBlock Text="Đóng Outlook trước khi bấm “Mở”." Style="{StaticResource Hint}"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <UniformGrid Columns="2" Margin="0,0,-16,0">
+                                    <Border Style="{StaticResource Row}" Margin="0,0,16,0">
                                     <DockPanel>
                                         <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Mở" CommandParameter="/safe" VerticalAlignment="Center"
                                                 Command="{Binding StartWithCommand}" IsEnabled="{Binding HasOutlook}"/>
@@ -116,8 +124,8 @@
                                             <TextBlock Text="Tắt add-in — dùng khi Outlook treo / văng lúc mở." Style="{StaticResource Hint}"/>
                                         </StackPanel>
                                     </DockPanel>
-                                </Border>
-                                <Border Style="{StaticResource Row}">
+                                    </Border>
+                                    <Border Style="{StaticResource Row}" Margin="0,0,16,0">
                                     <DockPanel>
                                         <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Mở" CommandParameter="/resetnavpane" VerticalAlignment="Center"
                                                 Command="{Binding StartWithCommand}" IsEnabled="{Binding HasOutlook}"/>
@@ -126,8 +134,8 @@
                                             <TextBlock Text="Sửa lỗi không mở được do khung bên trái hỏng." Style="{StaticResource Hint}"/>
                                         </StackPanel>
                                     </DockPanel>
-                                </Border>
-                                <Border Style="{StaticResource Row}">
+                                    </Border>
+                                    <Border Style="{StaticResource Row}" Margin="0,0,16,0">
                                     <DockPanel>
                                         <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Mở" CommandParameter="/cleanviews" VerticalAlignment="Center"
                                                 Command="{Binding StartWithCommand}" IsEnabled="{Binding HasOutlook}"/>
@@ -136,8 +144,8 @@
                                             <TextBlock Text="Khi danh sách thư hiển thị sai / mất cột." Style="{StaticResource Hint}"/>
                                         </StackPanel>
                                     </DockPanel>
-                                </Border>
-                                <Border Style="{StaticResource Row}" BorderThickness="0">
+                                    </Border>
+                                    <Border Style="{StaticResource Row}" Margin="0,0,16,0">
                                     <DockPanel>
                                         <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Mở" CommandParameter="/cleanreminders" VerticalAlignment="Center"
                                                 Command="{Binding StartWithCommand}" IsEnabled="{Binding HasOutlook}"/>
@@ -146,28 +154,31 @@
                                             <TextBlock Text="Khi nhắc lịch hiện liên tục / không tắt được." Style="{StaticResource Hint}"/>
                                         </StackPanel>
                                     </DockPanel>
-                                </Border>
-                                <Button Content="Mail Setup (hồ sơ &amp; file dữ liệu)" HorizontalAlignment="Left" Margin="0,8,0,0" Command="{Binding MailSetupCommand}"/>
-                                <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0">
-                                    <Run Text="Hồ sơ mặc định:"/> <Run Text="{Binding DefaultProfile, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
-                                </TextBlock>
-                            </StackPanel>
-                        </Border>
+                                    </Border>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
 
-                        <!-- Chữ ký -->
-                        <Border c:SectionIndex.Title="Chữ ký email" Style="{StaticResource Card}">
+                    <!-- Chữ ký -->
+                    <Border c:SectionIndex.Title="Chữ ký email" Style="{StaticResource Card}" Margin="0,0,0,12" IsEnabled="{Binding IsIdle}">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                                <Button Style="{StaticResource BtnSmall}" Content="Mở thư mục" Margin="0,0,6,0" Command="{Binding OpenSignaturesCommand}"/>
+                                <Button Style="{StaticResource BtnSmall}" Content="Khôi phục…" Margin="0,0,6,0" Command="{Binding RestoreSignaturesCommand}"/>
+                                <Button Style="{StaticResource BtnSmall}" Content="Sao lưu…" Command="{Binding BackupSignaturesCommand}"/>
+                            </StackPanel>
                             <StackPanel>
                                 <TextBlock Text="Chữ ký email" Style="{StaticResource H2}"/>
                                 <TextBlock Style="{StaticResource Hint}" Text="Sao lưu / chuyển chữ ký sang máy mới (thư mục %APPDATA%\Microsoft\Signatures)."/>
-                                <WrapPanel Margin="0,10,0,0">
-                                    <Button Style="{StaticResource BtnSmall}" Content="Sao lưu…" Margin="0,0,6,6" Command="{Binding BackupSignaturesCommand}"/>
-                                    <Button Style="{StaticResource BtnSmall}" Content="Khôi phục…" Margin="0,0,6,6" Command="{Binding RestoreSignaturesCommand}"/>
-                                    <Button Style="{StaticResource BtnSmall}" Content="Mở thư mục" Margin="0,0,6,6" Command="{Binding OpenSignaturesCommand}"/>
-                                </WrapPanel>
                             </StackPanel>
-                        </Border>
+                        </DockPanel>
+                    </Border>
 
-                        <ItemsControl ItemsSource="{Binding ActionLog}" Margin="0,10,0,0">
+                    <!-- Nhật ký thao tác -->
+                    <Border Style="{StaticResource Card}" Visibility="{Binding ActionLog.Count, Converter={x:Static core:Converters.CountVis}}">
+                        <StackPanel>
+                            <TextBlock Text="Nhật ký thao tác" Style="{StaticResource H2}"/>
+                        <ItemsControl ItemsSource="{Binding ActionLog}" Margin="0,8,0,0">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock FontSize="12" TextWrapping="Wrap" Margin="0,0,0,3">
@@ -186,8 +197,8 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                    </StackPanel>
-                </Grid>
+                        </StackPanel>
+                    </Border>
             </StackPanel>
         </ScrollViewer>
         </Grid>
