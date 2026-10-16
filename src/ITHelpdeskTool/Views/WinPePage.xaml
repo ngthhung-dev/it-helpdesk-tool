@@ -47,9 +47,9 @@
 
     <Grid Margin="28,4,22,20">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="1.3*"/>
+            <ColumnDefinition Width="2*" MinWidth="460"/>
             <ColumnDefinition Width="12"/>
-            <ColumnDefinition Width="*" MinWidth="280"/>
+            <ColumnDefinition Width="*" MinWidth="260"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -71,18 +71,18 @@
                 <Border c:SectionIndex.Title="Windows ADK" Style="{StaticResource Card}" Margin="0,0,0,12" IsEnabled="{Binding IsIdle}">
                     <DockPanel>
                         <Border DockPanel.Dock="Left" Style="{StaticResource Step}"><TextBlock Text="1" Style="{StaticResource StepNum}"/></Border>
-                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
-                            <Button Style="{StaticResource LinkButton}" Content="Trang Microsoft" Command="{Binding OpenAdkPageCommand}" VerticalAlignment="Center" Margin="0,0,14,0"/>
-                            <Button Style="{StaticResource BtnPrimary}" Content="Cài Windows ADK" Command="{Binding InstallAdkCommand}"
-                                    Visibility="{Binding HasAdk, Converter={x:Static core:Converters.NotVis}}"/>
-                        </StackPanel>
-                        <StackPanel VerticalAlignment="Center">
+                        <StackPanel>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="Windows ADK" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
                                 <TextBlock Text="&#xE73E;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource GoodBrush}" Margin="8,0,0,0"
                                            VerticalAlignment="Center" Visibility="{Binding HasAdk, Converter={StaticResource BoolVis}}"/>
                             </StackPanel>
                             <TextBlock Text="{Binding AdkText}" Style="{StaticResource Hint}"/>
+                            <WrapPanel Margin="0,10,0,0">
+                                <Button Style="{StaticResource BtnPrimary}" Content="Cài Windows ADK" Command="{Binding InstallAdkCommand}" Margin="0,0,14,0"
+                                        Visibility="{Binding HasAdk, Converter={x:Static core:Converters.NotVis}}"/>
+                                <Button Style="{StaticResource LinkButton}" Content="Trang Microsoft" Command="{Binding OpenAdkPageCommand}" VerticalAlignment="Center"/>
+                            </WrapPanel>
                         </StackPanel>
                     </DockPanel>
                 </Border>
@@ -98,12 +98,13 @@
                                 <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <CheckBox IsChecked="{Binding IsChecked}" Margin="0,0,16,10">
-                                            <StackPanel>
+                                        <DockPanel Margin="0,0,16,10">
+                                            <CheckBox x:Name="Cb" DockPanel.Dock="Left" IsChecked="{Binding IsChecked}" VerticalAlignment="Top" Margin="0,1,10,0"/>
+                                            <StackPanel Background="Transparent" Cursor="Hand" MouseLeftButtonUp="Component_Click">
                                                 <TextBlock Text="{Binding Item.Name}" Foreground="{StaticResource TextBrush}"/>
                                                 <TextBlock Text="{Binding Item.Description}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
                                             </StackPanel>
-                                        </CheckBox>
+                                        </DockPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
