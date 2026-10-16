@@ -31,7 +31,7 @@ public sealed partial class UserFoldersViewModel : PageViewModel
     private bool _loaded;
 
     public ObservableCollection<UserFolderRow> Folders { get; } = [];
-    /// <summary>Dữ liệu ứng dụng (Zalo, CapCut, Canva…) — chuyển bằng junction.</summary>
+    /// <summary>Dữ liệu ứng dụng (Zalo, CapCut…) — chuyển bằng junction.</summary>
     public ObservableCollection<UserFolderRow> AppFolders { get; } = [];
     private IEnumerable<UserFolderRow> AllRows => Folders.Concat(AppFolders);
     public ObservableCollection<string> Bases { get; } = [];

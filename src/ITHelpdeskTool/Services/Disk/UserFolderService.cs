@@ -6,7 +6,7 @@ namespace ITHelpdeskTool.Services.Disk;
 
 /// <summary>
 /// Thư mục có thể chuyển. Known Folder (Desktop, Documents…) đổi vị trí bằng API của Windows.
-/// Dữ liệu ứng dụng (<see cref="AppPath"/> khác null) — Zalo, CapCut, Canva… — được chuyển rồi để lại một junction ở chỗ cũ,
+/// Dữ liệu ứng dụng (<see cref="AppPath"/> khác null) — Zalo, CapCut… — được chuyển rồi để lại một junction ở chỗ cũ,
 /// ứng dụng vẫn đọc / ghi đúng đường dẫn cũ.
 /// </summary>
 public sealed record UserFolder(string Key, string Name, Guid Id, string DefaultName, string Glyph,
@@ -36,8 +36,6 @@ public static class UserFolderService
     [
         new("app.capcut", "CapCut", Guid.Empty, "CapCut", "\uE714", () => Path.Combine(Local, "CapCut", "User Data"), ["CapCut", "VEDetector"],
             "Dự án, bộ nhớ đệm, hiệu ứng tải về"),
-        new("app.canva", "Canva", Guid.Empty, "Canva", "\uE790", () => Path.Combine(Roaming, "Canva"), ["Canva"],
-            "Bộ nhớ đệm, phông, dữ liệu đăng nhập của ứng dụng Canva"),
         new("app.zalo", "Zalo", Guid.Empty, "ZaloData", "\uE8BD", () => Path.Combine(Roaming, "ZaloData"), ["Zalo", "ZaloCall"],
             "Tin nhắn, ảnh, file đã nhận của Zalo PC (Zalo chính)"),
     ];

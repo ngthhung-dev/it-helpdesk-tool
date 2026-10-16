@@ -94,7 +94,7 @@
 
                         <TextBlock Text="Dữ liệu ứng dụng" Style="{StaticResource H2}" Margin="0,18,0,0" c:SectionIndex.Title="Dữ liệu ứng dụng"/>
                         <TextBlock Style="{StaticResource Hint}" Margin="0,2,0,4"
-                                   Text="Chuyển dữ liệu CapCut, Canva, Zalo sang ổ khác. Chỗ cũ được thay bằng liên kết (junction) nên ứng dụng vẫn chạy và đăng nhập bình thường. Ứng dụng phải đóng trong lúc chuyển."/>
+                                   Text="Chuyển dữ liệu CapCut, Zalo sang ổ khác. Chỗ cũ được thay bằng liên kết (junction) nên ứng dụng vẫn chạy và đăng nhập bình thường. Ứng dụng phải đóng trong lúc chuyển."/>
                         <ItemsControl ItemsSource="{Binding AppFolders}" ItemTemplate="{StaticResource FolderRow}"/>
 
                         <TextBlock Text="Chuyển các thư mục đã chọn vào" Style="{StaticResource Caption}" Margin="0,16,0,6"/>
