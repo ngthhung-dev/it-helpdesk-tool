@@ -369,7 +369,7 @@
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                         <Button Content="Bỏ chọn" Margin="0,0,8,0" Command="{Binding ClearSelectionCommand}"
                                 Visibility="{Binding SelectedCount, Converter={x:Static core:Converters.CountVis}}"/>
-                        <Button Style="{StaticResource BtnPrimary}" Command="{Binding InstallSelectedCommand}">
+                        <Button Style="{StaticResource BtnPrimary}" Command="{Binding InstallSelectedCommand}" ToolTip="Cài lần lượt, im lặng: .NET 3.5 → runtime → phần mềm → bộ cài trong thư mục → cập nhật tất cả">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE896;" Style="{StaticResource Icon}" FontSize="13"/>
                                 <TextBlock Text="{Binding InstallText}" Margin="8,0,0,0"/>
@@ -379,7 +379,6 @@
                     <StackPanel Orientation="Horizontal">
                         <Button Content="Mở danh sách…" Margin="0,0,8,0" Command="{Binding OpenListCommand}" ToolTip="Mở danh sách đã lưu (.json)"/>
                         <Button Content="Lưu danh sách…" Margin="0,0,12,0" Command="{Binding SaveListCommand}" ToolTip="Lưu lựa chọn để dùng cho máy khác"/>
-                        <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center" Text="Cài lần lượt, im lặng: .NET 3.5 → runtime → phần mềm → bộ cài trong thư mục."/>
                     </StackPanel>
                 </DockPanel>
             </Border>
