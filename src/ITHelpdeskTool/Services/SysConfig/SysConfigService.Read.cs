@@ -142,7 +142,7 @@ public static partial class SysConfigService
                 sid.EndsWith("-500"), sid.Equals(me, StringComparison.OrdinalIgnoreCase), S("LastLogon"), sid, B("NeverExpires")));
         }
         // Tài khoản hệ thống ẩn (Guest, DefaultAccount, WDAGUtilityAccount) xuống cuối
-        return list.OrderBy(u => IsSystemAccount(u) ? 1 : 0).ThenBy(u => u.Name).ToList();
+        return list.OrderBy(u => IsSystemAccount(u) ? 1 : 0).ThenBy(u => u.Name, StringComparer.Create(new System.Globalization.CultureInfo("vi-VN"), true)).ToList();
     }
 
     public static bool IsSystemAccount(UserInfo u) => u.IsSystem;
