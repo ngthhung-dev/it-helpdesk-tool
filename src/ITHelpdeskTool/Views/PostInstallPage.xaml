@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:core="clr-namespace:ITHelpdeskTool.Core"
+             xmlns:c="clr-namespace:ITHelpdeskTool.Controls"
              xmlns:v="clr-namespace:ITHelpdeskTool.Views"
              xmlns:vm="clr-namespace:ITHelpdeskTool.ViewModels"
              mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:PostInstallViewModel}"
@@ -67,7 +68,7 @@
 
             <!-- ===== Đầu trang ===== -->
             <StackPanel Grid.ColumnSpan="2" Margin="0,0,0,14">
-                <TextBlock Text="App sau cài Win" Style="{StaticResource H1}"/>
+                <TextBlock Text="Kho ứng dụng" Style="{StaticResource H1}"/>
                 <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" FontSize="13" TextWrapping="Wrap">
                     <Run Text="Máy mới cài Windows: chọn một bộ có sẵn hoặc tự tích, bấm cài — app tự cài lần lượt, im lặng."/>
                     <Run Text="{Binding WingetText, Mode=OneWay}" Foreground="{StaticResource FaintBrush}"/>
@@ -90,9 +91,10 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                <c:SectionIndex Target="{Binding ElementName=PageScroller}" Margin="0,24,0,-8"/>
             </StackPanel>
 
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
+            <ScrollViewer Grid.Row="1" x:Name="PageScroller" VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
                 <StackPanel>
 
                     <!-- Phần mềm -->
@@ -111,7 +113,7 @@
                             <ItemsControl ItemsSource="{Binding Groups}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <StackPanel Margin="0,10,0,0">
+                                        <StackPanel Margin="0,10,0,0" c:SectionIndex.Title="{Binding Name}">
                                             <TextBlock Text="{Binding Name}" Style="{StaticResource Caption}" Margin="0,0,0,6"/>
                                             <ItemsControl ItemsSource="{Binding Apps}">
                                                 <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -137,7 +139,7 @@
                     </Border>
 
                     <!-- Thành phần Windows -->
-                    <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                    <Border c:SectionIndex.Title="Thành phần Windows" Style="{StaticResource Card}" Margin="0,0,0,12">
                         <StackPanel>
                             <DockPanel Margin="0,0,0,6">
                                 <Border Style="{StaticResource CardIcon}">
@@ -167,7 +169,7 @@
                     </Border>
 
                     <!-- Bộ cài trong thư mục -->
-                    <Border Style="{StaticResource Card}" Margin="0,0,0,12" AllowDrop="True" Drop="Offline_Drop" DragOver="Offline_DragOver">
+                    <Border c:SectionIndex.Title="Bộ cài trong thư mục" Style="{StaticResource Card}" Margin="0,0,0,12" AllowDrop="True" Drop="Offline_Drop" DragOver="Offline_DragOver">
                         <StackPanel>
                             <DockPanel Margin="0,0,0,6">
                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">

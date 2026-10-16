@@ -29,7 +29,7 @@ public sealed partial class OfflineRow(string path, InstallerType type) : Observ
 
 public sealed partial class PostInstallViewModel : PageViewModel
 {
-    public override string Title => "App sau cài Win";
+    public override string Title => "Kho ứng dụng";
     private bool _loaded;
 
     public InstallQueue Queue { get; } = new();
