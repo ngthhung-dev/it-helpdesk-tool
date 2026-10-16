@@ -51,7 +51,7 @@ public sealed partial class PreviewViewModel : PageViewModel
         NetworkThumbnails = PreviewService.NetworkThumbnailsOn;
         _loading = false;
         Supports.Clear();
-        foreach (var s in PreviewService.Supports()) Supports.Add(s);
+        foreach (var s in PreviewService.Supports().OrderByVi(s => s.Label)) Supports.Add(s);
         SupportSummary = $"Xem trước được {Supports.Count(s => s.Ok)}/{Supports.Count} loại file thường gặp";
     }
 

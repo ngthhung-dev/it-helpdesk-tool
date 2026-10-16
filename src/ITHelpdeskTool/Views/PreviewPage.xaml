@@ -57,15 +57,6 @@
                             <TextBlock Text="Xem trước trong File Explorer" Style="{StaticResource H2}" Margin="0,0,0,6"/>
                             <Border Style="{StaticResource Row}">
                                 <DockPanel>
-                                    <CheckBox DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="{Binding PreviewHandlers}" VerticalAlignment="Center"/>
-                                    <StackPanel>
-                                        <TextBlock Text="Hiện nội dung trong khung Preview" Foreground="{StaticResource TextBrush}"/>
-                                        <TextBlock Style="{StaticResource Hint}" Text="Mở khung bằng Alt + P trong File Explorer."/>
-                                    </StackPanel>
-                                </DockPanel>
-                            </Border>
-                            <Border Style="{StaticResource Row}">
-                                <DockPanel>
                                     <CheckBox DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="{Binding Thumbnails}" VerticalAlignment="Center"/>
                                     <StackPanel>
                                         <TextBlock Text="Ảnh thu nhỏ thay cho biểu tượng" Foreground="{StaticResource TextBrush}"/>
@@ -79,6 +70,15 @@
                                     <StackPanel>
                                         <TextBlock Text="Ảnh thu nhỏ trên thư mục mạng" Foreground="{StaticResource TextBrush}"/>
                                         <TextBlock Style="{StaticResource Hint}" Text="Thư mục chia sẻ / NAS. Tắt nếu mạng chậm."/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <CheckBox DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="{Binding PreviewHandlers}" VerticalAlignment="Center"/>
+                                    <StackPanel>
+                                        <TextBlock Text="Hiện nội dung trong khung Preview" Foreground="{StaticResource TextBrush}"/>
+                                        <TextBlock Style="{StaticResource Hint}" Text="Mở khung bằng Alt + P trong File Explorer."/>
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
