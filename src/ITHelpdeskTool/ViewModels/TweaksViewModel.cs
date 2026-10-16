@@ -69,11 +69,16 @@ public sealed partial class TweaksViewModel : PageViewModel
         [TweakCatalog.GroupUtil] = "\uE90F",
     };
 
+    /// <summary>Xếp A→Z theo tiếng Việt (Ẩn, Bật, Chế độ, Hiện, Mở…).</summary>
+    private static readonly StringComparer ViOrder = StringComparer.Create(new System.Globalization.CultureInfo("vi-VN"), true);
+
     public TweaksViewModel()
     {
         Groups = TweakCatalog.Groups
             .Select(g => new TweakGroup(g, Glyphs.GetValueOrDefault(g, "\uE713"),
-                TweakCatalog.All.Where(t => t.Group == g).Select(t => new TweakItem(t)).ToList()))
+                TweakCatalog.All.Where(t => t.Group == g)
+                    .OrderBy(t => string.Concat(t.Title.SkipWhile(c => !char.IsLetterOrDigit(c))), ViOrder)
+                    .Select(t => new TweakItem(t)).ToList()))
             .ToList();
     }
 
