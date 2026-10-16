@@ -1,6 +1,7 @@
 <UserControl x:Class="ITHelpdeskTool.Views.UsbPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:ITHelpdeskTool.Controls"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:core="clr-namespace:ITHelpdeskTool.Core"
@@ -35,92 +36,116 @@
     </UserControl.Resources>
 
     <Grid Margin="28,4,22,20">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*" MinWidth="460"/>
+            <ColumnDefinition Width="12"/>
+            <ColumnDefinition Width="*" MinWidth="260"/>
+        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Margin="0,0,0,14">
+        <!-- Đầu trang ghim cố định -->
+        <StackPanel Grid.ColumnSpan="3">
             <TextBlock Text="Tạo USB boot" Style="{StaticResource H1}"/>
-            <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" FontSize="13" TextWrapping="Wrap"
+            <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,14" FontSize="13" TextWrapping="Wrap"
                        Text="Tạo USB cài Windows từ file ISO gốc của Microsoft. USB định dạng FAT32, khởi động được trên máy UEFI; install.wim lớn hơn 4 GB được tự chia nhỏ."/>
+            <c:SectionIndex Target="{Binding ElementName=PageScroller}" Margin="0,0,0,2"/>
         </StackPanel>
 
-        <Border Grid.Row="1" Style="{StaticResource Card}" IsEnabled="{Binding IsIdle}">
-            <StackPanel>
+        <ScrollViewer Grid.Row="1" x:Name="PageScroller" VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
+            <StackPanel IsEnabled="{Binding IsIdle}">
+
                 <!-- 1. Bộ cài -->
-                <DockPanel>
-                    <Border Style="{StaticResource Step}"><TextBlock Text="1" Style="{StaticResource StepNum}"/></Border>
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
-                        <Button Content="Chọn file ISO…" Margin="0,0,8,0" Command="{Binding PickIsoCommand}"/>
-                        <Button Content="Thư mục bộ cài…" Command="{Binding PickFolderCommand}"/>
-                    </StackPanel>
-                    <StackPanel Margin="0,0,12,0">
-                        <TextBlock Text="Bộ cài Windows" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
-                        <TextBlock Text="Chưa chọn — tải ISO ở trang “Tải ISO”." Style="{StaticResource Hint}" Visibility="{Binding HasSource, Converter={x:Static core:Converters.NotVis}}"/>
-                        <TextBlock Text="{Binding SourceName}" Foreground="{StaticResource TextBrush}" FontSize="12.5" TextWrapping="Wrap" Visibility="{Binding SourceName, Converter={x:Static core:Converters.NonEmptyVis}}"/>
-                        <TextBlock Text="{Binding SourceText}" Style="{StaticResource Hint}" Visibility="{Binding SourceText, Converter={x:Static core:Converters.NonEmptyVis}}"/>
-                    </StackPanel>
-                </DockPanel>
+                <Border c:SectionIndex.Title="Bộ cài Windows" Style="{StaticResource Card}" Margin="0,0,0,12">
+                    <DockPanel>
+                        <Border DockPanel.Dock="Left" Style="{StaticResource Step}"><TextBlock Text="1" Style="{StaticResource StepNum}"/></Border>
+                        <StackPanel>
+                            <TextBlock Text="Bộ cài Windows" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                            <TextBlock Text="Chọn file ISO gốc của Microsoft (tải ở trang “Tải ISO”) hoặc thư mục đã giải nén bộ cài." Style="{StaticResource Hint}"
+                                       Visibility="{Binding HasSource, Converter={x:Static core:Converters.NotVis}}"/>
+                            <StackPanel Orientation="Horizontal" Visibility="{Binding HasSource, Converter={StaticResource BoolVis}}">
+                                <TextBlock Text="&#xE73E;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource GoodBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding SourceName}" Foreground="{StaticResource TextBrush}" FontSize="12.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding SourceText}" Style="{StaticResource Hint}" Visibility="{Binding SourceText, Converter={x:Static core:Converters.NonEmptyVis}}"/>
+                            <WrapPanel Margin="0,10,0,0">
+                                <Button Content="Chọn file ISO…" Margin="0,0,8,0" Command="{Binding PickIsoCommand}"/>
+                                <Button Content="Thư mục bộ cài…" Command="{Binding PickFolderCommand}"/>
+                            </WrapPanel>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
 
                 <!-- 2. USB -->
-                <DockPanel Margin="0,18,0,0">
-                    <Border Style="{StaticResource Step}"><TextBlock Text="2" Style="{StaticResource StepNum}"/></Border>
-                    <StackPanel>
-                        <TextBlock Text="USB" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
-                        <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,8"
-                                   Text="Chỉ hiện ổ USB / thẻ nhớ — ổ cứng trong máy và ổ đang chạy Windows không bao giờ có trong danh sách."/>
-                        <DockPanel>
-                            <Button DockPanel.Dock="Right" Content="Làm mới" Command="{Binding RefreshCommand}" Margin="8,0,0,0" VerticalAlignment="Stretch"/>
-                            <Grid>
-                                <ComboBox ItemsSource="{Binding Disks}" SelectedItem="{Binding Disk}" DisplayMemberPath="Display"/>
-                                <!-- Chưa có USB: hiện lời nhắc ngay trong ô chọn -->
-                                <TextBlock Text="Chưa thấy USB nào — cắm USB (8 GB trở lên) rồi bấm “Làm mới”." Style="{StaticResource Hint}"
-                                           VerticalAlignment="Center" Margin="12,0,32,0" IsHitTestVisible="False"
-                                           Visibility="{Binding Disks.Count, Converter={x:Static core:Converters.ZeroVis}}"/>
-                            </Grid>
-                        </DockPanel>
-                        <TextBlock Text="{Binding DisksText}" Style="{StaticResource Hint}" Margin="0,4,0,0"
-                                   Visibility="{Binding DisksText, Converter={x:Static core:Converters.NonEmptyVis}}"/>
-                    </StackPanel>
-                </DockPanel>
-
-                <!-- 3. Tuỳ chọn -->
-                <DockPanel Margin="0,18,0,0">
-                    <Border Style="{StaticResource Step}"><TextBlock Text="3" Style="{StaticResource StepNum}"/></Border>
-                    <StackPanel>
-                        <TextBlock Text="Kiểu khởi động &amp; tên USB" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                        <WrapPanel>
-                            <Border Style="{StaticResource Card}" Padding="3" CornerRadius="8" Margin="0,0,16,8" VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal">
-                                    <RadioButton Style="{StaticResource SchemeSeg}" IsChecked="{Binding Gpt}" Content="GPT — UEFI (máy từ 2013)"/>
-                                    <RadioButton Style="{StaticResource SchemeSeg}" IsChecked="{Binding Mbr}" Content="MBR — UEFI + BIOS cũ"/>
-                                </StackPanel>
-                            </Border>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
-                                <TextBlock Text="Tên USB" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <TextBox Style="{StaticResource InputBox}" Width="160" Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}" MaxLength="11" CharacterCasing="Upper"/>
-                            </StackPanel>
-                        </WrapPanel>
-                    </StackPanel>
-                </DockPanel>
-
-                <DockPanel Margin="0,20,0,0">
-                    <Button DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Command="{Binding WriteCommand}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE88E;" Style="{StaticResource Icon}" FontSize="13"/>
-                            <TextBlock Text="Tạo USB" Margin="8,0,0,0"/>
+                <Border c:SectionIndex.Title="USB" Style="{StaticResource Card}" Margin="0,0,0,12">
+                    <DockPanel>
+                        <Border DockPanel.Dock="Left" Style="{StaticResource Step}"><TextBlock Text="2" Style="{StaticResource StepNum}"/></Border>
+                        <StackPanel>
+                            <TextBlock Text="USB" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,8"
+                                       Text="Chỉ hiện ổ USB / thẻ nhớ — ổ cứng trong máy và ổ đang chạy Windows không bao giờ có trong danh sách."/>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="Làm mới" Command="{Binding RefreshCommand}" Margin="8,0,0,0" VerticalAlignment="Stretch"/>
+                                <Grid>
+                                    <ComboBox ItemsSource="{Binding Disks}" SelectedItem="{Binding Disk}" DisplayMemberPath="Display"/>
+                                    <TextBlock Text="Chưa thấy USB nào — cắm USB (8 GB trở lên) rồi bấm “Làm mới”." Style="{StaticResource Hint}"
+                                               VerticalAlignment="Center" Margin="12,0,32,0" IsHitTestVisible="False" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                                               Visibility="{Binding Disks.Count, Converter={x:Static core:Converters.ZeroVis}}"/>
+                                </Grid>
+                            </DockPanel>
+                            <TextBlock Text="{Binding DisksText}" Style="{StaticResource Hint}" Margin="0,4,0,0"
+                                       Visibility="{Binding DisksText, Converter={x:Static core:Converters.NonEmptyVis}}"/>
                         </StackPanel>
-                    </Button>
-                    <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center" Foreground="{StaticResource WarnBrush}"
-                               Text="Toàn bộ dữ liệu trên USB sẽ bị xoá."/>
-                </DockPanel>
+                    </DockPanel>
+                </Border>
+
+                <!-- 3. Kiểu khởi động & tên -->
+                <Border c:SectionIndex.Title="Kiểu khởi động" Style="{StaticResource Card}" Margin="0,0,0,12">
+                    <DockPanel>
+                        <Border DockPanel.Dock="Left" Style="{StaticResource Step}"><TextBlock Text="3" Style="{StaticResource StepNum}"/></Border>
+                        <StackPanel>
+                            <TextBlock Text="Kiểu khởi động &amp; tên USB" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,8"
+                                       Text="GPT cho máy UEFI (hầu hết máy từ 2013). MBR khi cần cài cho máy đời cũ chỉ có BIOS."/>
+                            <WrapPanel>
+                                <Border Style="{StaticResource Card}" Padding="3" CornerRadius="8" Margin="0,0,16,0" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource SchemeSeg}" IsChecked="{Binding Gpt}" Content="GPT — UEFI"/>
+                                        <RadioButton Style="{StaticResource SchemeSeg}" IsChecked="{Binding Mbr}" Content="MBR — UEFI + BIOS cũ"/>
+                                    </StackPanel>
+                                </Border>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="Tên USB" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <TextBox Style="{StaticResource InputBox}" Width="160" Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}" MaxLength="11" CharacterCasing="Upper"/>
+                                </StackPanel>
+                            </WrapPanel>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <!-- 4. Tạo USB -->
+                <Border c:SectionIndex.Title="Tạo USB" Style="{StaticResource Card}">
+                    <DockPanel>
+                        <Border DockPanel.Dock="Left" Style="{StaticResource Step}"><TextBlock Text="4" Style="{StaticResource StepNum}"/></Border>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Command="{Binding WriteCommand}" VerticalAlignment="Center" Margin="12,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE88E;" Style="{StaticResource Icon}" FontSize="13"/>
+                                <TextBlock Text="Tạo USB" Margin="8,0,0,0"/>
+                            </StackPanel>
+                        </Button>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Tạo USB" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                            <TextBlock Text="Toàn bộ dữ liệu trên USB sẽ bị xoá. Mất khoảng 10–20 phút tuỳ tốc độ USB." FontSize="12" Foreground="{StaticResource WarnBrush}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
             </StackPanel>
-        </Border>
+        </ScrollViewer>
 
         <!-- Tiến độ -->
-        <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0,12,0,0" Padding="0">
+        <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource Card}" Padding="0">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Top" Margin="16,12,16,8">
                     <DockPanel>
@@ -128,7 +153,7 @@
                                 Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}"/>
                         <TextBlock Text="Tiến độ" Style="{StaticResource H2}"/>
                     </DockPanel>
-                    <TextBlock Text="{Binding Status}" Foreground="{StaticResource AccentBrush}" Margin="0,4,0,0"/>
+                    <TextBlock Text="{Binding Status}" Foreground="{StaticResource AccentBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                     <ProgressBar Height="6" Margin="0,6,0,0" Value="{Binding Progress}" Maximum="100" Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}"/>
                     <TextBlock Text="{Binding Result}" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0">
                         <TextBlock.Style>
