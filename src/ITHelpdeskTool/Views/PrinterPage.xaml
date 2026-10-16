@@ -62,7 +62,7 @@
                             <TextBlock Text="Máy in trên máy" Style="{StaticResource H2}" VerticalAlignment="Center" Margin="0,0,12,0"/>
                             <TextBlock Text="{Binding Summary}" Style="{StaticResource Hint}" VerticalAlignment="Center"/>
                         </DockPanel>
-                        <TextBlock Text="Chưa có máy in nào — thêm máy in ở khung bên phải." Style="{StaticResource Hint}"
+                        <TextBlock Text="Chưa có máy in nào — thêm máy in ở mục “Thêm máy in” bên dưới." Style="{StaticResource Hint}"
                                    Visibility="{Binding Printers.Count, Converter={x:Static core:Converters.ZeroVis}}"/>
                         <ItemsControl ItemsSource="{Binding Printers}" Margin="0,0,-10,0">
                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2" VerticalAlignment="Top"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
