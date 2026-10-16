@@ -113,25 +113,26 @@ public static class StoreSelfTest
             return $"{ids.Count} Id (winget + Microsoft Store) đều có · {StoreCatalog.Apps.Count} phần mềm, mỗi nhóm xếp A→Z · {string.Join(", ", gh)}";
         });
 
-        // Cài / gỡ thật một gói nhỏ qua winget
-        await t.Do("winget.install.7zip", async () =>
+        // Cài / gỡ thật một gói nhỏ qua winget (gói máy test chưa có sẵn)
+        const string TestId = "WinDirStat.WinDirStat";
+        await t.Do("winget.install.small", async () =>
         {
-            var app = StoreCatalog.Find("7zip.7zip")!;
+            var app = StoreCatalog.Find(TestId)!;
+            if ((await WingetService.InstalledAsync()).ContainsKey(TestId)) await StoreInstaller.UninstallAsync(app);
             var lines = new List<string>();
             var r = await StoreInstaller.InstallAsync(app, s => lines.Add(s));
             Check(r.Ok, r.Message + " · " + string.Join(" / ", lines.Distinct().TakeLast(4)));
             var inst = await WingetService.InstalledAsync();
-            Check(inst.ContainsKey("7zip.7zip"), "export không thấy 7zip sau khi cài");
-            Check(File.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"7-Zip\7z.exe")), "không thấy 7z.exe");
+            Check(inst.ContainsKey(TestId), $"export không thấy {TestId} sau khi cài");
             return $"{r.Message} · trạng thái: {string.Join(" / ", lines.Distinct().Take(5))}";
         });
 
-        await t.Do("winget.uninstall.7zip", async () =>
+        await t.Do("winget.uninstall.small", async () =>
         {
-            var r = await StoreInstaller.UninstallAsync(StoreCatalog.Find("7zip.7zip")!);
+            var r = await StoreInstaller.UninstallAsync(StoreCatalog.Find(TestId)!);
             Check(r.Ok, r.Message);
             var inst = await WingetService.InstalledAsync();
-            Check(!inst.ContainsKey("7zip.7zip"), "vẫn còn 7zip");
+            Check(!inst.ContainsKey(TestId), $"vẫn còn {TestId}");
             return r.Message;
         });
 

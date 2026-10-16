@@ -151,7 +151,6 @@ public static class StoreCatalog
         new("PassMark.KeyboardTest", "KeyboardTest", Tech, "Test bàn phím: phím nào liệt, kẹt, nhận đúp (bản dùng thử)"),
         new("PassMark.MonitorTest", "MonitorTest", Tech, "Test màn hình: điểm chết, sọc, màu, độ đồng đều (bản dùng thử)"),
         new("PassMark.SoundCheck", "SoundCheck", Tech, "Test loa, tai nghe, micro: kênh trái/phải, âm lượng"),
-        new("9WZDNCRFJBBP", "Windows Camera", Tech, "Test webcam: xem hình, chụp, quay thử (cài từ Microsoft Store)"),
 
         // ---- Lập trình ----
         new("Microsoft.VisualStudioCode", "Visual Studio Code", Dev, "Trình soạn mã"),
