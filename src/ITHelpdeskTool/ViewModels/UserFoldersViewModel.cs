@@ -22,6 +22,7 @@ public sealed partial class UserFolderRow(UserFolder f) : ObservableObject
     [ObservableProperty] private bool _isChecked;
     [ObservableProperty] private string _status = "";
     [ObservableProperty] private bool _statusOk = true;
+    [ObservableProperty] private bool _exists = true;
 }
 
 public sealed partial class UserFoldersViewModel : PageViewModel
@@ -30,6 +31,9 @@ public sealed partial class UserFoldersViewModel : PageViewModel
     private bool _loaded;
 
     public ObservableCollection<UserFolderRow> Folders { get; } = [];
+    /// <summary>Dữ liệu ứng dụng (Zalo, CapCut, Canva…) — chuyển bằng junction.</summary>
+    public ObservableCollection<UserFolderRow> AppFolders { get; } = [];
+    private IEnumerable<UserFolderRow> AllRows => Folders.Concat(AppFolders);
     public ObservableCollection<string> Bases { get; } = [];
     [ObservableProperty] private string _basePath = "";
     [ObservableProperty] private string _account = $"{Environment.UserDomainName}\\{Environment.UserName}";
@@ -42,6 +46,7 @@ public sealed partial class UserFoldersViewModel : PageViewModel
     public UserFoldersViewModel()
     {
         foreach (var f in UserFolderService.Folders) Folders.Add(new UserFolderRow(f));
+        foreach (var f in UserFolderService.AppFolders) AppFolders.Add(new UserFolderRow(f));
     }
 
     public override void OnNavigatedTo()
@@ -67,7 +72,15 @@ public sealed partial class UserFoldersViewModel : PageViewModel
             r.OnSystemDrive = r.Path.StartsWith(sys, StringComparison.OrdinalIgnoreCase);
             r.IsChecked = r.OnSystemDrive && !r.OneDrive && r.F.Key is "documents" or "downloads" or "desktop" or "pictures" or "videos";
         }
-        await Task.WhenAll(Folders.Select(async r =>
+        foreach (var r in AppFolders)
+        {
+            r.Exists = UserFolderService.AppDataExists(r.F);
+            r.Path = UserFolderService.GetPath(r.F);
+            r.IsDefault = UserFolderService.IsDefault(r.F);
+            r.OnSystemDrive = r.Path.StartsWith(sys, StringComparison.OrdinalIgnoreCase);
+            if (!r.Exists) { r.IsChecked = false; r.SizeText = "Chưa có dữ liệu (chưa cài hoặc chưa mở lần nào)"; }
+        }
+        await Task.WhenAll(AllRows.Where(r => r.Exists).Select(async r =>
         {
             var (b, n) = await Task.Run(() => UserFolderService.Measure(r.Path));
             r.SizeText = $"{Fmt.Size(b)} · {n:N0} file";
@@ -100,7 +113,7 @@ public sealed partial class UserFoldersViewModel : PageViewModel
     [RelayCommand]
     private async Task MoveSelectedAsync()
     {
-        var sel = Folders.Where(f => f.IsChecked).ToList();
+        var sel = AllRows.Where(f => f.IsChecked && f.Exists).ToList();
         if (sel.Count == 0) { DialogWindow.Info("Chưa chọn thư mục", "Tích các thư mục muốn chuyển."); return; }
         var b = BasePath.Trim();
         if (b.Length < 4 || !System.IO.Path.IsPathRooted(b)) { DialogWindow.Info("Chưa chọn nơi chứa", "Chọn thư mục đích, vd D:\\Users\\ten."); return; }
@@ -111,11 +124,27 @@ public sealed partial class UserFoldersViewModel : PageViewModel
                 string.Join("\n", sel.Select(f => $"{f.F.Name}: {f.Path} → {System.IO.Path.Combine(b, f.F.DefaultName)}")) +
                 "\n\nFile được chuyển (không nhân đôi). Đóng các ứng dụng đang mở file trong các thư mục này trước khi chuyển.", "Chuyển"))
             return;
+        if (!await CloseAppsIfNeeded(sel)) return;
         IsBusy = true;
         try { foreach (var r in sel) await MoveOne(r, System.IO.Path.Combine(b, r.F.DefaultName)); }
         finally { IsBusy = false; }
         await RefreshAsync();
-        AskRestartExplorer();
+        if (sel.Any(r => !r.F.IsApp)) AskRestartExplorer();
+    }
+
+    /// <summary>Ứng dụng đang mở thì không chuyển được dữ liệu — hỏi rồi đóng giúp.</summary>
+    private async Task<bool> CloseAppsIfNeeded(IEnumerable<UserFolderRow> rows)
+    {
+        var running = rows.Where(r => r.F.IsApp && UserFolderService.RunningApps(r.F).Count > 0).ToList();
+        if (running.Count == 0) return true;
+        var names = string.Join(", ", running.Select(r => r.F.Name));
+        if (!DialogWindow.Confirm($"Đóng {names}?", $"{names} đang mở nên chưa chuyển được dữ liệu. Đóng {names} ngay (nhớ lưu việc đang làm)?", "Đóng và chuyển"))
+            return false;
+        IsBusy = true;
+        BusyText = $"Đang đóng {names}…";
+        try { foreach (var r in running) await UserFolderService.CloseAppsAsync(r.F); }
+        finally { IsBusy = false; }
+        return true;
     }
 
     [RelayCommand]
@@ -124,11 +153,12 @@ public sealed partial class UserFoldersViewModel : PageViewModel
         var target = UserFolderService.DefaultPath(r.F);
         if (!DialogWindow.Confirm($"Trả {r.F.Name} về mặc định?", $"{r.Path} → {target}\nFile được chuyển về ổ Windows — kiểm tra ổ còn đủ chỗ.", "Trả về"))
             return;
+        if (!await CloseAppsIfNeeded([r])) return;
         IsBusy = true;
         try { await MoveOne(r, target); }
         finally { IsBusy = false; }
         await RefreshAsync();
-        AskRestartExplorer();
+        if (!r.F.IsApp) AskRestartExplorer();
     }
 
     [RelayCommand] private void Open(UserFolderRow r) { if (Directory.Exists(r.Path)) ShellLauncher.Open(r.Path); }

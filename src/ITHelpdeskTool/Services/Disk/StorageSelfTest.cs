@@ -222,6 +222,32 @@ public static class StorageSelfTest
             return r.Message;
         });
 
+        await t.Do("folders.app.junction", async () =>
+        {
+            // Ứng dụng giả: dữ liệu ở work\AppData\FakeApp, chuyển sang baseDir\ITHDApp\FakeApp rồi trả về
+            var orig = Path.Combine(work, "AppData", "FakeApp");
+            Directory.CreateDirectory(Path.Combine(orig, "sub"));
+            for (var i = 0; i < 20; i++) await File.WriteAllTextAsync(Path.Combine(orig, i % 2 == 0 ? "sub" : "", $"f{i}.dat"), new string('z', 500 + i));
+            var app = new UserFolder("app.fake", "FakeApp", Guid.Empty, "FakeApp", "", () => orig, ["ithd-no-such-process"]);
+            var dest = Path.Combine(baseDir, "ITHDApp", "FakeApp");
+            try { Directory.Delete(Path.Combine(baseDir, "ITHDApp"), true); } catch { }
+            var r = await UserFolderService.MoveAsync(app, dest, _ => { }, CancellationToken.None);
+            Check(r.Ok, r.Message);
+            Check(UserFolderService.LinkTarget(orig)?.Equals(dest, StringComparison.OrdinalIgnoreCase) == true, "chưa có junction: " + UserFolderService.LinkTarget(orig));
+            Check(File.Exists(Path.Combine(dest, "sub", "f0.dat")), "thiếu file ở chỗ mới");
+            Check(File.ReadAllText(Path.Combine(orig, "f1.dat")).Length == 501, "đọc qua junction sai");
+            Check(!UserFolderService.IsDefault(app) && UserFolderService.GetPath(app).Equals(dest, StringComparison.OrdinalIgnoreCase), "trạng thái sai");
+            await File.WriteAllTextAsync(Path.Combine(orig, "new.dat"), "moi");   // ứng dụng ghi qua đường dẫn cũ
+            Check(File.Exists(Path.Combine(dest, "new.dat")), "ghi qua junction không tới chỗ mới");
+            var back = await UserFolderService.MoveAsync(app, UserFolderService.DefaultPath(app), _ => { }, CancellationToken.None);
+            Check(back.Ok, back.Message);
+            Check(UserFolderService.LinkTarget(orig) is null && File.Exists(Path.Combine(orig, "sub", "f0.dat")) && File.Exists(Path.Combine(orig, "new.dat")), "trả về chưa đúng");
+            Check(!Directory.Exists(dest), "thư mục đích chưa dọn");
+            try { Directory.Delete(Path.Combine(baseDir, "ITHDApp"), true); } catch { }
+            var real = string.Join(", ", UserFolderService.AppFolders.Select(f => $"{f.Name}: {(UserFolderService.AppDataExists(f) ? f.AppPath!() : "chưa có")}"));
+            return $"{r.Message} | {back.Message} | {real}";
+        });
+
         try { Directory.Delete(work, true); } catch { }
         return await t.ToFileAsync(path);
     }

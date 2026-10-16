@@ -24,6 +24,46 @@
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Background" Value="#14FFFFFF"/>
         </Style>
+        <DataTemplate x:Key="FolderRow">
+                                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
+                                        <DockPanel>
+                                            <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsChecked}" IsEnabled="{Binding Exists}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                            <TextBlock DockPanel.Dock="Left" Text="{Binding F.Glyph}" Style="{StaticResource Icon}" FontSize="18" Foreground="{StaticResource AccentBrush}"
+                                                       VerticalAlignment="Center" Margin="0,0,14,0"/>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button Style="{StaticResource BtnSmall}" Content="Mở" Margin="0,0,6,0" CommandParameter="{Binding}" IsEnabled="{Binding Exists}"
+                                                        Command="{Binding DataContext.OpenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button Style="{StaticResource BtnSmall}" Content="Trả về mặc định" CommandParameter="{Binding}"
+                                                        Visibility="{Binding IsDefault, Converter={StaticResource NotBoolVis}}"
+                                                        Command="{Binding DataContext.RestoreCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,12,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding F.Name}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding SizeText}" Style="{StaticResource Hint}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                                    <Border Style="{StaticResource Badge}" Background="#1A34D399" Visibility="{Binding OnSystemDrive, Converter={StaticResource NotBoolVis}}">
+                                                        <TextBlock Text="Đã ở ổ khác" FontSize="10.5" Foreground="{StaticResource GoodBrush}"/>
+                                                    </Border>
+                                                    <Border Style="{StaticResource Badge}" Background="#1AFBBF24" Visibility="{Binding OneDrive, Converter={StaticResource BoolVis}}">
+                                                        <TextBlock Text="Trong OneDrive" FontSize="10.5" Foreground="{StaticResource WarnBrush}"/>
+                                                    </Border>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding F.Note}" Style="{StaticResource Hint}" Visibility="{Binding F.Note, Converter={x:Static core:Converters.NonEmptyVis}}"/>
+                                                <TextBlock Text="{Binding Path}" FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Status}" FontSize="12" TextWrapping="Wrap" Visibility="{Binding Status, Converter={x:Static core:Converters.NonEmptyVis}}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding StatusOk}" Value="False"><Setter Property="Foreground" Value="{StaticResource BadBrush}"/></DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+        </DataTemplate>
     </UserControl.Resources>
 
     <Grid>
@@ -49,49 +89,13 @@
             <StackPanel>
                 <Border Style="{StaticResource Card}" IsEnabled="{Binding IsIdle}">
                     <StackPanel>
-                        <ItemsControl ItemsSource="{Binding Folders}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
-                                        <DockPanel>
-                                            <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsChecked}" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                            <TextBlock DockPanel.Dock="Left" Text="{Binding F.Glyph}" Style="{StaticResource Icon}" FontSize="18" Foreground="{StaticResource AccentBrush}"
-                                                       VerticalAlignment="Center" Margin="0,0,14,0"/>
-                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                                <Button Style="{StaticResource BtnSmall}" Content="Mở" Margin="0,0,6,0" CommandParameter="{Binding}"
-                                                        Command="{Binding DataContext.OpenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                                                <Button Style="{StaticResource BtnSmall}" Content="Trả về mặc định" CommandParameter="{Binding}"
-                                                        Visibility="{Binding IsDefault, Converter={StaticResource NotBoolVis}}"
-                                                        Command="{Binding DataContext.RestoreCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                                            </StackPanel>
-                                            <StackPanel Margin="0,0,12,0">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding F.Name}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
-                                                    <TextBlock Text="{Binding SizeText}" Style="{StaticResource Hint}" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                                                    <Border Style="{StaticResource Badge}" Background="#1A34D399" Visibility="{Binding OnSystemDrive, Converter={StaticResource NotBoolVis}}">
-                                                        <TextBlock Text="Đã ở ổ khác" FontSize="10.5" Foreground="{StaticResource GoodBrush}"/>
-                                                    </Border>
-                                                    <Border Style="{StaticResource Badge}" Background="#1AFBBF24" Visibility="{Binding OneDrive, Converter={StaticResource BoolVis}}">
-                                                        <TextBlock Text="Trong OneDrive" FontSize="10.5" Foreground="{StaticResource WarnBrush}"/>
-                                                    </Border>
-                                                </StackPanel>
-                                                <TextBlock Text="{Binding Path}" FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
-                                                <TextBlock Text="{Binding Status}" FontSize="12" TextWrapping="Wrap" Visibility="{Binding Status, Converter={x:Static core:Converters.NonEmptyVis}}">
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock">
-                                                            <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding StatusOk}" Value="False"><Setter Property="Foreground" Value="{StaticResource BadBrush}"/></DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                            </StackPanel>
-                                        </DockPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        <TextBlock Text="Thư mục người dùng" Style="{StaticResource H2}" c:SectionIndex.Title="Thư mục người dùng"/>
+                        <ItemsControl ItemsSource="{Binding Folders}" ItemTemplate="{StaticResource FolderRow}"/>
+
+                        <TextBlock Text="Dữ liệu ứng dụng" Style="{StaticResource H2}" Margin="0,18,0,0" c:SectionIndex.Title="Dữ liệu ứng dụng"/>
+                        <TextBlock Style="{StaticResource Hint}" Margin="0,2,0,4"
+                                   Text="Chuyển dữ liệu CapCut, Canva, Zalo sang ổ khác. Chỗ cũ được thay bằng liên kết (junction) nên ứng dụng vẫn chạy và đăng nhập bình thường. Ứng dụng phải đóng trong lúc chuyển."/>
+                        <ItemsControl ItemsSource="{Binding AppFolders}" ItemTemplate="{StaticResource FolderRow}"/>
 
                         <TextBlock Text="Chuyển các thư mục đã chọn vào" Style="{StaticResource Caption}" Margin="0,16,0,6"/>
                         <DockPanel>
