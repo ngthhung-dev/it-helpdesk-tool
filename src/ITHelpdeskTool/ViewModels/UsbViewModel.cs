@@ -60,7 +60,7 @@ public sealed partial class UsbViewModel : PageViewModel
             Disks.Clear();
             foreach (var d in list) Disks.Add(d);
             Disk = Disks.FirstOrDefault(d => d.Number == keep) ?? Disks.FirstOrDefault();
-            DisksText = list.Count == 0 ? "Chưa thấy USB nào — cắm USB (8 GB trở lên) rồi bấm “Làm mới”." : $"{list.Count} USB";
+            DisksText = list.Count <= 1 ? "" : $"{list.Count} USB đang cắm — chọn đúng USB cần tạo";
         }
         catch (Exception ex) { DisksText = $"Không đọc được danh sách ổ: {ex.Message}"; }
     }
