@@ -294,11 +294,22 @@ public static class PrinterFixCatalog
             Script: "Get-PrinterDriver | Sort-Object Name | ForEach-Object { \"• $($_.Name) ($($_.PrinterEnvironment)) $($_.MajorVersion)\" }"),
         new("diag.trouble", "Chẩn đoán", "Mở trình khắc phục sự cố máy in", "Trình sửa lỗi tự động của Windows (Get Help)",
             Open: "ms-settings:troubleshoot", Glyph: ""),
-        new("diag.events", "Chẩn đoán", "Xem lỗi in gần đây", "20 lỗi mới nhất trong nhật ký PrintService", ShowOutput: true, Glyph: "",
+        new("diag.events", "Chẩn đoán", "Xem lỗi in gần đây", "Lỗi trong nhật ký PrintService 7 ngày qua, gộp các lỗi trùng nhau", ShowOutput: true, Glyph: "\uE7BA",
             Script: """
-            $e = @(Get-WinEvent -LogName 'Microsoft-Windows-PrintService/Admin' -MaxEvents 20 -ErrorAction SilentlyContinue)
-            if ($e.Count -eq 0) { '• Không có lỗi in nào được ghi lại' }
-            $e | ForEach-Object { "• $($_.TimeCreated.ToString('dd/MM HH:mm'))  [$($_.Id)] $(($_.Message -split "`n")[0])" }
+            $since = (Get-Date).AddDays(-7)
+            $e = @(Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-PrintService/Admin'; StartTime = $since } -MaxEvents 500 -ErrorAction SilentlyContinue |
+                   Where-Object { $_.Level -le 3 })
+            if ($e.Count -eq 0) { '• Không có lỗi in nào trong 7 ngày qua' }
+            $e | Group-Object { "[$($_.Id)] " + (($_.Message -split "`n")[0]).Trim() } |
+              Sort-Object { ($_.Group | Sort-Object TimeCreated -Descending | Select-Object -First 1).TimeCreated } -Descending |
+              Select-Object -First 30 | ForEach-Object {
+                $last = ($_.Group | Sort-Object TimeCreated -Descending | Select-Object -First 1).TimeCreated
+                "• $($last.ToString('dd/MM HH:mm'))  ×$($_.Count)  $($_.Name)"
+              }
+            if (@($e | Where-Object { $_.Message -match '0x7E' }).Count -gt 0) {
+              ''
+              '→ Có lỗi 0x7E (nạp plug-in driver thất bại): thử «Chép mscms.dll (lỗi 0x7e)», hoặc gỡ rồi cài lại driver máy in được nêu tên.'
+            }
             """),
 
         // ===== Theo hãng =====

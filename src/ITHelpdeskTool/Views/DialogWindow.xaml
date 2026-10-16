@@ -15,7 +15,15 @@
                            Foreground="{StaticResource AccentBrush}"/>
                 <TextBlock x:Name="TitleText" Style="{StaticResource H2}" FontSize="16" TextWrapping="Wrap" MaxWidth="350"/>
             </StackPanel>
-            <TextBlock x:Name="MessageText" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" LineHeight="20"/>
+            <!-- Nội dung dài: cuộn trong khung, cửa sổ không bao giờ cao quá màn hình -->
+            <ScrollViewer x:Name="MessageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="420">
+                <TextBlock x:Name="MessageText" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" LineHeight="20"/>
+            </ScrollViewer>
+
+            <TextBox x:Name="OutputText" Visibility="Collapsed" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
+                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                     Background="{StaticResource Surface2Brush}" Foreground="{StaticResource TextBrush}" BorderBrush="{StaticResource BorderBrush}"
+                     BorderThickness="1" Padding="10,8" Margin="0,4,0,0"/>
 
             <TextBox x:Name="InputText" Style="{StaticResource InputBox}" Margin="0,16,0,0" Visibility="Collapsed"/>
 
@@ -30,6 +38,7 @@
                        Visibility="Collapsed"/>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0">
+                <Button x:Name="CopyButton" Content="Chép" MinWidth="88" Margin="0,0,8,0" Visibility="Collapsed" Click="Copy_Click"/>
                 <Button x:Name="CancelButton" Content="Huỷ" MinWidth="88" IsCancel="True" Click="Cancel_Click"/>
                 <Button x:Name="OkButton" Content="Đồng ý" MinWidth="88" Margin="8,0,0,0" IsDefault="True"
                         Style="{StaticResource BtnPrimary}" Click="Ok_Click"/>

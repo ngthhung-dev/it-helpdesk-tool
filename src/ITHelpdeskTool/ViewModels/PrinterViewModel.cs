@@ -210,10 +210,14 @@ public sealed partial class PrinterViewModel : PageViewModel
             var r = await PrinterFixCatalog.RunAsync(f);
             var lines = r.Message.Split('\n');
             row.Ok = r.Ok;
-            row.Result = string.Join("\n", lines.Skip(r.Ok ? 1 : 0).Take(8)) + (lines.Length > 9 ? "\n…" : "");
+            var body = string.Join("\n", lines.Skip(r.Ok ? 1 : 0));
+            var items = lines.Count(l => l.TrimStart().StartsWith('•'));
+            row.Result = f.ShowOutput && r.Ok ? $"{items} mục — đã mở cửa sổ kết quả"
+                : string.Join("\n", lines.Skip(r.Ok ? 1 : 0).Take(6)) + (lines.Length > 7 ? "\n…" : "");
             if (row.Result.Length == 0) row.Result = r.Ok ? "Xong" : r.Message;
             AddLog(r.Ok ? $"{f.Title}: xong" : r.Message, r.Ok);
-            if (f.ShowOutput || !r.Ok) DialogWindow.Info(f.Title, string.Join("\n", lines.Skip(r.Ok ? 1 : 0)), error: !r.Ok);
+            if (f.ShowOutput && r.Ok) DialogWindow.ShowText(f.Title, body);
+            else if (!r.Ok) DialogWindow.Info(f.Title, body, error: true);
         }
         catch (Exception ex) { row.Ok = false; row.Result = ex.Message; AddLog(ex.Message, false); }
         finally { IsBusy = false; }

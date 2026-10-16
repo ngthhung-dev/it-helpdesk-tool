@@ -57,8 +57,36 @@ public partial class DialogWindow : Window
         d.ShowDialog();
     }
 
+    /// <summary>
+    /// Kết quả dài (danh sách, nhật ký): cửa sổ rộng, khung chữ cuộn được, chọn / chép được.
+    /// Chiều cao luôn nằm gọn trong màn hình.
+    /// </summary>
+    public static void ShowText(string title, string text, string hint = "")
+    {
+        var d = new DialogWindow();
+        d.Setup(title, hint, "Đóng", "\uE8A5", false);
+        d.CancelButton.Visibility = Visibility.Collapsed;
+        d.CopyButton.Visibility = Visibility.Visible;
+        if (hint.Length == 0) d.MessageScroll.Visibility = Visibility.Collapsed;
+        var area = SystemParameters.WorkArea;
+        d.Width = Math.Min(860, area.Width - 80);
+        d.TitleText.MaxWidth = d.Width - 90;
+        d.OutputText.Text = text;
+        d.OutputText.MaxHeight = Math.Max(200, area.Height - 260);
+        d.OutputText.Visibility = Visibility.Visible;
+        d.ShowDialog();
+    }
+
+    private void Copy_Click(object sender, RoutedEventArgs e)
+    {
+        try { Clipboard.SetText(OutputText.Text); CopyButton.Content = "Đã chép"; } catch { }
+    }
+
     private void Setup(string title, string message, string okText, string glyph, bool danger)
     {
+        // Không để hộp thoại cao quá màn hình (thông báo dài sẽ cuộn)
+        MaxHeight = SystemParameters.WorkArea.Height - 40;
+        MessageScroll.MaxHeight = Math.Max(160, SystemParameters.WorkArea.Height - 280);
         Title = title;
         TitleText.Text = title;
         MessageText.Text = message;
