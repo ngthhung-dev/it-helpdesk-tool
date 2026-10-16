@@ -51,15 +51,19 @@ public sealed partial class OutlookViewModel : PageViewModel
     [RelayCommand]
     private async Task RefreshAsync()
     {
-        var exe = OutlookService.OutlookExe();
+        var (exe, ver, running) = await Task.Run(() =>
+        {
+            var e = OutlookService.OutlookExe();
+            return (e, e is null ? "" : System.Diagnostics.FileVersionInfo.GetVersionInfo(e).ProductVersion ?? "", OutlookService.IsRunning());
+        });
         HasOutlook = exe is not null;
         OutlookText = exe is null ? "Máy chưa cài Outlook (classic) — vẫn tìm và sao lưu được file PST/OST có sẵn."
-            : $"Outlook: {System.Diagnostics.FileVersionInfo.GetVersionInfo(exe).ProductVersion}" + (OutlookService.IsRunning() ? " · đang mở" : "");
+            : $"Outlook: {ver}" + (running ? " · đang mở" : "");
         var list = await Task.Run(() => OutlookService.FindDataFiles());
         Files.Clear();
         foreach (var f in list) Files.Add(new DataFileRow(f));
         Summary = list.Count == 0 ? "Không tìm thấy file PST / OST ở các vị trí mặc định." : $"{list.Count} file · {Fmt.Size(list.Sum(f => f.Size))}";
-        var (profiles, def) = OutlookService.Profiles();
+        var (profiles, def) = await Task.Run(OutlookService.Profiles);
         Profiles.Clear();
         foreach (var p in profiles) Profiles.Add(p);
         DefaultProfile = def;

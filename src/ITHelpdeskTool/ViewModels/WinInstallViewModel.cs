@@ -46,7 +46,7 @@ public sealed partial class WinInstallViewModel : PageViewModel
     [RelayCommand]
     private async Task CheckAsync()
     {
-        var os = Wmi.First("SELECT Caption, Version, BuildNumber, OSArchitecture FROM Win32_OperatingSystem");
+        var os = await Task.Run(() => Wmi.First("SELECT Caption, Version, BuildNumber, OSArchitecture FROM Win32_OperatingSystem"));
         var display = Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "DisplayVersion", "") as string;
         CurrentOs = os is null ? "" : $"{os.Str("Caption")} {display} · build {os.Str("BuildNumber")} · {os.Str("OSArchitecture")}";
         var list = await SetupService.Windows11ReadinessAsync();

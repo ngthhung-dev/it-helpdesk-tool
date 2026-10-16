@@ -45,7 +45,7 @@ public sealed partial class WinPeViewModel : PageViewModel
     {
         if (_loaded) return;
         _loaded = true;
-        CheckAdk();
+        _ = CheckAdkAsync();
         _ = RefreshUsbAsync();
     }
 
@@ -54,6 +54,15 @@ public sealed partial class WinPeViewModel : PageViewModel
         HasAdk = WinPeService.HasAdk && WinPeService.HasPeAddon;
         AdkText = HasAdk ? $"Windows ADK {WinPeService.AdkVersion()} + WinPE add-on đã cài."
             : WinPeService.HasAdk ? "Đã có Windows ADK nhưng thiếu WinPE add-on."
+            : "Chưa có Windows ADK — bộ công cụ miễn phí của Microsoft để tạo WinPE (tải khoảng 1–2 GB).";
+    }
+
+    private async Task CheckAdkAsync()
+    {
+        var (has, addon, ver) = await Task.Run(() => (WinPeService.HasAdk, WinPeService.HasPeAddon, WinPeService.HasAdk ? WinPeService.AdkVersion() : ""));
+        HasAdk = has && addon;
+        AdkText = HasAdk ? $"Windows ADK {ver} + WinPE add-on đã cài."
+            : has ? "Đã có Windows ADK nhưng thiếu WinPE add-on."
             : "Chưa có Windows ADK — bộ công cụ miễn phí của Microsoft để tạo WinPE (tải khoảng 1–2 GB).";
     }
 

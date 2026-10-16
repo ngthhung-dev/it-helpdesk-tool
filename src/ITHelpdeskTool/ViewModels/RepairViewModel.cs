@@ -69,9 +69,9 @@ public sealed partial class RepairViewModel : PageViewModel
     [RelayCommand]
     private async Task LoadStatusAsync()
     {
-        var os = Wmi.First("SELECT Caption, Version, BuildNumber FROM Win32_OperatingSystem");
+        var (os, pending) = await Task.Run(() => (Wmi.First("SELECT Caption, Version, BuildNumber FROM Win32_OperatingSystem"), RepairService.PendingReboot()));
         OsText = os is null ? "" : $"{os.Str("Caption")} · build {os.Str("BuildNumber")}";
-        RebootPending = RepairService.PendingReboot();
+        RebootPending = pending;
         RebootText = RebootPending ? "Máy đang chờ khởi động lại để hoàn tất cập nhật — nên khởi động lại trước khi sửa." : "Không có cập nhật đang chờ khởi động lại.";
         var dirty = await RepairService.IsDirtyAsync();
         var shut = await RepairService.UnexpectedShutdownsAsync();

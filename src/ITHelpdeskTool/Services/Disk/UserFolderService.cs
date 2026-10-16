@@ -116,15 +116,26 @@ public static class UserFolderService
         return (b, n);
     }
 
-    /// <summary>Ổ cố định không phải ổ Windows — gợi ý làm nơi chứa.</summary>
+    /// <summary>
+    /// Ổ cố định không phải ổ Windows — gợi ý làm nơi chứa. Chỉ hỏi loại ổ trước (không chạm vào ổ), nên ổ mạng mất kết nối /
+    /// ổ CD / đầu đọc thẻ không làm treo; mỗi ổ đọc dung lượng tối đa 3 giây.
+    /// </summary>
     public static List<string> SuggestedBases()
     {
         var sys = Path.GetPathRoot(Environment.SystemDirectory)!;
         var user = Environment.UserName;
-        return DriveInfo.GetDrives()
-            .Where(d => d.IsReady && d.DriveType == DriveType.Fixed && !d.Name.Equals(sys, StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(d => d.AvailableFreeSpace)
-            .Select(d => Path.Combine(d.Name, "Users", user)).ToList();
+        DriveInfo[] all;
+        try { all = DriveInfo.GetDrives(); } catch { return []; }
+        var fixedDrives = all.Where(d =>
+        {
+            try { return d.DriveType == DriveType.Fixed && !d.Name.Equals(sys, StringComparison.OrdinalIgnoreCase); }
+            catch { return false; }
+        }).ToList();
+        var free = fixedDrives.Select(d => (d, t: Task.Run(() => { try { return d.IsReady ? d.AvailableFreeSpace : -1; } catch { return -1L; } }))).ToList();
+        Task.WaitAll(free.Select(x => (Task)x.t).ToArray(), TimeSpan.FromSeconds(3));
+        return free.Where(x => x.t.IsCompletedSuccessfully && x.t.Result >= 0)
+            .OrderByDescending(x => x.t.Result)
+            .Select(x => Path.Combine(x.d.Name, "Users", user)).ToList();
     }
 
     /// <summary>

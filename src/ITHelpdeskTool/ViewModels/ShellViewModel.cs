@@ -34,50 +34,53 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public ShellViewModel()
     {
-        // Giai đoạn 1: đánh số 1. Trang chưa làm hiện màn hình "Sắp có".
+        // Nhóm theo việc cần làm; trang trong nhóm xếp theo trình tự hay dùng
         Groups =
         [
-            new("HỆ THỐNG",
+            new("TỔNG QUAN",
             [
                 Item("dashboard", "Tổng quan", "\uE80F", 1, () => new DashboardViewModel()),
                 Item("report", "Báo cáo cấu hình", "\uE8A5", 1, () => new ReportViewModel()),
+            ]),
+            new("HỆ THỐNG",
+            [
                 Item("sysconfig", "Cấu hình hệ thống", "\uE770", 1, () => new SysConfigViewModel()),
                 Item("policy", "Policy", "\uE8D7", 1, () => new PolicyViewModel()),
                 Item("startup", "Startup & Boot", "\uE7E8", 1, () => new StartupViewModel()),
                 Item("power", "Power Plan", "\uE945", 1, () => new PowerViewModel()),
             ]),
-            new("TỐI ƯU",
+            new("SỬA LỖI & TỐI ƯU",
             [
+                Item("repair", "Sửa lỗi Windows", "\uE90F", 1, () => new RepairViewModel()),
                 Item("tweaks", "Tweaks Windows", "\uE713", 1, () => new TweaksViewModel()),
                 Item("cleanup", "Dọn rác", "\uE894", 1, () => new CleanupViewModel()),
                 Item("uninstall", "Gỡ app sạch", "\uE74D", 1, () => new UninstallViewModel()),
             ]),
-            new("CÀI ĐẶT",
+            new("PHẦN MỀM",
             [
                 Item("store", "App Store", "\uE719", 1, () => new StoreViewModel()),
-                Item("fonts", "Cài font", "\uE8D2", 1, () => new FontsViewModel()),
                 Item("office", "Office", "\uE7C3", 1, () => new OfficeViewModel()),
+                Item("fonts", "Cài font", "\uE8D2", 1, () => new FontsViewModel()),
+                Item("zalo", "Multi-Zalo", "\uE8BD", 1, () => new MultiZaloViewModel()),
             ]),
-            new("WINDOWS",
+            new("CÀI WINDOWS",
             [
+                Item("iso", "Tải ISO", "\uE958", 1, () => new IsoViewModel()),
+                Item("usb", "Tạo USB boot", "\uE88E", 1, () => new UsbViewModel()),
                 Item("wininstall", "Cài Windows", "\uE7F8", 1, () => new WinInstallViewModel()),
                 Item("winpe", "WinPE", "\uE756", 1, () => new WinPeViewModel()),
-                Item("usb", "Tạo USB boot", "\uE88E", 1, () => new UsbViewModel()),
-                Item("iso", "Tải ISO", "\uE958", 1, () => new IsoViewModel()),
-                Item("repair", "Sửa lỗi Windows", "\uE90F", 1, () => new RepairViewModel()),
             ]),
             new("Ổ ĐĨA & DỮ LIỆU",
             [
-                Item("bitlocker", "BitLocker", "\uE72E", 1, () => new BitLockerViewModel()),
-                Item("disk", "Công cụ ổ đĩa", "\uEDA2", 1, () => new DiskViewModel()),
                 Item("userfolders", "Chuyển thư mục", "\uE8DE", 1, () => new UserFoldersViewModel()),
+                Item("disk", "Công cụ ổ đĩa", "\uEDA2", 1, () => new DiskViewModel()),
+                Item("bitlocker", "BitLocker", "\uE72E", 1, () => new BitLockerViewModel()),
+                Item("outlook", "Dữ liệu Outlook", "\uE715", 1, () => new OutlookViewModel()),
             ]),
-            new("TIỆN ÍCH",
+            new("THIẾT BỊ & TIỆN ÍCH",
             [
                 Item("printer", "Máy in", "\uE749", 1, () => new PrinterViewModel()),
-                Item("outlook", "Dữ liệu Outlook", "\uE715", 1, () => new OutlookViewModel()),
                 Item("preview", "Xem trước file", "\uE890", 1, () => new PreviewViewModel()),
-                Item("zalo", "Multi-Zalo", "\uE8BD", 1, () => new MultiZaloViewModel()),
             ]),
         ];
 

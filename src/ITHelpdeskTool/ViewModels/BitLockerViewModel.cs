@@ -69,7 +69,7 @@ public sealed partial class BitLockerViewModel : PageViewModel
         var tpm = await Task.Run(() => Wmi.TryQuery("SELECT SpecVersion, IsEnabled_InitialValue FROM Win32_Tpm", @"root\CIMV2\Security\MicrosoftTpm").FirstOrDefault());
         TpmText = tpm is null ? "Không có TPM — ổ hệ điều hành chỉ bật được BitLocker khi có chính sách cho phép dùng mật khẩu / USB."
             : $"TPM {tpm.Str("SpecVersion").Split(',')[0]}" + (tpm.Bool("IsEnabled_InitialValue") == false ? " (đang tắt trong BIOS)" : " sẵn sàng");
-        DomainJoined = Wmi.First("SELECT PartOfDomain FROM Win32_ComputerSystem")?.Bool("PartOfDomain") == true;
+        DomainJoined = await Task.Run(() => Wmi.First("SELECT PartOfDomain FROM Win32_ComputerSystem")?.Bool("PartOfDomain") == true);
         var ds = await ProcessRunner.ConsoleAsync("dsregcmd.exe", "/status");
         EntraJoined = System.Text.RegularExpressions.Regex.IsMatch(ds.Output, @"AzureAdJoined\s*:\s*YES", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         if (ok) await RefreshAsync();

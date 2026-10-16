@@ -53,37 +53,57 @@ public sealed partial class UserFoldersViewModel : PageViewModel
     {
         if (_loaded) return;
         _loaded = true;
-        foreach (var b in UserFolderService.SuggestedBases()) Bases.Add(b);
-        BasePath = Bases.FirstOrDefault() ?? "";
-        _ = RefreshAsync();
+        _ = LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        // Đọc ổ ở luồng nền: hỏi ổ mạng / đầu đọc thẻ có thể mất vài giây
+        foreach (var b in await Task.Run(UserFolderService.SuggestedBases)) Bases.Add(b);
+        if (BasePath.Length == 0) BasePath = Bases.FirstOrDefault() ?? "";
+        await RefreshAsync();
     }
 
     [RelayCommand]
     private async Task RefreshAsync()
     {
         var sys = System.IO.Path.GetPathRoot(Environment.SystemDirectory)!;
-        var d = new DriveInfo(sys);
-        SystemFree = $"Ổ Windows {sys.TrimEnd('\\')} còn trống {Fmt.Size(d.AvailableFreeSpace)} / {Fmt.Size(d.TotalSize)}";
-        foreach (var r in Folders)
+        // Đọc vị trí / trạng thái ở luồng nền (thư mục có thể nằm trên ổ mạng, ổ USB đã rút…)
+        var info = await Task.Run(() =>
         {
-            r.Path = UserFolderService.GetPath(r.F);
-            r.IsDefault = UserFolderService.IsDefault(r.F);
-            r.OneDrive = UserFolderService.InOneDrive(r.Path);
-            r.OnSystemDrive = r.Path.StartsWith(sys, StringComparison.OrdinalIgnoreCase);
+            var d = new DriveInfo(sys);
+            var free = $"Ổ Windows {sys.TrimEnd('\\')} còn trống {Fmt.Size(d.AvailableFreeSpace)} / {Fmt.Size(d.TotalSize)}";
+            var rows = AllRows.Select(r => (r, path: UserFolderService.GetPath(r.F), def: UserFolderService.IsDefault(r.F),
+                exists: !r.F.IsApp || UserFolderService.AppDataExists(r.F))).ToList();
+            return (free, rows);
+        });
+        SystemFree = info.free;
+        foreach (var (r, path, def, exists) in info.rows)
+        {
+            r.Path = path;
+            r.IsDefault = def;
+            r.Exists = exists;
+            r.OnSystemDrive = path.StartsWith(sys, StringComparison.OrdinalIgnoreCase);
+            if (r.F.IsApp)
+            {
+                if (!exists) { r.IsChecked = false; r.SizeText = "Chưa có dữ liệu (chưa cài hoặc chưa mở lần nào)"; }
+                continue;
+            }
+            r.OneDrive = UserFolderService.InOneDrive(path);
             r.IsChecked = r.OnSystemDrive && !r.OneDrive && r.F.Key is "documents" or "downloads" or "desktop" or "pictures" or "videos";
         }
-        foreach (var r in AppFolders)
-        {
-            r.Exists = UserFolderService.AppDataExists(r.F);
-            r.Path = UserFolderService.GetPath(r.F);
-            r.IsDefault = UserFolderService.IsDefault(r.F);
-            r.OnSystemDrive = r.Path.StartsWith(sys, StringComparison.OrdinalIgnoreCase);
-            if (!r.Exists) { r.IsChecked = false; r.SizeText = "Chưa có dữ liệu (chưa cài hoặc chưa mở lần nào)"; }
-        }
+        // Đo dung lượng lần lượt từng 2 thư mục — đo song song tất cả làm ổ cứng HDD quá tải, máy ì
+        foreach (var r in AllRows.Where(r => r.Exists)) r.SizeText = "Đang tính…";
+        using var gate = new SemaphoreSlim(2);
         await Task.WhenAll(AllRows.Where(r => r.Exists).Select(async r =>
         {
-            var (b, n) = await Task.Run(() => UserFolderService.Measure(r.Path));
-            r.SizeText = $"{Fmt.Size(b)} · {n:N0} file";
+            await gate.WaitAsync();
+            try
+            {
+                var (b, n) = await Task.Run(() => UserFolderService.Measure(r.Path));
+                r.SizeText = $"{Fmt.Size(b)} · {n:N0} file";
+            }
+            finally { gate.Release(); }
         }));
     }
 
