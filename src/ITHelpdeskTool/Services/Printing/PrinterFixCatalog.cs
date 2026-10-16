@@ -63,7 +63,7 @@ public static class PrinterFixCatalog
           $rules = @(Get-NetFirewallRule -Group $g -ErrorAction SilentlyContinue | Where-Object { $_.Profile -ne 'Public' })
           if ($rules.Count -eq 0) { "• ${label}: không tìm thấy nhóm luật"; return }
           $rules | Enable-NetFirewallRule
-          "• Tường lửa: đã bật $($rules.Count) luật “$label” cho mạng Private/Domain"
+          "• Tường lửa: đã bật $($rules.Count) luật «$label» cho mạng Private/Domain"
         }
         function FwPort([int]$port, [string]$label) {
           $name = "IT Helpdesk Tool - $label (TCP $port)"
@@ -83,7 +83,7 @@ public static class PrinterFixCatalog
         }
         function PrivateNet {
           $p = @(Get-NetConnectionProfile -ErrorAction SilentlyContinue | Where-Object { $_.NetworkCategory -eq 'Public' })
-          foreach ($x in $p) { Set-NetConnectionProfile -InterfaceIndex $x.InterfaceIndex -NetworkCategory Private -ErrorAction SilentlyContinue; "• Mạng “$($x.Name)”: Public → Private" }
+          foreach ($x in $p) { Set-NetConnectionProfile -InterfaceIndex $x.InterfaceIndex -NetworkCategory Private -ErrorAction SilentlyContinue; "• Mạng «$($x.Name)»: Public → Private" }
           if ($p.Count -eq 0) { '• Mạng đang dùng: đã là Private/Domain' }
         }
         $rpcPol = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\RPC'
@@ -136,7 +136,7 @@ public static class PrinterFixCatalog
             RegSet 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Windows' 'LegacyDefaultPrinterMode' 1
             RegDel 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Windows' 'Device'
             Svc 'Spooler'
-            '• Giờ đặt lại máy in mặc định ở danh sách “Máy in trên máy”'
+            '• Giờ đặt lại máy in mặc định ở danh sách «Máy in trên máy»'
             """),
         new("code.40", Codes, "0x00000040", "Tên mạng không còn — bật File and Printer Sharing, Network Discovery, các dịch vụ chia sẻ",
             ShareFirewall + "\n" + DiscoverySvcs),
@@ -156,7 +156,7 @@ public static class PrinterFixCatalog
             "ClearQueue\nSvc 'PrintNotify' 'Manual'\n'• Nếu vẫn lỗi: gỡ máy in đó ở danh sách trên rồi thêm lại'"),
         new("code.bcb", Codes, "0x00000bcb", "Máy này chưa có driver cho máy in chia sẻ — tạm cho phép cài driver từ máy chia sẻ (Point and Print)",
             "RegSet $pnp 'RestrictDriverInstallationToAdministrators' 0\nRegSet $pnp 'NoWarningNoElevationOnInstall' 1\nRegSet $pnp 'UpdatePromptSettings' 2\n" + Spooler +
-            "\n'• Kết nối máy in xong, bấm “Khoá lại Point and Print” ở nhóm RPC & Point and Print'", WarnPnp),
+            "\n'• Kết nối máy in xong, bấm «Khoá lại Point and Print» ở nhóm RPC & Point and Print'", WarnPnp),
         new("code.7e", Codes, "0x0000007e", "Thiếu mscms.dll khi thêm máy in — chép mscms.dll vào thư mục driver máy in",
             """
             $map = @{ 'x64\3' = (Join-Path $env:windir 'System32\mscms.dll'); 'W32X86\3' = (Join-Path $env:windir 'SysWOW64\mscms.dll') }
@@ -349,6 +349,15 @@ public static class PrinterFixCatalog
     public static List<PrinterFixGroup> Groups() =>
         GroupOrder.Select(g => new PrinterFixGroup(g, GroupNotes.GetValueOrDefault(g, ""), All.Where(f => f.Group == g))).ToList();
 
+    /// <summary>PowerShell ghi lỗi dạng CLIXML khi stderr bị chuyển hướng — lấy lại phần chữ.</summary>
+    public static string CleanErr(string e)
+    {
+        if (!e.Contains("#< CLIXML")) return e;
+        var parts = System.Text.RegularExpressions.Regex.Matches(e, "<S S=\"Error\">(.*?)</S>")
+            .Select(m => System.Net.WebUtility.HtmlDecode(m.Groups[1].Value).Replace("_x000D_", "").Replace("_x000A_", "\n"));
+        return string.Concat(parts);
+    }
+
     /// <summary>Chạy một thao tác, trả kết quả gồm các dòng “• …” script in ra.</summary>
     public static async Task<OpResult> RunAsync(PrinterFix f, CancellationToken ct = default)
     {
@@ -359,7 +368,7 @@ public static class PrinterFixCatalog
         }
         var r = await ProcessRunner.PowerShellAsync(Prelude + f.Script, ct: ct);
         var text = string.Join("\n", r.Output.Split('\n').Select(l => l.TrimEnd()).Where(l => l.Length > 0));
-        var err = string.Join("\n", r.Error.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0 && !l.StartsWith("At line") && !l.StartsWith("+ ")).Take(3));
+        var err = string.Join("\n", CleanErr(r.Error).Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0 && !l.StartsWith("At line") && !l.StartsWith("+ ")).Take(3));
         if (text.Length == 0 && err.Length > 0) return OpResult.Fail($"{f.Title}: {err}");
         return OpResult.Success($"{f.Title}\n{text}".TrimEnd() + (err.Length > 0 ? $"\n(cảnh báo: {err})" : ""));
     }

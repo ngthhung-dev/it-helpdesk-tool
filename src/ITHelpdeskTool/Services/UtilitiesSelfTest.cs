@@ -34,15 +34,13 @@ public static class UtilitiesSelfTest
             var fixes = PrinterFixCatalog.All.Where(f => f.Script.Length > 0).ToList();
             Check(PrinterFixCatalog.All.Select(f => f.Id).Distinct().Count() == PrinterFixCatalog.All.Count, "trùng Id");
             Check(PrinterFixCatalog.All.All(f => PrinterFixCatalog.GroupOrder.Contains(f.Group)), "có nhóm lạ");
-            var arr = string.Join(",", fixes.Select(f => "'" + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(PrinterFixCatalog.Prelude + f.Script)) + "'"));
-            var ids = string.Join(",", fixes.Select(f => "'" + f.Id + "'"));
+            var dir = Path.Combine(work, "fixps");
+            Directory.CreateDirectory(dir);
+            foreach (var f in fixes) File.WriteAllText(Path.Combine(dir, f.Id + ".ps1"), PrinterFixCatalog.Prelude + f.Script, new System.Text.UTF8Encoding(true));
             var r = await ProcessRunner.PowerShellAsync(
-                "$s = @(" + arr + "); $ids = @(" + ids + ")\n" +
-                "for ($i = 0; $i -lt $s.Count; $i++) {\n" +
-                "  $code = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($s[$i])); $err = $null\n" +
-                "  [void][System.Management.Automation.Language.Parser]::ParseInput($code, [ref]$null, [ref]$err)\n" +
-                "  foreach ($e in $err) { \"$($ids[$i]): dòng $($e.Extent.StartLineNumber) $($e.Message)\" }\n" +
-                "}");
+                "Get-ChildItem " + ProcessRunner.PsQuote(dir) + " -Filter *.ps1 | ForEach-Object { $err = $null\n" +
+                "  [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$err)\n" +
+                "  foreach ($e in $err) { \"$($_.BaseName): dòng $($e.Extent.StartLineNumber) $($e.Message)\" } }");
             Check(r.Success && r.Output.Trim().Length == 0, "lỗi cú pháp: " + r.Output.Trim() + r.Error);
             return $"{fixes.Count} script PowerShell đúng cú pháp · {PrinterFixCatalog.All.Count} thao tác / {PrinterFixCatalog.GroupOrder.Count} nhóm";
         });
