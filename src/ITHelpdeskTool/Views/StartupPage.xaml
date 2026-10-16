@@ -386,21 +386,33 @@
                                     </TextBlock>
                                 </StackPanel>
                             </DockPanel>
+                            <!-- Một hàng, thiếu chỗ mới xuống dòng -->
                             <WrapPanel>
-                                <Button Content="Safe Mode" Margin="0,0,8,8" Command="{Binding SetSafeBootCommand}" CommandParameter="minimal"/>
-                                <Button Content="Safe Mode có mạng" Margin="0,0,8,8" Command="{Binding SetSafeBootCommand}" CommandParameter="network"/>
+                                <Button Content="Safe Mode" Margin="0,0,8,8" Command="{Binding SetSafeBootCommand}" CommandParameter="minimal"
+                                        ToolTip="Lần khởi động sau vào Safe Mode (chỉ driver tối thiểu)"/>
+                                <Button Content="Safe Mode có mạng" Margin="0,0,8,8" Command="{Binding SetSafeBootCommand}" CommandParameter="network"
+                                        ToolTip="Safe Mode có card mạng — để tải driver / chạy công cụ trực tuyến"/>
+                                <!-- Chỉ hiện khi đã đặt Safe Mode cho lần khởi động sau -->
                                 <Button Content="Khởi động bình thường" Margin="0,0,8,8" Command="{Binding SetSafeBootCommand}" CommandParameter=""
-                                        IsEnabled="{Binding SafeBootOn}"/>
-                            </WrapPanel>
-                            <WrapPanel Margin="0,6,0,0">
+                                        Visibility="{Binding SafeBootOn, Converter={StaticResource BoolVis}}" ToolTip="Huỷ Safe Mode, lần sau khởi động bình thường"/>
                                 <Button Margin="0,0,8,8" Command="{Binding RestartSpecialCommand}" CommandParameter="fw" IsEnabled="{Binding IsUefi}"
-                                        ToolTip="shutdown /r /fw — chỉ máy UEFI">
+                                        ToolTipService.ShowOnDisabled="True">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                            <Setter Property="ToolTip" Value="shutdown /r /fw — khởi động lại thẳng vào màn hình cài đặt BIOS/UEFI"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsUefi}" Value="False">
+                                                    <Setter Property="ToolTip" Value="Máy khởi động kiểu Legacy BIOS — Windows không hỗ trợ vào BIOS từ trong Windows; bấm phím Del / F2 khi bật máy."/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE950;" Style="{StaticResource Icon}" FontSize="13"/>
                                         <TextBlock Text="Khởi động lại vào BIOS/UEFI" Margin="8,0,0,0"/>
                                     </StackPanel>
                                 </Button>
-                                <Button Margin="0,0,8,8" Command="{Binding RestartSpecialCommand}" CommandParameter="re" ToolTip="shutdown /r /o">
+                                <Button Margin="0,0,8,8" Command="{Binding RestartSpecialCommand}" CommandParameter="re" ToolTip="shutdown /r /o — Startup Repair, System Restore, Safe Mode, gỡ bản cập nhật…">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE90F;" Style="{StaticResource Icon}" FontSize="13"/>
                                         <TextBlock Text="Khởi động lại vào Advanced Startup" Margin="8,0,0,0"/>

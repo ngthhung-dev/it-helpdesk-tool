@@ -91,9 +91,7 @@ public static class BootService
         }
         catch { }
 
-        using var ctl = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control");
-        var uefi = ctl?.GetValue("PEFirmwareType") is int fw && fw == 2;
-        return new BootConfig(entries, timeout, safe, uefi);
+        return new BootConfig(entries, timeout, safe, Firmware.IsUefi);
     }
 
     private static string[] EnumerateLoaders()

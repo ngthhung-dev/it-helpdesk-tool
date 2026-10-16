@@ -189,16 +189,7 @@ public static partial class ReportCollector
         return "";
     }
 
-    private static string FirmwareType()
-    {
-        using var k = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control");
-        return (k?.GetValue("PEFirmwareType") as int?) switch
-        {
-            2 => "UEFI",
-            1 => "Legacy BIOS",
-            _ => "",
-        };
-    }
+    private static string FirmwareType() => Firmware.IsUefi ? "UEFI" : "Legacy BIOS";
 
     internal static bool? SecureBoot()
     {
