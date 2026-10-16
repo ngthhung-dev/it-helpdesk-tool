@@ -205,6 +205,34 @@ public static class UtilitiesSelfTest
         });
 
         var zbase = Path.Combine(work, "MultiZalo");
+        await t.Do("zalo.create.uithread", async () =>
+        {
+            // Tái hiện lỗi treo: gọi Create / chặn chờ lệnh console từ một luồng giao diện (có Dispatcher) — phải xong trong vài giây
+            foreach (var old in MultiZaloService.Load()) MultiZaloService.Delete(old);
+            OpResult? res = null; Exception? err = null; long boot = -1;
+            var th = new Thread(() =>
+            {
+                System.Threading.SynchronizationContext.SetSynchronizationContext(new System.Windows.Threading.DispatcherSynchronizationContext(System.Windows.Threading.Dispatcher.CurrentDispatcher));
+                try
+                {
+                    res = MultiZaloService.Create("Zalo UI Test", zbase);
+                    boot = ProcessRunner.ConsoleAsync("cmd.exe", "/c echo ok").GetAwaiter().GetResult().ExitCode;
+                }
+                catch (Exception ex) { err = ex; }
+            }) { IsBackground = true };
+            th.SetApartmentState(ApartmentState.STA);
+            th.Start();
+            var done = await Task.Run(() => th.Join(30_000));
+            Check(done, "Create treo trên luồng giao diện (deadlock)");
+            Check(err is null, err?.Message ?? "");
+            Need(res!);
+            var p = MultiZaloService.Load().Single(x => x.Name == "Zalo UI Test");
+            var links = Directory.GetDirectories(p.Folder).Count(d => new DirectoryInfo(d).Attributes.HasFlag(FileAttributes.ReparsePoint));
+            Check(links >= 3, $"chỉ có {links} liên kết thư mục");
+            Need(MultiZaloService.Delete(p));
+            return $"tạo hồ sơ trên luồng giao diện ok · {links} liên kết thư mục · lệnh console chặn chờ: mã {boot}";
+        });
+
         await t.Do("zalo.two.accounts", async () =>
         {
             foreach (var old in MultiZaloService.Load()) MultiZaloService.Delete(old);

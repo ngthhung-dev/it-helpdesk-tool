@@ -33,6 +33,8 @@ public sealed partial class MultiZaloViewModel : PageViewModel
     [ObservableProperty] private string _mainSize = "";
     [ObservableProperty] private string _newName = "";
     [ObservableProperty] private string _baseDir = MultiZaloService.DefaultBase;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsIdle))] private bool _isBusy;
+    public bool IsIdle => !IsBusy;
     public ObservableCollection<ActionLogEntry> ActionLog { get; } = [];
 
     public override void OnNavigatedTo()
@@ -84,18 +86,26 @@ public sealed partial class MultiZaloViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private void Create()
+    private async Task CreateAsync()
     {
-        var r = MultiZaloService.Create(NewName, BaseDir);
-        Show(r);
-        if (!r.Ok) return;
-        NewName = "";
-        Refresh();
-        if (Profiles.LastOrDefault() is { } row)
+        if (IsBusy) return;
+        IsBusy = true;
+        try
         {
-            Show(MultiZaloService.CreateShortcut(row.P));
-            if (Installed) Show(MultiZaloService.Start(row.P));
+            var (name, dir) = (NewName, BaseDir);
+            var r = await Task.Run(() => MultiZaloService.Create(name, dir));
+            Show(r);
+            if (!r.Ok) return;
+            NewName = "";
+            Refresh();
+            if (Profiles.LastOrDefault() is { } row)
+            {
+                Show(MultiZaloService.CreateShortcut(row.P));
+                if (Installed) Show(await Task.Run(() => MultiZaloService.Start(row.P)));
+            }
         }
+        catch (Exception ex) { Show(OpResult.Fail(ex.Message)); }
+        finally { IsBusy = false; }
     }
 
     [RelayCommand]
@@ -105,7 +115,7 @@ public sealed partial class MultiZaloViewModel : PageViewModel
         if (dlg.ShowDialog() == true) BaseDir = System.IO.Path.Combine(dlg.FolderName, "MultiZalo");
     }
 
-    [RelayCommand] private void Start(ZaloRow r) => Show(MultiZaloService.Start(r.P));
+    [RelayCommand] private async Task StartAsync(ZaloRow r) => Show(await Task.Run(() => MultiZaloService.Start(r.P)));
     [RelayCommand] private void StartMain() => Show(MultiZaloService.StartMain());
     [RelayCommand] private void Shortcut(ZaloRow r) => Show(MultiZaloService.CreateShortcut(r.P));
     [RelayCommand] private void OpenFolder(ZaloRow r) => ShellLauncher.Open(r.P.Folder);

@@ -70,7 +70,7 @@ public static class ProcessRunner
 
         try
         {
-            await p.WaitForExitAsync(ct);
+            await p.WaitForExitAsync(ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {

@@ -105,8 +105,24 @@ public static class MultiZaloService
         foreach (var (link, target) in Links(p))
         {
             if (Directory.Exists(link) || !Directory.Exists(target)) continue;
-            ProcessRunner.ConsoleAsync("cmd.exe", $"/c mklink /J \"{link}\" \"{target}\"").GetAwaiter().GetResult();
+            Junction(link, target);
         }
+    }
+
+    /// <summary>
+    /// Tạo junction bằng mklink, chờ đồng bộ có giới hạn thời gian. Không dùng ProcessRunner (async) rồi chặn chờ kết quả:
+    /// gọi từ luồng giao diện sẽ khoá chết cửa sổ (deadlock).
+    /// </summary>
+    private static void Junction(string link, string target)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "cmd.exe"), $"/c mklink /J \"{link}\" \"{target}\"")
+            { UseShellExecute = false, CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden };
+            using var pr = Process.Start(psi);
+            if (pr is not null && !pr.WaitForExit(10_000)) try { pr.Kill(); } catch { }
+        }
+        catch (Exception ex) { Log.Warn($"MultiZalo mklink {link}: {ex.Message}"); }
     }
 
     /// <summary>Gỡ các junction trước khi xoá hồ sơ để không bao giờ xoá nhầm vào thư mục thật.</summary>
