@@ -91,47 +91,59 @@
                 </DockPanel>
             </Border>
 
-            <Border Grid.Row="2" Style="{StaticResource Card}" Padding="4" HorizontalAlignment="Left" Margin="0,0,0,12" CornerRadius="10">
-                <StackPanel Orientation="Horizontal">
-                    <RadioButton Style="{StaticResource TabSeg}" IsChecked="{Binding TabBrowse}" Content="Khám phá"/>
-                    <RadioButton Style="{StaticResource TabSeg}" IsChecked="{Binding TabUpdates}" Content="Cập nhật phần mềm"/>
-                    <RadioButton Style="{StaticResource TabSeg}" IsChecked="{Binding TabExtras}" Content="Bộ cài &amp; thành phần Windows"/>
+            <DockPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="0,0,0,12">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center"
+                            Visibility="{Binding TabBrowse, Converter={StaticResource BoolVis}}">
+                    <TextBlock Text="{Binding Summary}" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <Button Style="{StaticResource BtnSmall}" Content="Làm mới trạng thái" Command="{Binding RefreshInstalledCommand}"/>
                 </StackPanel>
-            </Border>
+                <Border Style="{StaticResource Card}" Padding="4" HorizontalAlignment="Left" CornerRadius="10">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Style="{StaticResource TabSeg}" IsChecked="{Binding TabBrowse}" Content="Khám phá"/>
+                        <RadioButton Style="{StaticResource TabSeg}" IsChecked="{Binding TabUpdates}" Content="Cập nhật phần mềm"/>
+                        <RadioButton Style="{StaticResource TabSeg}" IsChecked="{Binding TabExtras}" Content="Bộ cài &amp; thành phần Windows"/>
+                    </StackPanel>
+                </Border>
+            </DockPanel>
 
             <!-- ===================== KHÁM PHÁ ===================== -->
             <DockPanel Grid.Row="3" Visibility="{Binding TabBrowse, Converter={StaticResource BoolVis}}">
-                <!-- Bộ có sẵn -->
-                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
-                    <TextBlock DockPanel.Dock="Left" Text="Bộ có sẵn:" Style="{StaticResource Hint}" VerticalAlignment="Top" Margin="0,5,10,0"/>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Bỏ chọn tất cả" VerticalAlignment="Top" Margin="12,0,0,0"
-                            Command="{Binding ClearSelectionCommand}" ToolTip="Bỏ tích mọi phần mềm, bộ cài và thành phần Windows đã chọn"/>
-                    <CheckBox DockPanel.Dock="Right" IsChecked="{Binding SkipInstalled}" Content="Bỏ qua phần mềm đã cài" VerticalAlignment="Top" Margin="12,4,0,0"/>
-                    <ItemsControl ItemsSource="{Binding PresetChips}">
-                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <ToggleButton Style="{StaticResource ChipToggle}" IsChecked="{Binding IsActive}" Content="{Binding Label}"
-                                              ToolTip="{Binding Preset.Description}"/>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </DockPanel>
+                <!-- Bộ lọc: bộ có sẵn + danh mục (ghim cùng đầu trang) -->
+                <Border DockPanel.Dock="Top" Style="{StaticResource Card}" Padding="16,12,16,6" Margin="0,0,0,12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Bộ có sẵn" Style="{StaticResource Hint}" VerticalAlignment="Top" Margin="0,5,14,0"/>
+                        <ItemsControl Grid.Column="1" ItemsSource="{Binding PresetChips}">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <ToggleButton Style="{StaticResource ChipToggle}" IsChecked="{Binding IsActive}" Content="{Binding Label}"
+                                                  ToolTip="{Binding Preset.Description}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <CheckBox Grid.Column="2" IsChecked="{Binding SkipInstalled}" Content="Bỏ qua phần mềm đã cài" VerticalAlignment="Top" Margin="12,4,0,0"
+                                  ToolTip="Khi bật một bộ có sẵn, không tích các phần mềm máy đã có"/>
 
-                <!-- Danh mục + tóm tắt: ghim cùng đầu trang -->
-                <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Categories}" Margin="0,0,0,6">
-                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <RadioButton Style="{StaticResource ChipRadio}" GroupName="storeCat" Content="{Binding Label}" IsChecked="{Binding IsSelected}"/>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                    <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Làm mới trạng thái" Command="{Binding RefreshInstalledCommand}"/>
-                    <TextBlock Text="{Binding Summary}" Style="{StaticResource Hint}" VerticalAlignment="Center"/>
-                </DockPanel>
+                        <TextBlock Grid.Row="1" Text="Danh mục" Style="{StaticResource Hint}" VerticalAlignment="Top" Margin="0,11,14,0"/>
+                        <ItemsControl Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding Categories}" Margin="0,6,0,0">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <RadioButton Style="{StaticResource ChipRadio}" GroupName="storeCat" Content="{Binding Label}" IsChecked="{Binding IsSelected}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </Border>
 
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
                     <StackPanel>
@@ -184,7 +196,12 @@
 
                         <!-- Lưới phần mềm -->
                         <ItemsControl ItemsSource="{Binding Apps}">
-                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <!-- Thẻ co giãn đều theo bề ngang, mỗi thẻ rộng tối thiểu 300 -->
+                                    <WrapPanel ItemWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={x:Static core:Converters.ColumnWidth}, ConverterParameter=300}"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemContainerStyle>
                                 <Style TargetType="ContentPresenter">
                                     <Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource BoolVis}}"/>
@@ -192,7 +209,7 @@
                             </ItemsControl.ItemContainerStyle>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border x:Name="Card" Width="292" Height="118" Margin="0,0,10,10" CornerRadius="12" Padding="14,12"
+                                    <Border x:Name="Card" Height="112" Margin="0,0,10,10" CornerRadius="12" Padding="14,12"
                                             Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
                                         <DockPanel>
                                             <DockPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">

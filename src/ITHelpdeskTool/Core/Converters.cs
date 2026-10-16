@@ -62,6 +62,8 @@ public static class Converters
     public static readonly CountToVisibility CountVis = new();
     public static readonly NonEmptyToVisibility NonEmptyVis = new();
     public static readonly NonEmptyToVisibility EmptyVis = new() { Invert = true };
+    /// <summary>Chia đều bề ngang thành cột, mỗi cột ≥ tham số (px) — lưới thẻ co giãn theo cửa sổ.</summary>
+    public static readonly ColumnWidthConverter ColumnWidth = new();
     public static readonly ZeroToVisibility ZeroVis = new();
     public static readonly BoolToVisibility NotVis = new() { Invert = true };
     /// <summary>Khác null → Visible.</summary>
@@ -101,5 +103,18 @@ public sealed class ZeroToVisibility : IValueConverter
 {
     public object Convert(object? value, Type t, object? p, CultureInfo c) =>
         value is int n && n == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => throw new NotSupportedException();
+}
+
+public sealed class ColumnWidthConverter : IValueConverter
+{
+    public object Convert(object? value, Type t, object? p, CultureInfo c)
+    {
+        var w = value is double d && d > 0 ? d : 0;
+        var min = double.TryParse(p?.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var m) ? m : 300;
+        if (w <= 0) return min;
+        var n = Math.Max(1, Math.Floor(w / min));
+        return Math.Floor(w / n) - 0.5;
+    }
     public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => throw new NotSupportedException();
 }
