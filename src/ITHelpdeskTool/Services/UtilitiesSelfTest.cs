@@ -209,7 +209,7 @@ public static class UtilitiesSelfTest
         {
             // Tái hiện lỗi treo: gọi Create / chặn chờ lệnh console từ một luồng giao diện (có Dispatcher) — phải xong trong vài giây
             foreach (var old in MultiZaloService.Load()) MultiZaloService.Delete(old);
-            OpResult? res = null; Exception? err = null; long boot = -1;
+            SysConfig.OpResult? res = null; Exception? err = null; long boot = -1;
             var th = new Thread(() =>
             {
                 System.Threading.SynchronizationContext.SetSynchronizationContext(new System.Windows.Threading.DispatcherSynchronizationContext(System.Windows.Threading.Dispatcher.CurrentDispatcher));
