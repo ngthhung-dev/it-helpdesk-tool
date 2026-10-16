@@ -50,6 +50,13 @@ public sealed partial class CategoryChip(string key, string label, int count) : 
     [ObservableProperty] private bool _isSelected;
 }
 
+public sealed partial class PresetChip(PostInstallPreset preset) : ObservableObject
+{
+    public PostInstallPreset Preset { get; } = preset;
+    public string Label { get; } = $"{preset.Name} · {preset.Ids.Length}";
+    [ObservableProperty] private bool _isActive;
+}
+
 public sealed partial class OfflineRow(string path, InstallerType type) : ObservableObject
 {
     public string Path { get; } = path;
@@ -72,6 +79,8 @@ public sealed partial class StoreViewModel : PageViewModel
     public ObservableCollection<SearchRow> SearchResults { get; } = [];
     public ObservableCollection<OfflineRow> Offline { get; } = [];
     public IReadOnlyList<PostInstallPreset> Presets => PostInstallService.Presets;
+    public List<PresetChip> PresetChips { get; }
+    private bool _presetSync;
 
     [ObservableProperty] private bool _tabBrowse = true;
     [ObservableProperty] private bool _tabUpdates;
@@ -110,6 +119,9 @@ public sealed partial class StoreViewModel : PageViewModel
         foreach (var c in StoreCatalog.Categories) Categories.Add(new CategoryChip(c, c, Apps.Count(r => r.App.Category == c)));
         foreach (var chip in Categories)
             chip.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(CategoryChip.IsSelected) && chip.IsSelected) Category = chip.Key; };
+        PresetChips = Presets.Select(p => new PresetChip(p)).ToList();
+        foreach (var pc in PresetChips)
+            pc.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(PresetChip.IsActive) && !_presetSync) TogglePreset(pc); };
         Queue.ItemFinished += OnItemFinished;
         Queue.Finished += () => { _ = RefreshInstalledAsync(); _ = RefreshNetFxAsync(); };
         Offline.CollectionChanged += (_, _) => UpdateCount();
@@ -136,7 +148,7 @@ public sealed partial class StoreViewModel : PageViewModel
         if (sub == "updates") { TabBrowse = false; TabUpdates = true; }
         else if (sub == "extras") { TabBrowse = false; TabExtras = true; }
         await RefreshInstalledAsync();
-        if (sub is not null && Presets.FirstOrDefault(p => p.Key == sub) is { } preset) ApplyPreset(preset);
+        if (sub is not null && PresetChips.FirstOrDefault(p => p.Preset.Key == sub) is { } preset) preset.IsActive = true;
     }
 
     private async Task RefreshNetFxAsync()
@@ -255,6 +267,14 @@ public sealed partial class StoreViewModel : PageViewModel
 
         foreach (var o in offline) o.IsChecked = false;
         NetFx3 = UpgradeAll = false;
+        ResetPresets();
+    }
+
+    private void ResetPresets()
+    {
+        _presetSync = true;
+        foreach (var pc in PresetChips) pc.IsActive = false;
+        _presetSync = false;
     }
 
     [RelayCommand]
@@ -263,17 +283,31 @@ public sealed partial class StoreViewModel : PageViewModel
         foreach (var a in Apps) a.IsChecked = false;
         foreach (var o in Offline) o.IsChecked = false;
         NetFx3 = UpgradeAll = false;
+        ResetPresets();
     }
 
     // ================= Bộ có sẵn / danh sách =================
-    [RelayCommand]
-    private void ApplyPreset(PostInstallPreset p)
+    /// <summary>
+    /// Bấm bộ có sẵn: bật → tích thêm các phần mềm của bộ; bấm lần nữa → bỏ tích các phần mềm của bộ
+    /// (trừ phần mềm cũng thuộc bộ khác đang bật). Bật được nhiều bộ cùng lúc.
+    /// </summary>
+    private void TogglePreset(PresetChip chip)
     {
-        ShowAll();
-        foreach (var r in Apps) r.IsChecked = p.Ids.Contains(r.App.Id) && !(SkipInstalled && r.IsInstalled);
-        if (p.Key is "office" or "tech") NetFx3 = NetFx3State.StartsWith("Chưa");
-        TabUpdates = TabExtras = false;
-        TabBrowse = true;
+        var p = chip.Preset;
+        if (chip.IsActive)
+        {
+            ShowAll();
+            foreach (var r in Apps.Where(r => p.Ids.Contains(r.App.Id) && !r.IsQueued && !(SkipInstalled && r.IsInstalled))) r.IsChecked = true;
+            if (p.Key is "office" or "tech" && NetFx3State.StartsWith("Chưa")) NetFx3 = true;
+            TabUpdates = TabExtras = false;
+            TabBrowse = true;
+        }
+        else
+        {
+            var keep = PresetChips.Where(c => c.IsActive).SelectMany(c => c.Preset.Ids).ToHashSet();
+            foreach (var r in Apps.Where(r => p.Ids.Contains(r.App.Id) && !keep.Contains(r.App.Id))) r.IsChecked = false;
+            if (p.Key is "office" or "tech" && !PresetChips.Any(c => c.IsActive && c.Preset.Key is "office" or "tech")) NetFx3 = false;
+        }
     }
 
     private void ShowAll()
@@ -304,6 +338,7 @@ public sealed partial class StoreViewModel : PageViewModel
         try
         {
             var l = PostInstallService.Load(dlg.FileName);
+            ResetPresets();
             ShowAll();
             foreach (var r in Apps) r.IsChecked = l.Apps.Contains(r.App.Id, StringComparer.OrdinalIgnoreCase) && !(SkipInstalled && r.IsInstalled);
             NetFx3 = l.NetFx3;

@@ -216,6 +216,29 @@ public static class StoreSelfTest
             return "lưu / mở ok";
         });
 
+        await t.Do("preset.toggle", async () =>
+        {
+            var vm = new ITHelpdeskTool.ViewModels.StoreViewModel { SkipInstalled = false };
+            var office = vm.PresetChips.First(c => c.Preset.Key == "office");
+            var tech = vm.PresetChips.First(c => c.Preset.Key == "tech");
+            string[] Sel() => vm.Apps.Where(a => a.IsChecked).Select(a => a.App.Id).Order().ToArray();
+            string[] Ids(params ITHelpdeskTool.ViewModels.PresetChip[] cs) =>
+                cs.SelectMany(c => c.Preset.Ids).Distinct().Where(id => vm.Apps.Any(a => a.App.Id == id)).Order().ToArray();
+            office.IsActive = true;
+            Check(Sel().SequenceEqual(Ids(office)), $"bật Văn phòng: {Sel().Length} mục");
+            tech.IsActive = true;
+            Check(Sel().SequenceEqual(Ids(office, tech)), "bật thêm Kỹ thuật viên sai");
+            office.IsActive = false;
+            Check(Sel().SequenceEqual(Ids(tech)), $"tắt Văn phòng còn {Sel().Length} mục, cần {Ids(tech).Length}");
+            tech.IsActive = false;
+            Check(Sel().Length == 0, "tắt hết vẫn còn mục được chọn");
+            office.IsActive = true;
+            vm.ClearSelectionCommand.Execute(null);
+            Check(Sel().Length == 0 && !office.IsActive && vm.SelectedCount == 0, "Bỏ chọn tất cả chưa sạch");
+            await Task.CompletedTask;
+            return $"bật/tắt bộ ok · Văn phòng {Ids(office).Length}, Kỹ thuật viên {Ids(tech).Length}";
+        });
+
         return await t.ToFileAsync(path);
     }
 }
