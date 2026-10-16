@@ -29,6 +29,46 @@ public static class UtilitiesSelfTest
             return $"{list.Count} máy in: {string.Join(", ", list.Select(p => $"{p.Name} ({p.StatusText})"))} · {drivers.Count} driver · dùng {driver}";
         });
 
+        await t.Do("printer.fix.parse", async () =>
+        {
+            var fixes = PrinterFixCatalog.All.Where(f => f.Script.Length > 0).ToList();
+            Check(PrinterFixCatalog.All.Select(f => f.Id).Distinct().Count() == PrinterFixCatalog.All.Count, "trùng Id");
+            Check(PrinterFixCatalog.All.All(f => PrinterFixCatalog.GroupOrder.Contains(f.Group)), "có nhóm lạ");
+            var arr = string.Join(",", fixes.Select(f => "'" + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(PrinterFixCatalog.Prelude + f.Script)) + "'"));
+            var ids = string.Join(",", fixes.Select(f => "'" + f.Id + "'"));
+            var r = await ProcessRunner.PowerShellAsync(
+                "$s = @(" + arr + "); $ids = @(" + ids + ")\n" +
+                "for ($i = 0; $i -lt $s.Count; $i++) {\n" +
+                "  $code = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($s[$i])); $err = $null\n" +
+                "  [void][System.Management.Automation.Language.Parser]::ParseInput($code, [ref]$null, [ref]$err)\n" +
+                "  foreach ($e in $err) { \"$($ids[$i]): dòng $($e.Extent.StartLineNumber) $($e.Message)\" }\n" +
+                "}");
+            Check(r.Success && r.Output.Trim().Length == 0, "lỗi cú pháp: " + r.Output.Trim() + r.Error);
+            return $"{fixes.Count} script PowerShell đúng cú pháp · {PrinterFixCatalog.All.Count} thao tác / {PrinterFixCatalog.GroupOrder.Count} nhóm";
+        });
+
+        await t.Do("printer.fix.run", async () =>
+        {
+            string[] ids = ["diag.printers", "diag.ports", "diag.drivers", "diag.events", "sp.queue", "svc.spooler", "svc.printnotify", "sp.mscms", "code.709",
+                            "net.dns", "net.fps", "net.discovery", "net.9100", "rpc.client", "rpc.restore", "pnp.open", "pnp.lock", "smb.guest.on", "smb.guest.off",
+                            "code.6ba", "code.6d9", "vendor.hp", "feat.printing-foundation-lprportmonitor", "all.services"];
+            var outs = new List<string>();
+            foreach (var id in ids)
+            {
+                var f = PrinterFixCatalog.All.First(x => x.Id == id);
+                var r = await PrinterFixCatalog.RunAsync(f);
+                Check(r.Ok, $"{id}: {r.Message}");
+                var m = r.Message.Replace('\n', ' ');
+                outs.Add($"{id}: {m[..Math.Min(170, m.Length)]}");
+            }
+            await ProcessRunner.PowerShellAsync("Get-NetFirewallRule -DisplayName 'IT Helpdesk Tool - *' -ErrorAction SilentlyContinue | Remove-NetFirewallRule");
+            var pnp = await ProcessRunner.PowerShellAsync(@"(Get-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint' -ErrorAction SilentlyContinue).RestrictDriverInstallationToAdministrators");
+            Check(pnp.Output.Trim() == "1", "Point and Print chưa khoá lại");
+            var sp = await ProcessRunner.PowerShellAsync("(Get-Service Spooler).Status");
+            Check(sp.Output.Trim() == "Running", "Spooler không chạy sau khi sửa");
+            return string.Join(" | ", outs);
+        });
+
         await t.Do("printer.add.manage", async () =>
         {
             var (online, detail) = await PrinterService.ProbeAsync("127.0.0.1");

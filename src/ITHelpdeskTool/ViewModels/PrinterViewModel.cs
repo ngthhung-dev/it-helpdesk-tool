@@ -16,6 +16,20 @@ public sealed partial class PrinterRow(PrinterInfo p) : ObservableObject
     public ObservableCollection<PrintJobInfo> Jobs { get; } = [];
 }
 
+public sealed partial class FixRow(PrinterFix fix) : ObservableObject
+{
+    public PrinterFix Fix { get; } = fix;
+    [ObservableProperty] private string _result = "";
+    [ObservableProperty] private bool _ok = true;
+}
+
+public sealed class FixGroupRow(PrinterFixGroup g)
+{
+    public string Name => g.Name;
+    public string Note => g.Note;
+    public List<FixRow> Items { get; } = g.Items.Select(f => new FixRow(f)).ToList();
+}
+
 public sealed partial class PrinterViewModel : PageViewModel
 {
     public override string Title => "Máy in";
@@ -23,6 +37,7 @@ public sealed partial class PrinterViewModel : PageViewModel
 
     public ObservableCollection<PrinterRow> Printers { get; } = [];
     public ObservableCollection<string> Drivers { get; } = [];
+    public List<FixGroupRow> FixGroups { get; } = PrinterFixCatalog.Groups().Select(g => new FixGroupRow(g)).ToList();
     [ObservableProperty] private bool _showVirtual;
     [ObservableProperty] private string _summary = "";
 
@@ -180,6 +195,30 @@ public sealed partial class PrinterViewModel : PageViewModel
     }
 
     [RelayCommand] private void OpenSettings() => PrinterService.OpenSettings();
+
+    // ================= Sửa lỗi nâng cao =================
+    [RelayCommand]
+    private async Task RunFixAsync(FixRow row)
+    {
+        var f = row.Fix;
+        if (f.Open == "@printmgmt") { await OpenPrintManagementAsync(); return; }
+        if (f.IsWarn && !DialogWindow.Confirm($"{f.Title}?", f.Warn, "Vẫn chạy", danger: true)) return;
+        IsBusy = true;
+        BusyText = $"Đang chạy: {f.Title}…";
+        try
+        {
+            var r = await PrinterFixCatalog.RunAsync(f);
+            var lines = r.Message.Split('\n');
+            row.Ok = r.Ok;
+            row.Result = string.Join("\n", lines.Skip(r.Ok ? 1 : 0).Take(8)) + (lines.Length > 9 ? "\n…" : "");
+            if (row.Result.Length == 0) row.Result = r.Ok ? "Xong" : r.Message;
+            AddLog(r.Ok ? $"{f.Title}: xong" : r.Message, r.Ok);
+            if (f.ShowOutput || !r.Ok) DialogWindow.Info(f.Title, string.Join("\n", lines.Skip(r.Ok ? 1 : 0)), error: !r.Ok);
+        }
+        catch (Exception ex) { row.Ok = false; row.Result = ex.Message; AddLog(ex.Message, false); }
+        finally { IsBusy = false; }
+        if (f.Open.Length == 0 && !f.ShowOutput) await RefreshAsync();
+    }
     [RelayCommand]
     private async Task OpenPrintManagementAsync()
     {

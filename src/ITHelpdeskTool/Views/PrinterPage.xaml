@@ -237,6 +237,59 @@
                         </ItemsControl>
                     </StackPanel>
                 </Grid>
+
+                <!-- ===== Sửa lỗi nâng cao: theo mã lỗi, dịch vụ, tính năng, tường lửa, driver, RPC… ===== -->
+                <ItemsControl ItemsSource="{Binding FixGroups}" Margin="0,14,0,0" IsEnabled="{Binding IsIdle}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border c:SectionIndex.Title="{Binding Name}" Style="{StaticResource Card}" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource H2}"/>
+                                    <TextBlock Text="{Binding Note}" Style="{StaticResource Hint}" Margin="0,2,0,0"
+                                               Visibility="{Binding Note, Converter={x:Static core:Converters.NonEmptyVis}}"/>
+                                    <ItemsControl ItemsSource="{Binding Items}" Margin="0,10,0,0">
+                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border x:Name="Bd" Margin="0,0,10,10" Padding="12,10" CornerRadius="10" BorderThickness="1"
+                                                        BorderBrush="{StaticResource BorderBrush}" Background="{StaticResource Surface2Brush}">
+                                                    <DockPanel>
+                                                        <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Chạy" VerticalAlignment="Top" Margin="10,0,0,0"
+                                                                Command="{Binding DataContext.RunFixCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                        <Border DockPanel.Dock="Left" Width="30" Height="30" CornerRadius="15" Background="{StaticResource AccentSoftBrush}" VerticalAlignment="Top" Margin="0,0,10,0">
+                                                            <TextBlock x:Name="Ic" Text="{Binding Fix.Glyph}" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <StackPanel>
+                                                            <TextBlock Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" TextWrapping="Wrap">
+                                                                <Run x:Name="W" Text="" Foreground="{StaticResource WarnBrush}"/><Run Text="{Binding Fix.Title, Mode=OneWay}"/>
+                                                            </TextBlock>
+                                                            <TextBlock Text="{Binding Fix.Description}" Style="{StaticResource Hint}" Margin="0,2,0,0"/>
+                                                            <TextBlock x:Name="Res" Text="{Binding Result}" FontSize="11.5" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="{StaticResource GoodBrush}"
+                                                                       Visibility="{Binding Result, Converter={x:Static core:Converters.NonEmptyVis}}"/>
+                                                        </StackPanel>
+                                                    </DockPanel>
+                                                </Border>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding Fix.IsWarn}" Value="True">
+                                                        <Setter TargetName="W" Property="Text" Value="⚠ "/>
+                                                        <Setter TargetName="Ic" Property="Foreground" Value="{StaticResource WarnBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Ok}" Value="False">
+                                                        <Setter TargetName="Res" Property="Foreground" Value="{StaticResource BadBrush}"/>
+                                                    </DataTrigger>
+                                                    <Trigger SourceName="Bd" Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                                    </Trigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </StackPanel>
         </ScrollViewer>
         </Grid>
