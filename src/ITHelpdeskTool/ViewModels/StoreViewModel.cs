@@ -153,6 +153,9 @@ public sealed partial class StoreViewModel : PageViewModel
         var sub = ShellViewModel.StartSubPage;
         if (sub == "updates") { TabBrowse = false; TabUpdates = true; }
         else if (sub == "extras") { TabBrowse = false; TabExtras = true; }
+        // --page store/cat-<n>: mở sẵn danh mục thứ n (dùng khi chụp ảnh kiểm tra)
+        else if (sub is not null && sub.StartsWith("cat-") && int.TryParse(sub[4..], out var ci) && ci < Categories.Count)
+            foreach (var c in Categories) c.IsSelected = ReferenceEquals(c, Categories[ci]);
         await RefreshInstalledAsync();
         if (sub is not null && PresetChips.FirstOrDefault(p => p.Preset.Key == sub) is { } preset) preset.IsActive = true;
     }
