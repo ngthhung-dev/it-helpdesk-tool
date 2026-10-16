@@ -38,6 +38,7 @@ public sealed partial class OfficeViewModel : PageViewModel
     // ---- Bản quyền ----
     public ObservableCollection<OfficeLicense> Licenses { get; } = [];
     [ObservableProperty] private string _licenseSummary = "Đang đọc…";
+    [ObservableProperty] private bool _subscriptionActive;
     [ObservableProperty] private string _productKey = "";
 
     // ---- Cài mới ----
@@ -139,13 +140,18 @@ public sealed partial class OfficeViewModel : PageViewModel
     {
         try
         {
-            var list = await OfficeService.LicensesAsync();
+            var sub = OfficeService.HasSubscriptionLicense();
+            var account = sub ? OfficeService.SignedInAccount() : null;
+            var list = OfficeService.MarkSubscription(await OfficeService.LicensesAsync(), sub);
             Licenses.Clear();
             foreach (var l in list) Licenses.Add(l);
-            var sub = OfficeService.HasSubscriptionLicense();
+            var keys = list.Where(l => !l.CoveredBySubscription).ToList();
+            var subText = "Đã kích hoạt qua tài khoản Microsoft 365" + (account is null ? "" : $" ({account})");
             LicenseSummary = OfficeService.OsppPath() is null ? "Chưa cài Office."
-                : list.Count == 0 ? (sub ? "Dùng giấy phép Microsoft 365 qua tài khoản đăng nhập (không có key trên máy)." : "Chưa có key nào trên máy.")
-                : $"{list.Count(l => l.Licensed)}/{list.Count} giấy phép đã kích hoạt" + (sub ? " · có thêm giấy phép Microsoft 365 qua tài khoản" : "");
+                : sub && keys.Count == 0 ? subText + "."
+                : keys.Count == 0 ? "Chưa có key nào trên máy."
+                : $"{keys.Count(l => l.Licensed)}/{keys.Count} key đã kích hoạt" + (sub ? $" · {subText}" : "");
+            SubscriptionActive = sub;
         }
         catch (Exception ex) { LicenseSummary = $"Không đọc được giấy phép: {ex.Message}"; }
     }

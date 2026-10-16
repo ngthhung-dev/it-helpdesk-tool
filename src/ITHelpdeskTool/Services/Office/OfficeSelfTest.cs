@@ -60,6 +60,9 @@ public static class OfficeSelfTest
             Check(l.Count == 2, $"{l.Count} giấy phép");
             Check(l[0].Licensed && l[0].Last5 == "ABCDE", l[0].ToString());
             Check(!l[1].Licensed && l[1].StatusText.StartsWith("Đang dùng thử") && l[1].Last5 == "2B7RT", l[1].StatusText);
+            var g = new OfficeLicense("Office 16, Office16O365ProPlusR_Grace edition", "", "NOTIFICATIONS", "VMFTK", "", "");
+            var m = OfficeService.MarkSubscription([g, l[0]], true);
+            Check(m[0].CoveredBySubscription && !m[1].CoveredBySubscription && !OfficeService.MarkSubscription([g], false)[0].CoveredBySubscription, "đánh dấu giấy phép tạm M365 sai");
             Check(OfficeService.IsKeyFormat("ABCDE-FGHIJ-KLMNO-PQRST-UVWXY") && !OfficeService.IsKeyFormat("ABCDE-FGHIJ"), "định dạng key");
             await Task.CompletedTask;
             return string.Join(" | ", l.Select(x => $"{x.Name}: {x.StatusText}"));

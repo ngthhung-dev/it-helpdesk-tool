@@ -131,13 +131,23 @@
                                 </Border>
                                 <TextBlock Text="Bản quyền" Style="{StaticResource H2}" VerticalAlignment="Center"/>
                             </DockPanel>
-                            <TextBlock Text="{Binding LicenseSummary}" Style="{StaticResource Hint}" Margin="0,0,0,6"/>
+                            <TextBlock Text="{Binding LicenseSummary}" Margin="0,0,0,6" FontSize="12" TextWrapping="Wrap">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource Hint}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SubscriptionActive}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                             <ItemsControl ItemsSource="{Binding Licenses}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,8">
                                             <DockPanel>
-                                                <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Gỡ key" VerticalAlignment="Center" Margin="10,0,0,0"
+                                                <Button x:Name="Rm" DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Gỡ key" VerticalAlignment="Center" Margin="10,0,0,0"
                                                         Command="{Binding DataContext.RemoveKeyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                                                         Visibility="{Binding Last5, Converter={x:Static core:Converters.NonEmptyVis}}"/>
                                                 <StackPanel>
@@ -152,6 +162,10 @@
                                         <DataTemplate.Triggers>
                                             <DataTrigger Binding="{Binding Licensed}" Value="True">
                                                 <Setter TargetName="St" Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding CoveredBySubscription}" Value="True">
+                                                <Setter TargetName="St" Property="Foreground" Value="{StaticResource MutedBrush}"/>
+                                                <Setter TargetName="Rm" Property="Visibility" Value="Collapsed"/>
                                             </DataTrigger>
                                         </DataTemplate.Triggers>
                                     </DataTemplate>

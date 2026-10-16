@@ -16,10 +16,16 @@ public sealed record OfficeC2R(
 }
 
 /// <summary>Một giấy phép đọc từ OSPP.VBS /dstatus.</summary>
-public sealed record OfficeLicense(string Name, string Description, string Status, string Last5, string Grace, string Error)
+public sealed record OfficeLicense(string Name, string Description, string Status, string Last5, string Grace, string Error, bool CoveredBySubscription = false)
 {
     public bool Licensed => Status.Contains("LICENSED", StringComparison.OrdinalIgnoreCase) && !Status.Contains("UNLICENSED", StringComparison.OrdinalIgnoreCase);
-    public string StatusText => Licensed ? "Đã kích hoạt"
+    /// <summary>
+    /// Giấy phép "_Grace" Office 365/M365 tự cài sẵn (key chung) — chỉ là giấy phép tạm. Khi đăng nhập tài khoản Microsoft 365,
+    /// Office kích hoạt bằng giấy phép theo tài khoản và bỏ qua mục này, nên trạng thái "chưa kích hoạt" của nó không có ý nghĩa.
+    /// </summary>
+    public bool IsGracePlaceholder => Name.Contains("_Grace", StringComparison.OrdinalIgnoreCase);
+    public string StatusText => CoveredBySubscription ? "Giấy phép tạm của Microsoft 365 — không dùng, Office đã kích hoạt qua tài khoản"
+        : Licensed ? "Đã kích hoạt"
         : Status.Contains("GRACE", StringComparison.OrdinalIgnoreCase) ? "Đang dùng thử" + (Grace.Length > 0 ? $" ({Grace})" : "")
         : Status.Contains("NOTIFICATIONS", StringComparison.OrdinalIgnoreCase) ? "Chưa kích hoạt (bị nhắc nhở)"
         : Status.Contains("UNLICENSED", StringComparison.OrdinalIgnoreCase) ? "Chưa kích hoạt" : Status;
@@ -67,13 +73,44 @@ public static class OfficeService
             Regex.IsMatch(a.Name, @"^Microsoft (Office|Visio|Project)\b.*\b(2007|2010|2013|2016)\b", RegexOptions.IgnoreCase) &&
             (a.UninstallString.Contains("msiexec", StringComparison.OrdinalIgnoreCase) || a.UninstallString.Contains("Office Setup Controller", StringComparison.OrdinalIgnoreCase))).ToList();
 
-    /// <summary>Có giấy phép Microsoft 365 (đăng nhập tài khoản) trên máy không.</summary>
+    /// <summary>Có giấy phép Microsoft 365 (đăng nhập tài khoản, "vNext") trên máy không.</summary>
     public static bool HasSubscriptionLicense()
     {
         var d = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Office\Licenses");
-        try { return Directory.Exists(d) && Directory.EnumerateFileSystemEntries(d, "*", SearchOption.AllDirectories).Any(); }
+        try
+        {
+            if (Directory.Exists(d) && Directory.EnumerateFileSystemEntries(d, "*", SearchOption.AllDirectories).Any()) return true;
+            using var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Office\16.0\Common\Licensing\LicensingNext");
+            return k is not null && k.GetValueNames().Any(n => n.Contains("retail", StringComparison.OrdinalIgnoreCase) || n.Contains("o365", StringComparison.OrdinalIgnoreCase));
+        }
         catch { return false; }
     }
+
+    /// <summary>Tài khoản đang đăng nhập trong Office (email), nếu có.</summary>
+    public static string? SignedInAccount()
+    {
+        try
+        {
+            using var ids = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Office\16.0\Common\Identity\Identities");
+            if (ids is null) return null;
+            string? fallback = null;
+            foreach (var n in ids.GetSubKeyNames())
+            {
+                using var k = ids.OpenSubKey(n);
+                var mail = (k?.GetValue("EmailAddress") ?? k?.GetValue("SignInName")) as string;
+                if (string.IsNullOrWhiteSpace(mail)) continue;
+                // Ưu tiên tài khoản công ty / trường học (ADAL) — tài khoản cấp giấy phép Microsoft 365 doanh nghiệp
+                if (n.EndsWith("_ADAL", StringComparison.OrdinalIgnoreCase)) return mail.Trim();
+                fallback ??= mail.Trim();
+            }
+            return fallback;
+        }
+        catch { return null; }
+    }
+
+    /// <summary>Đánh dấu giấy phép tạm "_Grace" khi Office đã có giấy phép theo tài khoản Microsoft 365.</summary>
+    public static List<OfficeLicense> MarkSubscription(List<OfficeLicense> list, bool subscription) =>
+        subscription ? list.Select(l => l.IsGracePlaceholder && !l.Licensed ? l with { CoveredBySubscription = true } : l).ToList() : list;
 
     // ================= Giấy phép =================
     public static string? OsppPath()
