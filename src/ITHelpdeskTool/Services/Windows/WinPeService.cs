@@ -145,7 +145,8 @@ public static class WinPeService
         {
             // Thành phần (mỗi gói kèm gói ngôn ngữ en-us), bỏ trùng, giữ thứ tự phụ thuộc
             var ocs = Path.Combine(PeRoot!, "WinPE_OCs");
-            var packages = o.Components.SelectMany(c => c.Packages).Distinct().ToList();
+            // theo thứ tự trong danh mục (không theo thứ tự hiển thị A→Z) để gói phụ thuộc được thêm trước
+            var packages = Components.Where(c => o.Components.Any(x => x.Key == c.Key)).SelectMany(c => c.Packages).Distinct().ToList();
             var i = 0;
             foreach (var pkg in packages)
             {

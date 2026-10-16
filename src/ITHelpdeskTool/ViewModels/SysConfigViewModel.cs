@@ -157,7 +157,7 @@ public sealed partial class SysConfigViewModel : PageViewModel
         var list = await Task.Run(S.ReadAdapters);
         Adapters.Clear();
         foreach (var a in list) Adapters.Add(a);
-        SelectedAdapter = Adapters.FirstOrDefault(a => a.Name == keep) ?? Adapters.FirstOrDefault();
+        SelectedAdapter = Adapters.FirstOrDefault(a => a.Name == keep) ?? Adapters.FirstOrDefault(a => a.Connected) ?? Adapters.FirstOrDefault();
     }
 
     partial void OnSelectedAdapterChanged(AdapterInfo? value)

@@ -1,3 +1,4 @@
+using ITHelpdeskTool.Core;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using ITHelpdeskTool.Services.SysConfig;
@@ -54,7 +55,7 @@ public static class SetupService
         var s = sb.Output.Trim();
         list.Insert(1, new("Secure Boot", s == "True" ? "Đang bật" : s == "False" ? "Đang tắt" : "Không hỗ trợ (BIOS)", s == "True",
             s == "True" ? "" : "Máy cần hỗ trợ Secure Boot (bật trong BIOS ở chế độ UEFI)."));
-        return list;
+        return list.OrderByVi(i => i.Name).ToList();
     }
 
     // ================= setup.exe =================

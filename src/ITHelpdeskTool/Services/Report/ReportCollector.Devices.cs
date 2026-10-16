@@ -270,7 +270,7 @@ public static partial class ReportCollector
         var t = d.Table("Card mạng đang hoạt động",
             ["Tên kết nối", "Thiết bị", "MAC", "IPv4", "Gateway", "DNS", "Cấp IP", "Tốc độ"],
             [1, 1.8, 1.2, 1.1, 1, 1.4, 0.8, 0.8]);
-        foreach (var c in configs)
+        foreach (var c in configs.OrderByVi(c => adapters.TryGetValue(c.Long("Index"), out var x) ? x.Str("NetConnectionID") : c.Str("Description")))
         {
             adapters.TryGetValue(c.Long("Index"), out var a);
             var ipv4 = c.Arr("IPAddress").Where(ip => ip.Contains('.')).ToArray();

@@ -191,7 +191,7 @@ public static partial class ReportCollector
         }
 
         var t = d.Table("Máy in đã cài", ["Tên", "Mặc định", "Cổng", "Driver", "Trạng thái"], [2, 0.7, 1.3, 1.8, 0.9]);
-        foreach (var p in real.OrderByDescending(p => p.Bool("Default") == true))
+        foreach (var p in real.OrderByVi(p => p.Str("Name")))
         {
             var offline = p.Bool("WorkOffline") == true;
             t.Add(p.Str("Name"),

@@ -1,3 +1,4 @@
+using ITHelpdeskTool.Core;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
@@ -36,7 +37,7 @@ public static class PolicyService
         var users = await SysConfigService.ReadUsersAsync();
         return users.Where(u => !u.IsSystem)
             .Select(u => new PolicyUser(u.Name, u.Sid, u.IsAdmin, u.IsCurrent, ProfilePath(u.Sid) is not null))
-            .OrderBy(u => u.Name, StringComparer.Create(new System.Globalization.CultureInfo("vi-VN"), true))
+            .OrderByVi(u => u.Name)
             .ToList();
     }
 

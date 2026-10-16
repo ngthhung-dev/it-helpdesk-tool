@@ -489,13 +489,6 @@
                                 </Border>
                                 <TextBlock Text="Truy cập từ xa &amp; chia sẻ" Style="{StaticResource H2}" VerticalAlignment="Center"/>
                             </DockPanel>
-                            <CheckBox Style="{StaticResource ToggleRow}" IsChecked="{Binding RdpEnabled, Mode=OneWay}"
-                                      Command="{Binding SetRdpCommand}" CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}">
-                                <StackPanel>
-                                    <TextBlock Text="Remote Desktop" Foreground="{StaticResource TextBrush}"/>
-                                    <TextBlock Style="{StaticResource Hint}" Text="Cho phép điều khiển máy này qua Remote Desktop (cổng 3389). Bản Windows Home không hỗ trợ."/>
-                                </StackPanel>
-                            </CheckBox>
                             <CheckBox Style="{StaticResource ToggleRow}" IsChecked="{Binding NlaRequired, Mode=OneWay}"
                                       Command="{Binding SetNlaCommand}" CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}">
                                 <StackPanel>
@@ -510,11 +503,18 @@
                                     <TextBlock Style="{StaticResource Hint}" Text="Mở tường lửa cho thư mục/máy in chia sẻ trong mạng LAN. Chỉ áp dụng cho mạng Private/Domain."/>
                                 </StackPanel>
                             </CheckBox>
-                            <CheckBox Style="{StaticResource ToggleRow}" Margin="0" IsChecked="{Binding NetworkDiscovery, Mode=OneWay}"
+                            <CheckBox Style="{StaticResource ToggleRow}" IsChecked="{Binding NetworkDiscovery, Mode=OneWay}"
                                       Command="{Binding SetNetworkDiscoveryCommand}" CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}">
                                 <StackPanel>
                                     <TextBlock Text="Network Discovery" Foreground="{StaticResource TextBrush}"/>
                                     <TextBlock Style="{StaticResource Hint}" Text="Cho máy này hiện trong mục Network của các máy khác và ngược lại."/>
+                                </StackPanel>
+                            </CheckBox>
+                            <CheckBox Style="{StaticResource ToggleRow}" Margin="0" IsChecked="{Binding RdpEnabled, Mode=OneWay}"
+                                      Command="{Binding SetRdpCommand}" CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}">
+                                <StackPanel>
+                                    <TextBlock Text="Remote Desktop" Foreground="{StaticResource TextBrush}"/>
+                                    <TextBlock Style="{StaticResource Hint}" Text="Cho phép điều khiển máy này qua Remote Desktop (cổng 3389). Bản Windows Home không hỗ trợ."/>
                                 </StackPanel>
                             </CheckBox>
                         </StackPanel>
@@ -529,22 +529,7 @@
                                 </Border>
                                 <TextBlock Text="Hệ thống" Style="{StaticResource H2}" VerticalAlignment="Center"/>
                             </DockPanel>
-                            <CheckBox Style="{StaticResource ToggleRow}" IsChecked="{Binding HibernateOn, Mode=OneWay}"
-                                      Command="{Binding SetHibernateCommand}" CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}">
-                                <StackPanel>
-                                    <TextBlock Text="Hibernate (ngủ đông)" Foreground="{StaticResource TextBrush}"/>
-                                    <TextBlock Style="{StaticResource Hint}" Text="Tắt sẽ xoá file hiberfil.sys, lấy lại vài GB ổ C. Tắt Hibernate thì Fast Startup cũng tắt theo."/>
-                                </StackPanel>
-                            </CheckBox>
-                            <CheckBox Style="{StaticResource ToggleRow}" IsChecked="{Binding FastStartupOn, Mode=OneWay}"
-                                      Command="{Binding SetFastStartupCommand}" CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}">
-                                <StackPanel>
-                                    <TextBlock Text="Fast Startup (khởi động nhanh)" Foreground="{StaticResource TextBrush}"/>
-                                    <TextBlock Style="{StaticResource Hint}" Text="Nên tắt khi máy hay lỗi driver, mất mạng sau khi bật máy, hoặc cài song song nhiều hệ điều hành."/>
-                                </StackPanel>
-                            </CheckBox>
-
-                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,14,0,0" Margin="0,2,0,0">
+                            <Border Margin="0,0,0,14">
                                 <StackPanel>
                                     <TextBlock Text="Điểm khôi phục (System Restore)" Foreground="{StaticResource TextBrush}"/>
                                     <TextBlock Style="{StaticResource Hint}" Text="{Binding RestoreText}" Margin="0,2,0,8"/>
@@ -555,8 +540,14 @@
                                     </DockPanel>
                                 </StackPanel>
                             </Border>
-
-                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,14,0,0" Margin="0,16,0,0">
+                            <CheckBox Style="{StaticResource ToggleRow}" BorderBrush="{StaticResource BorderBrush}" IsChecked="{Binding FastStartupOn, Mode=OneWay}"
+                                      Command="{Binding SetFastStartupCommand}" CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}">
+                                <StackPanel>
+                                    <TextBlock Text="Fast Startup (khởi động nhanh)" Foreground="{StaticResource TextBrush}"/>
+                                    <TextBlock Style="{StaticResource Hint}" Text="Nên tắt khi máy hay lỗi driver, mất mạng sau khi bật máy, hoặc cài song song nhiều hệ điều hành."/>
+                                </StackPanel>
+                            </CheckBox>
+                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,14,0,0" Margin="0,2,0,14">
                                 <DockPanel>
                                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                                         <Button Content="Mở" Command="{Binding OpenHostsCommand}"/>
@@ -568,6 +559,13 @@
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
+                            <CheckBox Style="{StaticResource ToggleRow}" IsChecked="{Binding HibernateOn, Mode=OneWay}"
+                                      Command="{Binding SetHibernateCommand}" CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}">
+                                <StackPanel>
+                                    <TextBlock Text="Hibernate (ngủ đông)" Foreground="{StaticResource TextBrush}"/>
+                                    <TextBlock Style="{StaticResource Hint}" Text="Tắt sẽ xoá file hiberfil.sys, lấy lại vài GB ổ C. Tắt Hibernate thì Fast Startup cũng tắt theo."/>
+                                </StackPanel>
+                            </CheckBox>
 
                             <TextBlock Style="{StaticResource Hint}" Margin="0,14,0,0" Text="{Binding PagefileText, StringFormat='Bộ nhớ ảo (page file): {0}'}"/>
                         </StackPanel>

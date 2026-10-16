@@ -46,7 +46,7 @@ public static partial class ReportCollector
                             list.Add(new ReportIssue(s.Title,
                                 $"{row[0].Text} — {t.Columns[i]}: {row[i].Text}", row[i].Tone));
         }
-        return list.DistinctBy(i => i.What).OrderBy(i => i.Tone == Tone.Bad ? 0 : 1).ToList();
+        return list.DistinctBy(i => i.What).OrderBy(i => i.Tone == Tone.Bad ? 0 : 1).ThenByVi(i => i.Section).ThenByVi(i => i.What).ToList();
     }
 }
 

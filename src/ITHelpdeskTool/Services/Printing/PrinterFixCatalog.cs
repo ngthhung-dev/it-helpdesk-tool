@@ -1,3 +1,4 @@
+using ITHelpdeskTool.Core;
 using ITHelpdeskTool.Services.SysConfig;
 
 namespace ITHelpdeskTool.Services.Printing;
@@ -347,7 +348,7 @@ public static class PrinterFixCatalog
     };
 
     public static List<PrinterFixGroup> Groups() =>
-        GroupOrder.Select(g => new PrinterFixGroup(g, GroupNotes.GetValueOrDefault(g, ""), All.Where(f => f.Group == g))).ToList();
+        GroupOrder.Select(g => new PrinterFixGroup(g, GroupNotes.GetValueOrDefault(g, ""), All.Where(f => f.Group == g).OrderByVi(f => f.Title))).ToList();
 
     /// <summary>PowerShell ghi lỗi dạng CLIXML khi stderr bị chuyển hướng — lấy lại phần chữ.</summary>
     public static string CleanErr(string e)

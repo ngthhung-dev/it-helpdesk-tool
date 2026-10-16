@@ -1,3 +1,4 @@
+using ITHelpdeskTool.Core;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -335,7 +336,7 @@ public static class PowerService
         var programmable = ParseDeviceList((await ConsoleAsync("powercfg.exe", "/devicequery wake_programmable")).Output);
         return programmable.Union(armed)
             .Select(n => new WakeDevice(n, armed.Contains(n)))
-            .OrderByDescending(d => d.Armed).ThenBy(d => d.Name)
+            .OrderByVi(d => d.Name)
             .ToList();
     }
 

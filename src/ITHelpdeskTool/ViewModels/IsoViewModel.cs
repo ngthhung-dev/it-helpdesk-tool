@@ -14,7 +14,7 @@ public sealed partial class IsoViewModel : PageViewModel
 {
     public override string Title => "Tải ISO";
 
-    public IReadOnlyList<OfficialDownload> Downloads => WindowsDownloads.Items;
+    public IReadOnlyList<OfficialDownload> Downloads { get; } = WindowsDownloads.Items.OrderByVi(d => d.Name).ToList();
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsIdle))] private bool _isBusy;
     public bool IsIdle => !IsBusy;

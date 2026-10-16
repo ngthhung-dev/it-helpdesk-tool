@@ -33,7 +33,7 @@ public sealed partial class CleanupViewModel : PageViewModel
     public override string Title => "Dọn rác";
     private bool _loaded;
 
-    public ObservableCollection<CleanupItem> Items { get; } = new(CleanupService.Items.Select(d => new CleanupItem(d)));
+    public ObservableCollection<CleanupItem> Items { get; } = new(CleanupService.Items.OrderByVi(d => d.Title).Select(d => new CleanupItem(d)));
     public ObservableCollection<ActionLogEntry> ActionLog { get; } = [];
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsIdle))] private bool _isBusy;

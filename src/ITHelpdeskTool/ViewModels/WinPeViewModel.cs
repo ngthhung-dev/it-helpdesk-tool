@@ -22,7 +22,7 @@ public sealed partial class WinPeViewModel : PageViewModel
     [ObservableProperty] private bool _hasAdk;
     [ObservableProperty] private string _adkText = "Đang kiểm tra…";
 
-    public List<Pick<PeComponent>> Components { get; } = WinPeService.Components.Select(c => new Pick<PeComponent>(c, c.DefaultOn)).ToList();
+    public List<Pick<PeComponent>> Components { get; } = WinPeService.Components.OrderByVi(c => c.Name).Select(c => new Pick<PeComponent>(c, c.DefaultOn)).ToList();
     [ObservableProperty] private string _workDir = @"C:\WinPE_amd64";
     [ObservableProperty] private string _driversDir = "";
     [ObservableProperty] private string _toolsDir = "";

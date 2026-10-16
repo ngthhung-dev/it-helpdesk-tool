@@ -100,7 +100,10 @@ public sealed partial class PolicyViewModel : PageViewModel
     {
         Groups = PolicyCatalog.Groups
             .Select(g => new PolicyGroup(g, GroupGlyphs.GetValueOrDefault(g, "\uE8D7"),
-                PolicyCatalog.All.Where(p => p.Group == g).Select(p => new PolicyItem(p, IsHome)).ToList()))
+                (g == PolicyCatalog.GroupDevice
+                    ? PolicyCatalog.All.Where(p => p.Group == g)            // nhóm USB giữ thứ tự theo mức độ (AutoRun → chặn → chỉ đọc)
+                    : PolicyCatalog.All.Where(p => p.Group == g).OrderByVi(p => p.Title))
+                .Select(p => new PolicyItem(p, IsHome)).ToList()))
             .ToList();
     }
 

@@ -52,7 +52,9 @@ public sealed partial class RepairViewModel : PageViewModel
 
     public RepairViewModel()
     {
-        Groups = All.GroupBy(t => t.Tool.Group).Select(g => new RepairGroup(g.Key, g.ToList())).ToList();
+        // Xếp A→Z trong từng nhóm; riêng "File hệ thống" giữ đúng trình tự nên chạy (điểm khôi phục → DISM → SFC)
+        Groups = All.GroupBy(t => t.Tool.Group)
+            .Select(g => new RepairGroup(g.Key, g.Key == "File hệ thống" ? g.ToList() : g.OrderByVi(t => t.Tool.Title).ToList())).ToList();
     }
 
     public override void OnNavigatedTo()

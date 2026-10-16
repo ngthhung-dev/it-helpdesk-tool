@@ -1,3 +1,4 @@
+using ITHelpdeskTool.Core;
 using System.Globalization;
 using System.IO;
 using System.Text.Json;
@@ -96,7 +97,7 @@ public static partial class SysConfigService
                 a.Str("MACAddress")));
         }
         // Card đang kết nối lên đầu
-        return list.OrderByDescending(x => x.Connected).ThenBy(x => x.Name).ToList();
+        return list.OrderByVi(x => x.Name).ToList();
     }
 
     private static bool IsDnsAuto(string settingId)
@@ -142,7 +143,7 @@ public static partial class SysConfigService
                 sid.EndsWith("-500"), sid.Equals(me, StringComparison.OrdinalIgnoreCase), S("LastLogon"), sid, B("NeverExpires")));
         }
         // Tài khoản hệ thống ẩn (Guest, DefaultAccount, WDAGUtilityAccount) xuống cuối
-        return list.OrderBy(u => IsSystemAccount(u) ? 1 : 0).ThenBy(u => u.Name, StringComparer.Create(new System.Globalization.CultureInfo("vi-VN"), true)).ToList();
+        return list.OrderByVi(u => u.Name).ToList();
     }
 
     public static bool IsSystemAccount(UserInfo u) => u.IsSystem;

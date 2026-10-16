@@ -44,7 +44,7 @@ public sealed partial class OfficeViewModel : PageViewModel
     // ---- Cài mới ----
     public IReadOnlyList<OfficeProduct> Products => OfficeCatalog.Products;
     [ObservableProperty] private OfficeProduct _product = OfficeCatalog.Products[0];
-    public List<Pick<OfficeApp>> Apps { get; } = OfficeCatalog.Apps.Select(a => new Pick<OfficeApp>(a, a.DefaultOn)).ToList();
+    public List<Pick<OfficeApp>> Apps { get; } = OfficeCatalog.Apps.OrderByVi(a => a.Name).Select(a => new Pick<OfficeApp>(a, a.DefaultOn)).ToList();
     public List<Pick<OfficeLanguage>> Languages { get; } = OfficeCatalog.Languages.Select(l => new Pick<OfficeLanguage>(l, l.Id == "vi-vn")).ToList();
     public ObservableCollection<OfficeChannel> InstallChannels { get; } = [];
     [ObservableProperty] private OfficeChannel? _installChannel;
