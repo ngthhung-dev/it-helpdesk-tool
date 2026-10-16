@@ -21,7 +21,13 @@ public sealed partial class ShellViewModel : ObservableObject
     [ObservableProperty] private PageViewModel? _currentPage;
 
     /// <summary>Trang mở đầu tiên, đặt từ tham số dòng lệnh --page.</summary>
-    public static string? StartPage { get; set; }
+    public static string? StartPage
+    {
+        get => _startPage;
+        // Trang "Kho ứng dụng" cũ đã gộp vào App Store
+        set => _startPage = value is not null && value.StartsWith("postinstall", StringComparison.OrdinalIgnoreCase) ? "store" + value[11..] : value;
+    }
+    private static string? _startPage;
 
     /// <summary>Phần sau dấu "/" của --page (vd startup/boot → boot) để trang mở đúng tab.</summary>
     public static string? StartSubPage => StartPage?.Split('/').ElementAtOrDefault(1);
@@ -50,7 +56,6 @@ public sealed partial class ShellViewModel : ObservableObject
             [
                 Item("store", "App Store", "\uE719", 1, () => new StoreViewModel()),
                 Item("fonts", "Cài font", "\uE8D2", 1, () => new FontsViewModel()),
-                Item("postinstall", "Kho ứng dụng", "\uE896", 1, () => new PostInstallViewModel()),
                 Item("office", "Office", "\uE7C3", 1, () => new OfficeViewModel()),
             ]),
             new("WINDOWS",

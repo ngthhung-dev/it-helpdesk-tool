@@ -56,7 +56,7 @@ jobs:
             while ($p.MainWindowHandle -eq 0 -and $sw.ElapsedMilliseconds -lt 30000) { Start-Sleep -Milliseconds 100; $p.Refresh() }
             [U]::ShowWindow($p.MainWindowHandle, 3) | Out-Null      # phóng to
             [U]::SetForegroundWindow($p.MainWindowHandle) | Out-Null
-            Start-Sleep -Seconds ($(if ($page -match '^(report|store|postinstall|office)') { 16 } else { 5 }))
+            Start-Sleep -Seconds ($(if ($page -match '^(report|store|office)') { 16 } else { 5 }))
             Shot "$($page -replace '/','_')-1"
             if ($page -notin 'dashboard','about') {
               # cuộn xuống từng trang để chụp phần dưới

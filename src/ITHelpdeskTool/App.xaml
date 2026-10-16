@@ -44,9 +44,6 @@
             <DataTemplate DataType="{x:Type vm:FontsViewModel}">
                 <v:FontsPage/>
             </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:PostInstallViewModel}">
-                <v:PostInstallPage/>
-            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:OfficeViewModel}">
                 <v:OfficePage/>
             </DataTemplate>

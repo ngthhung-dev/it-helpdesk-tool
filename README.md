@@ -47,7 +47,7 @@ src/ITHelpdeskTool/
 |---|---|---|
 | 1 | Dashboard, Giới thiệu | ✅ Xong |
 | 1 | Startup & Boot, Tweaks, Dọn rác, App Store (winget) | ⏳ Tiếp theo |
-| 2 | Báo cáo cấu hình, Policy, Power Plan, Gỡ app sạch, Font, App sau cài Win, Office, Sửa lỗi Windows | |
+| 2 | Báo cáo cấu hình, Policy, Power Plan, Gỡ app sạch, Font, Office, Sửa lỗi Windows | |
 | 3 | Cài Windows, WinPE, USB boot, Tải ISO, BitLocker, Ổ đĩa, Chuyển thư mục, Máy in, Outlook, Xem trước, Multi-Zalo | |
 
 ## Build tự động (GitHub Actions)

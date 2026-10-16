@@ -34,6 +34,18 @@
                 <DataTrigger Binding="{Binding HasUpdate}" Value="True"><Setter Property="Foreground" Value="{StaticResource WarnBrush}"/></DataTrigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="CardIcon" TargetType="Border">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+            <Setter Property="Margin" Value="0,0,12,0"/>
+        </Style>
+        <Style x:Key="Row" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="Padding" Value="0,9"/>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -43,6 +55,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -60,7 +73,7 @@
                 <StackPanel>
                     <TextBlock Text="App Store" Style="{StaticResource H1}"/>
                     <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" FontSize="13" TextWrapping="Wrap">
-                        <Run Text="Cài phần mềm sạch từ nguồn chính hãng qua winget — không quảng cáo, không phải bấm Next."/>
+                        <Run Text="Cài phần mềm sạch từ nguồn chính hãng — chọn bộ có sẵn hoặc tự tích, app cài lần lượt, im lặng, không phải bấm Next."/>
                         <Run Text="{Binding WingetText, Mode=OneWay}" Foreground="{StaticResource FaintBrush}"/>
                     </TextBlock>
                 </StackPanel>
@@ -82,27 +95,28 @@
                 <StackPanel Orientation="Horizontal">
                     <RadioButton Style="{StaticResource TabSeg}" IsChecked="{Binding TabBrowse}" Content="Khám phá"/>
                     <RadioButton Style="{StaticResource TabSeg}" IsChecked="{Binding TabUpdates}" Content="Cập nhật phần mềm"/>
+                    <RadioButton Style="{StaticResource TabSeg}" IsChecked="{Binding TabExtras}" Content="Bộ cài &amp; thành phần Windows"/>
                 </StackPanel>
             </Border>
 
             <!-- ===================== KHÁM PHÁ ===================== -->
             <DockPanel Grid.Row="3" Visibility="{Binding TabBrowse, Converter={StaticResource BoolVis}}">
-                <!-- Thanh chọn nhiều -->
-                <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}" Margin="0,10,0,0" Padding="16,10"
-                        Visibility="{Binding SelectedCount, Converter={x:Static core:Converters.CountVis}}">
-                    <DockPanel>
-                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                            <Button Content="Bỏ chọn" Margin="0,0,8,0" Command="{Binding ClearSelectionCommand}"/>
-                            <Button Style="{StaticResource BtnPrimary}" Command="{Binding InstallSelectedCommand}">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE896;" Style="{StaticResource Icon}" FontSize="13"/>
-                                    <TextBlock Margin="8,0,0,0"><Run Text="Cài "/><Run Text="{Binding SelectedCount, Mode=OneWay}"/><Run Text=" phần mềm đã chọn"/></TextBlock>
-                                </StackPanel>
-                            </Button>
-                        </StackPanel>
-                        <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center" Text="Các phần mềm được cài lần lượt, im lặng, không cần bấm gì thêm."/>
-                    </DockPanel>
-                </Border>
+                <!-- Bộ có sẵn -->
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                    <TextBlock DockPanel.Dock="Left" Text="Bộ có sẵn:" Style="{StaticResource Hint}" VerticalAlignment="Top" Margin="0,5,10,0"/>
+                    <CheckBox DockPanel.Dock="Right" IsChecked="{Binding SkipInstalled}" Content="Bỏ qua phần mềm đã cài" VerticalAlignment="Top" Margin="12,4,0,0"/>
+                    <ItemsControl ItemsSource="{Binding Presets}">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource Chip}" CommandParameter="{Binding}" ToolTip="{Binding Description}"
+                                        Command="{Binding DataContext.ApplyPresetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                    <TextBlock><Run Text="{Binding Name, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/><Run Text=" · "/><Run Text="{Binding Ids.Length, Mode=OneWay}"/></TextBlock>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </DockPanel>
 
                 <!-- Danh mục + tóm tắt: ghim cùng đầu trang -->
                 <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Categories}" Margin="0,0,0,6">
@@ -273,8 +287,105 @@
                 </DockPanel>
             </Border>
 
+            <!-- ===================== BỘ CÀI & THÀNH PHẦN WINDOWS ===================== -->
+            <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Padding="0,0,6,0" Visibility="{Binding TabExtras, Converter={StaticResource BoolVis}}">
+                <StackPanel>
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <Border Style="{StaticResource CardIcon}">
+                                    <TextBlock Text="&#xE7F8;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Thành phần Windows" Style="{StaticResource H2}" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <CheckBox IsChecked="{Binding NetFx3}" VerticalAlignment="Top" Margin="0,2,12,0"/>
+                                    <StackPanel>
+                                        <TextBlock Text="Bật .NET Framework 3.5 (gồm 2.0 và 3.0)" Foreground="{StaticResource TextBrush}"/>
+                                        <TextBlock Text="{Binding NetFx3State}" Style="{StaticResource Hint}"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}" BorderThickness="0">
+                                <DockPanel>
+                                    <CheckBox IsChecked="{Binding UpgradeAll}" VerticalAlignment="Top" Margin="0,2,12,0"/>
+                                    <StackPanel>
+                                        <TextBlock Text="Cập nhật mọi phần mềm khác lên bản mới nhất" Foreground="{StaticResource TextBrush}"/>
+                                        <TextBlock Text="winget upgrade --all — chạy sau cùng" Style="{StaticResource Hint}"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,12" AllowDrop="True" Drop="Offline_Drop" DragOver="Offline_DragOver">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource BtnSmall}" Content="Bỏ danh sách" Margin="0,0,6,0" Command="{Binding ClearOfflineCommand}"
+                                            Visibility="{Binding Offline.Count, Converter={x:Static core:Converters.CountVis}}"/>
+                                    <Button Style="{StaticResource BtnSmall}" Content="Chọn thư mục…" Command="{Binding PickFolderCommand}"/>
+                                </StackPanel>
+                                <Border Style="{StaticResource CardIcon}">
+                                    <TextBlock Text="&#xE8B7;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Bộ cài có sẵn trong thư mục / USB" Style="{StaticResource H2}" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,6"
+                                       Text="Bấm “Chọn thư mục…” hoặc kéo thả thư mục vào đây (vd thư mục bộ cài trên USB). App nhận diện bộ cài MSI, Inno Setup, NSIS, InstallShield, WiX… để cài im lặng; bộ cài không rõ kiểu sẽ mở giao diện bình thường."/>
+                            <TextBlock Text="{Binding OfflineFolder}" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Foreground="{StaticResource FaintBrush}"
+                                       Visibility="{Binding OfflineFolder, Converter={x:Static core:Converters.NonEmptyVis}}"/>
+                            <ItemsControl ItemsSource="{Binding Offline}" Margin="0,6,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource Row}">
+                                            <DockPanel>
+                                                <CheckBox IsChecked="{Binding IsChecked}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                                <TextBlock DockPanel.Dock="Right" Text="{Binding SizeText}" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                                                <TextBlock x:Name="Ty" DockPanel.Dock="Right" Text="{Binding Type.Label}" FontSize="11.5" VerticalAlignment="Center" Foreground="{StaticResource GoodBrush}"/>
+                                                <TextBlock Text="{Binding FileName}" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                            </DockPanel>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding Type.CanSilent}" Value="False">
+                                                <Setter TargetName="Ty" Property="Foreground" Value="{StaticResource WarnBrush}"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <CheckBox IsChecked="{Binding OfflineSilent}" Margin="0,10,0,0" Content="Cài im lặng khi nhận ra kiểu bộ cài"
+                                      Visibility="{Binding Offline.Count, Converter={x:Static core:Converters.CountVis}}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Thanh dưới: danh sách + cài mục đã chọn (cả phần mềm, bộ cài, thành phần Windows) -->
+            <Border Grid.Row="4" Style="{StaticResource Card}" Margin="0,10,0,0" Padding="16,10"
+                    Visibility="{Binding TabUpdates, Converter={StaticResource NotBoolVis}}">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Content="Bỏ chọn" Margin="0,0,8,0" Command="{Binding ClearSelectionCommand}"
+                                Visibility="{Binding SelectedCount, Converter={x:Static core:Converters.CountVis}}"/>
+                        <Button Style="{StaticResource BtnPrimary}" Command="{Binding InstallSelectedCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE896;" Style="{StaticResource Icon}" FontSize="13"/>
+                                <TextBlock Text="{Binding InstallText}" Margin="8,0,0,0"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Mở danh sách…" Margin="0,0,8,0" Command="{Binding OpenListCommand}" ToolTip="Mở danh sách đã lưu (.json)"/>
+                        <Button Content="Lưu danh sách…" Margin="0,0,12,0" Command="{Binding SaveListCommand}" ToolTip="Lưu lựa chọn để dùng cho máy khác"/>
+                        <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center" Text="Cài lần lượt, im lặng: .NET 3.5 → runtime → phần mềm → bộ cài trong thư mục."/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
             <!-- Hàng đợi -->
-            <v:QueuePanel Grid.Row="3" Grid.Column="1" Width="320" Margin="12,0,0,0" DataContext="{Binding Queue}"
+            <v:QueuePanel Grid.Row="3" Grid.RowSpan="2" Grid.Column="1" Width="320" Margin="12,0,0,0" DataContext="{Binding Queue}"
                           Visibility="{Binding Items.Count, Converter={x:Static core:Converters.CountVis}}"/>
         </Grid>
 

@@ -1,11 +1,14 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ITHelpdeskTool.Core;
 using ITHelpdeskTool.Services;
 using ITHelpdeskTool.Services.Store;
 using ITHelpdeskTool.Services.Uninstall;
+using ITHelpdeskTool.Services.SysConfig;
 using ITHelpdeskTool.Views;
+using Microsoft.Win32;
 
 namespace ITHelpdeskTool.ViewModels;
 
@@ -47,6 +50,15 @@ public sealed partial class CategoryChip(string key, string label, int count) : 
     [ObservableProperty] private bool _isSelected;
 }
 
+public sealed partial class OfflineRow(string path, InstallerType type) : ObservableObject
+{
+    public string Path { get; } = path;
+    public string FileName => System.IO.Path.GetFileName(Path);
+    public InstallerType Type { get; } = type;
+    public string SizeText { get; } = Fmt.Size(new FileInfo(path).Length);
+    [ObservableProperty] private bool _isChecked = true;
+}
+
 public sealed partial class StoreViewModel : PageViewModel
 {
     public override string Title => "App Store";
@@ -58,9 +70,12 @@ public sealed partial class StoreViewModel : PageViewModel
     public ObservableCollection<CategoryChip> Categories { get; } = [];
     public ObservableCollection<UpgradeRow> Upgrades { get; } = [];
     public ObservableCollection<SearchRow> SearchResults { get; } = [];
+    public ObservableCollection<OfflineRow> Offline { get; } = [];
+    public IReadOnlyList<PostInstallPreset> Presets => PostInstallService.Presets;
 
     [ObservableProperty] private bool _tabBrowse = true;
     [ObservableProperty] private bool _tabUpdates;
+    [ObservableProperty] private bool _tabExtras;
     partial void OnTabUpdatesChanged(bool value) { if (value && !_upgradesLoaded) _ = LoadUpgradesAsync(); }
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsIdle))] private bool _isBusy;
@@ -71,7 +86,14 @@ public sealed partial class StoreViewModel : PageViewModel
     [ObservableProperty] private string _wingetText = "Đang kiểm tra winget…";
     [ObservableProperty] private bool _wingetMissing;
     [ObservableProperty] private string _summary = "";
-    [ObservableProperty] private int _selectedCount;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(InstallText))] private int _selectedCount;
+    public string InstallText => SelectedCount == 0 ? "Cài mục đã chọn" : $"Cài {SelectedCount} mục đã chọn";
+    [ObservableProperty] private bool _skipInstalled = true;
+    [ObservableProperty] private bool _netFx3;
+    [ObservableProperty] private string _netFx3State = "Đang kiểm tra…";
+    [ObservableProperty] private bool _upgradeAll;
+    [ObservableProperty] private string _offlineFolder = "";
+    [ObservableProperty] private bool _offlineSilent = true;
     [ObservableProperty] private string _searchText = "";
     [ObservableProperty] private string _upgradeSummary = "";
     private bool _upgradesLoaded;
@@ -81,7 +103,7 @@ public sealed partial class StoreViewModel : PageViewModel
         foreach (var a in StoreCatalog.Apps)
         {
             var row = new StoreAppRow(a);
-            row.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(StoreAppRow.IsChecked)) SelectedCount = Apps.Count(r => r.IsChecked); };
+            row.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(StoreAppRow.IsChecked)) UpdateCount(); };
             Apps.Add(row);
         }
         Categories.Add(new CategoryChip("", "Tất cả", Apps.Count) { IsSelected = true });
@@ -89,8 +111,15 @@ public sealed partial class StoreViewModel : PageViewModel
         foreach (var chip in Categories)
             chip.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(CategoryChip.IsSelected) && chip.IsSelected) Category = chip.Key; };
         Queue.ItemFinished += OnItemFinished;
-        Queue.Finished += () => _ = RefreshInstalledAsync();
+        Queue.Finished += () => { _ = RefreshInstalledAsync(); _ = RefreshNetFxAsync(); };
+        Offline.CollectionChanged += (_, _) => UpdateCount();
     }
+
+    partial void OnNetFx3Changed(bool value) => UpdateCount();
+    partial void OnUpgradeAllChanged(bool value) => UpdateCount();
+
+    private void UpdateCount() =>
+        SelectedCount = Apps.Count(a => a.IsChecked) + Offline.Count(o => o.IsChecked) + (NetFx3 ? 1 : 0) + (UpgradeAll ? 1 : 0);
 
     public override void OnNavigatedTo()
     {
@@ -102,8 +131,18 @@ public sealed partial class StoreViewModel : PageViewModel
     private async Task StartAsync()
     {
         await CheckWingetAsync();
-        if (ShellViewModel.StartSubPage == "updates") { TabBrowse = false; TabUpdates = true; }
+        _ = RefreshNetFxAsync();
+        var sub = ShellViewModel.StartSubPage;
+        if (sub == "updates") { TabBrowse = false; TabUpdates = true; }
+        else if (sub == "extras") { TabBrowse = false; TabExtras = true; }
         await RefreshInstalledAsync();
+        if (sub is not null && Presets.FirstOrDefault(p => p.Key == sub) is { } preset) ApplyPreset(preset);
+    }
+
+    private async Task RefreshNetFxAsync()
+    {
+        var on = await PostInstallService.NetFx3EnabledAsync();
+        NetFx3State = on switch { true => "Đã bật", false => "Chưa bật — nhiều phần mềm cũ (kế toán, chữ ký số…) cần", _ => "Không đọc được trạng thái" };
     }
 
     private async Task CheckWingetAsync()
@@ -185,16 +224,119 @@ public sealed partial class StoreViewModel : PageViewModel
         Enqueue(r);
     }
 
+    /// <summary>Cài mọi mục đã chọn: .NET 3.5 → phần mềm (runtime trước) → bộ cài trong thư mục → cập nhật tất cả.</summary>
     [RelayCommand]
     private void InstallSelected()
     {
-        var sel = Apps.Where(a => a.IsChecked && !a.IsQueued).ToList();
-        if (sel.Count == 0) return;
-        foreach (var r in sel) { Enqueue(r); r.IsChecked = false; }
+        var apps = Apps.Where(a => a.IsChecked && !a.IsQueued).OrderBy(a => PostInstallService.Order(a.App)).ToList();
+        var offline = Offline.Where(o => o.IsChecked).ToList();
+        if (apps.Count + offline.Count == 0 && !NetFx3 && !UpgradeAll)
+        {
+            DialogWindow.Info("Chưa chọn gì", "Chọn một bộ có sẵn, hoặc tích các phần mềm muốn cài.");
+            return;
+        }
+        if (WingetMissing && (UpgradeAll || apps.Any(a => a.App.Kind == StoreKind.Winget)))
+        {
+            DialogWindow.Info("Chưa có winget", "Các phần mềm qua winget cần winget. Bấm “Cài winget” ở đầu trang trước.", error: true);
+            return;
+        }
+
+        if (NetFx3) Queue.Add("netfx3", ".NET Framework 3.5", (s, ct) => PostInstallService.EnableNetFx3Async(s, ct));
+        foreach (var r in apps) { Enqueue(r); r.IsChecked = false; }
+        var silent = OfflineSilent;
+        foreach (var o in offline)
+            Queue.Add("file:" + o.Path, o.FileName, async (s, ct) =>
+            {
+                s(silent && o.Type.CanSilent ? $"Đang cài im lặng ({o.Type.Label})…" : "Đang chạy bộ cài — làm theo hướng dẫn trên cửa sổ cài đặt");
+                return await InstallerRunner.RunAsync(o.Path, o.FileName, silent, ct);
+            });
+        if (UpgradeAll) Queue.Add("upgrade-all", "Cập nhật các phần mềm khác", (s, ct) =>
+            WingetService.UpgradeAllAsync(line => { if (StoreInstaller.Stage(line) is { } x) s(x); }, ct));
+
+        foreach (var o in offline) o.IsChecked = false;
+        NetFx3 = UpgradeAll = false;
     }
 
     [RelayCommand]
-    private void ClearSelection() { foreach (var a in Apps) a.IsChecked = false; }
+    private void ClearSelection()
+    {
+        foreach (var a in Apps) a.IsChecked = false;
+        foreach (var o in Offline) o.IsChecked = false;
+        NetFx3 = UpgradeAll = false;
+    }
+
+    // ================= Bộ có sẵn / danh sách =================
+    [RelayCommand]
+    private void ApplyPreset(PostInstallPreset p)
+    {
+        ShowAll();
+        foreach (var r in Apps) r.IsChecked = p.Ids.Contains(r.App.Id) && !(SkipInstalled && r.IsInstalled);
+        if (p.Key is "office" or "tech") NetFx3 = NetFx3State.StartsWith("Chưa");
+        TabUpdates = TabExtras = false;
+        TabBrowse = true;
+    }
+
+    private void ShowAll()
+    {
+        Filter = "";
+        foreach (var c in Categories) c.IsSelected = c.Key.Length == 0;
+        Category = "";
+    }
+
+    [RelayCommand]
+    private void SaveList()
+    {
+        var dlg = new SaveFileDialog { Filter = "Danh sách cài đặt (*.json)|*.json", FileName = "danh-sach-cai-dat.json" };
+        if (dlg.ShowDialog() != true) return;
+        PostInstallService.Save(dlg.FileName, new PostInstallList
+        {
+            Apps = Apps.Where(a => a.IsChecked).Select(a => a.App.Id).ToList(),
+            NetFx3 = NetFx3,
+            UpgradeAll = UpgradeAll,
+        });
+    }
+
+    [RelayCommand]
+    private void OpenList()
+    {
+        var dlg = new OpenFileDialog { Filter = "Danh sách cài đặt (*.json)|*.json" };
+        if (dlg.ShowDialog() != true) return;
+        try
+        {
+            var l = PostInstallService.Load(dlg.FileName);
+            ShowAll();
+            foreach (var r in Apps) r.IsChecked = l.Apps.Contains(r.App.Id, StringComparer.OrdinalIgnoreCase) && !(SkipInstalled && r.IsInstalled);
+            NetFx3 = l.NetFx3;
+            UpgradeAll = l.UpgradeAll;
+        }
+        catch (Exception ex) { DialogWindow.Info("Không mở được", ex.Message, error: true); }
+    }
+
+    // ================= Bộ cài trong thư mục =================
+    [RelayCommand]
+    private void PickFolder()
+    {
+        var dlg = new OpenFolderDialog { Title = "Chọn thư mục chứa bộ cài (.exe, .msi)" };
+        if (dlg.ShowDialog() != true) return;
+        LoadFolder(dlg.FolderName);
+    }
+
+    public void LoadFolder(string dir)
+    {
+        if (!Directory.Exists(dir)) return;
+        OfflineFolder = dir;
+        Offline.Clear();
+        foreach (var f in PostInstallService.ScanFolder(dir))
+        {
+            var row = new OfflineRow(f, InstallerRunner.Detect(f));
+            row.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(OfflineRow.IsChecked)) UpdateCount(); };
+            Offline.Add(row);
+        }
+        if (Offline.Count == 0) DialogWindow.Info("Không có bộ cài", "Thư mục này không có file .exe / .msi nào.");
+    }
+
+    [RelayCommand]
+    private void ClearOffline() { Offline.Clear(); OfflineFolder = ""; }
 
     [RelayCommand]
     private async Task UninstallAsync(StoreAppRow r)
