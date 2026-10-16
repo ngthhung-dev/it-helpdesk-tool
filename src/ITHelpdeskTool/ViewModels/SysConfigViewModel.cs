@@ -236,7 +236,7 @@ public sealed partial class SysConfigViewModel : PageViewModel
     {
         try
         {
-            var list = await S.ReadUsersAsync();
+            var list = await Task.Run(S.ReadUsersAsync);
             Users.Clear();
             foreach (var u in list) Users.Add(u);
             UsersError = "";
@@ -294,7 +294,7 @@ public sealed partial class SysConfigViewModel : PageViewModel
 
     private async Task LoadSharingAsync()
     {
-        _sharing = await S.ReadSharingAsync();
+        _sharing = await Task.Run(S.ReadSharingAsync);
         // Luôn báo đổi để công tắc trở về trạng thái thật nếu thao tác thất bại
         foreach (var n in new[] { nameof(RdpEnabled), nameof(NlaRequired), nameof(FileSharing), nameof(NetworkDiscovery) })
             OnPropertyChanged(n);
