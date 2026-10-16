@@ -88,7 +88,7 @@ public static class StoreSelfTest
             var ids = StoreCatalog.Apps.Where(a => a.Kind == StoreKind.Winget).Select(a => a.Id).ToList();
             await Parallel.ForEachAsync(ids, new ParallelOptions { MaxDegreeOfParallelism = 6 }, async (id, ct) =>
             {
-                var r = await ProcessRunner.RunAsync(w, $"show --id \"{id}\" --exact --source winget --accept-source-agreements --disable-interactivity", ct: ct);
+                var r = await ProcessRunner.RunAsync(w, $"show --id \"{id}\" --exact --source {WingetService.SourceOf(id)} --accept-source-agreements --disable-interactivity", ct: ct);
                 if (r.ExitCode != 0) bad.Add($"{id} ({WingetService.Explain(r.ExitCode)})");
             });
             Check(bad.IsEmpty, "không có trên winget: " + string.Join(", ", bad));
@@ -96,7 +96,21 @@ public static class StoreSelfTest
             Check(dup.Count == 0, "trùng: " + string.Join(", ", dup));
             var presetMissing = PostInstallService.Presets.SelectMany(p => p.Ids).Where(id => StoreCatalog.Find(id) is null).Distinct().ToList();
             Check(presetMissing.Count == 0, "preset có Id lạ: " + string.Join(", ", presetMissing));
-            return $"{ids.Count} Id winget đều có";
+            // Link GitHub (bản mới nhất) của các mục tải trực tiếp phải tìm được file
+            var gh = new List<string>();
+            foreach (var a in StoreCatalog.Apps.Where(a => a.Url.StartsWith("github:")))
+            {
+                try { gh.Add($"{a.Name}: {System.IO.Path.GetFileName(new Uri(await Downloader.ResolveAsync(a.Url)).LocalPath)}"); }
+                catch (Exception ex) { bad.Add($"{a.Name} ({ex.Message})"); }
+            }
+            Check(bad.IsEmpty, "link GitHub lỗi: " + string.Join(", ", bad));
+            // Trong mỗi nhóm phải xếp theo tên A→Z
+            var vi = StringComparer.Create(new System.Globalization.CultureInfo("vi-VN"), true);
+            var unsorted = StoreCatalog.Apps.GroupBy(a => a.Category)
+                .Where(g => !g.Select(a => a.Name.TrimStart('.', ' ')).SequenceEqual(g.Select(a => a.Name.TrimStart('.', ' ')).OrderBy(n => n, vi)))
+                .Select(g => g.Key).ToList();
+            Check(unsorted.Count == 0, "chưa xếp A→Z: " + string.Join(", ", unsorted));
+            return $"{ids.Count} Id (winget + Microsoft Store) đều có · {StoreCatalog.Apps.Count} phần mềm, mỗi nhóm xếp A→Z · {string.Join(", ", gh)}";
         });
 
         // Cài / gỡ thật một gói nhỏ qua winget

@@ -39,7 +39,16 @@ public static class StoreCatalog
 
     public static readonly string[] Categories = [Browsers, Office, Chat, Remote, Vietnamese, Utils, Media, Tech, Dev, Runtime, Cloud];
 
-    public static readonly IReadOnlyList<StoreApp> Apps =
+    /// <summary>Theo nhóm (thứ tự <see cref="Categories"/>), trong nhóm xếp theo tên A→Z (kiểu tiếng Việt).</summary>
+    public static readonly IReadOnlyList<StoreApp> Apps;
+
+    static StoreCatalog()
+    {
+        var vi = StringComparer.Create(new System.Globalization.CultureInfo("vi-VN"), ignoreCase: true);
+        Apps = Raw.OrderBy(a => Array.IndexOf(Categories, a.Category)).ThenBy(a => a.Name.TrimStart('.', ' '), vi).ToList();
+    }
+
+    private static readonly IReadOnlyList<StoreApp> Raw =
     [
         // ---- Trình duyệt ----
         new("Google.Chrome", "Google Chrome", Browsers, "Trình duyệt phổ biến nhất"),
@@ -48,6 +57,7 @@ public static class StoreCatalog
         new("Microsoft.Edge", "Microsoft Edge", Browsers, "Trình duyệt mặc định của Windows"),
         new("Brave.Brave", "Brave", Browsers, "Chặn quảng cáo sẵn"),
         new("Opera.Opera", "Opera", Browsers, "Có VPN miễn phí tích hợp"),
+        new("CentStudio.CentBrowser", "Cent Browser", Browsers, "Nhân Chromium, nhẹ, nhiều tuỳ chỉnh tab và chuột"),
 
         // ---- Văn phòng ----
         new("Foxit.FoxitReader", "Foxit PDF Reader", Office, "Đọc, ký, điền form PDF — nhẹ"),
@@ -70,6 +80,8 @@ public static class StoreCatalog
         new("SlackTechnologies.Slack", "Slack", Chat, "Chat nhóm công việc"),
         new("Rakuten.Viber", "Viber", Chat, "Chat, gọi miễn phí"),
         new("Discord.Discord", "Discord", Chat, "Chat thoại cộng đồng"),
+        new("Tencent.WeChat.Universal", "WeChat", Chat, "Chat, gọi video — phổ biến với đối tác Trung Quốc"),
+        new("9NKSQGP7F2NH", "WhatsApp", Chat, "Chat, gọi video (cài từ Microsoft Store)"),
 
         // ---- Điều khiển từ xa ----
         new("DucFabulous.UltraViewer", "UltraViewer", Remote, "Điều khiển máy tính từ xa — phổ biến ở Việt Nam"),
@@ -78,6 +90,8 @@ public static class StoreCatalog
         new("TeamViewer.TeamViewer.QuickSupport", "TeamViewer QuickSupport", Remote, "Bản cho người cần được hỗ trợ, không cần cài"),
         new("Microsoft.RemoteDesktopClient", "Remote Desktop", Remote, "Kết nối RDP / Azure Virtual Desktop"),
         new("mRemoteNG.mRemoteNG", "mRemoteNG", Remote, "Quản lý nhiều kết nối RDP/SSH/VNC"),
+        new("rustdesk", "RustDesk", Remote, "Điều khiển từ xa mã nguồn mở, miễn phí — thay TeamViewer/UltraViewer", StoreKind.Download,
+            @"github:rustdesk/rustdesk|x86_64\.msi$", @"^RustDesk\b"),
 
         // ---- Gõ tiếng Việt ----
         new("unikey", "UniKey", Vietnamese, "Bộ gõ tiếng Việt quen thuộc (bản chạy liền)", StoreKind.Portable,
@@ -93,7 +107,7 @@ public static class StoreCatalog
         new("Microsoft.PowerToys", "PowerToys", Utils, "Bộ tiện ích của Microsoft: đổi tên hàng loạt, chọn màu, chia màn hình…"),
         new("ShareX.ShareX", "ShareX", Utils, "Chụp / quay màn hình"),
         new("Greenshot.Greenshot", "Greenshot", Utils, "Chụp màn hình, ghi chú nhanh"),
-        new("Notepad++.Notepad++", "Notepad++", Utils, "Soạn thảo văn bản / mã"),
+        new("Skillbrains.Lightshot", "Lightshot", Utils, "Chụp một vùng màn hình bằng phím PrtSc, chia sẻ link nhanh"),
         new("Tonec.InternetDownloadManager", "Internet Download Manager", Utils, "Tăng tốc tải file (bản dùng thử)"),
         new("qBittorrent.qBittorrent", "qBittorrent", Utils, "Tải torrent, không quảng cáo"),
         new("Ookla.Speedtest.Desktop", "Speedtest", Utils, "Đo tốc độ mạng"),
@@ -111,6 +125,7 @@ public static class StoreCatalog
         new("HandBrake.HandBrake", "HandBrake", Media, "Nén / chuyển định dạng video"),
         new("Canva.Canva", "Canva", Media, "Thiết kế nhanh"),
         new("Figma.Figma", "Figma", Media, "Thiết kế giao diện"),
+        new("ByteDance.CapCut", "CapCut", Media, "Dựng video, phụ đề tự động"),
 
         // ---- Kỹ thuật ----
         new("CPUID.CPU-Z", "CPU-Z", Tech, "Thông tin CPU, RAM, mainboard"),
@@ -133,6 +148,10 @@ public static class StoreCatalog
         new("Malwarebytes.Malwarebytes", "Malwarebytes", Tech, "Quét mã độc"),
         new("Bitwarden.Bitwarden", "Bitwarden", Tech, "Quản lý mật khẩu"),
         new("KeePassXCTeam.KeePassXC", "KeePassXC", Tech, "Quản lý mật khẩu offline"),
+        new("PassMark.KeyboardTest", "KeyboardTest", Tech, "Test bàn phím: phím nào liệt, kẹt, nhận đúp (bản dùng thử)"),
+        new("PassMark.MonitorTest", "MonitorTest", Tech, "Test màn hình: điểm chết, sọc, màu, độ đồng đều (bản dùng thử)"),
+        new("PassMark.SoundCheck", "SoundCheck", Tech, "Test loa, tai nghe, micro: kênh trái/phải, âm lượng"),
+        new("9WZDNCRFJBBP", "Windows Camera", Tech, "Test webcam: xem hình, chụp, quay thử (cài từ Microsoft Store)"),
 
         // ---- Lập trình ----
         new("Microsoft.VisualStudioCode", "Visual Studio Code", Dev, "Trình soạn mã"),
@@ -147,6 +166,11 @@ public static class StoreCatalog
         new("Docker.DockerDesktop", "Docker Desktop", Dev, "Container"),
         new("Oracle.VirtualBox", "VirtualBox", Dev, "Máy ảo"),
         new("JetBrains.Toolbox", "JetBrains Toolbox", Dev, "Cài IDE của JetBrains"),
+        new("Notepad++.Notepad++", "Notepad++", Dev, "Soạn thảo văn bản / mã"),
+        new("Google.Antigravity", "Google Antigravity", Dev, "Trình soạn mã có AI agent của Google"),
+        new("Anthropic.Claude", "Claude", Dev, "Trợ lý AI Claude bản desktop"),
+        new("9NT1R1C2HH7J", "ChatGPT", Dev, "Trợ lý AI ChatGPT bản desktop (cài từ Microsoft Store)"),
+        new("ApacheFriends.Xampp.8.2", "XAMPP", Dev, "Apache + MySQL (MariaDB) + PHP chạy web trên máy"),
 
         // ---- Thư viện hệ thống ----
         new("Microsoft.VCRedist.2015+.x64", "Visual C++ 2015–2022 (x64)", Runtime, "Thư viện nhiều phần mềm / game cần"),

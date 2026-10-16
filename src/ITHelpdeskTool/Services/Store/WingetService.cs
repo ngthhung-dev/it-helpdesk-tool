@@ -15,6 +15,10 @@ public sealed record WingetRow(string Name, string Id, string Version, string Av
 /// <summary>Bọc winget.exe: tìm, cài, gỡ, cập nhật phần mềm. Không cần module PowerShell.</summary>
 public static class WingetService
 {
+    /// <summary>Mã 12 ký tự kiểu 9NKSQGP7F2NH là ứng dụng Microsoft Store (nguồn msstore), còn lại là kho winget.</summary>
+    public static string SourceOf(string id) =>
+        System.Text.RegularExpressions.Regex.IsMatch(id, "^[0-9A-Z]{12}$") ? "msstore" : "winget";
+
     private const string Common = "--accept-source-agreements --disable-interactivity";
     private const string Agree = "--accept-package-agreements " + Common;
 
@@ -137,7 +141,7 @@ public static class WingetService
     // ================= Cài / gỡ / cập nhật =================
     public static async Task<OpResult> InstallAsync(string id, string name, Action<string>? onLine = null, CancellationToken ct = default, string extra = "")
     {
-        var r = await RunAsync($"install --id \"{id}\" --exact --source winget --silent {Agree} {extra}".Trim(), onLine, ct);
+        var r = await RunAsync($"install --id \"{id}\" --exact --source {SourceOf(id)} --silent {Agree} {extra}".Trim(), onLine, ct);
         return ToResult(r, $"Đã cài {name}", $"Không cài được {name}");
     }
 
