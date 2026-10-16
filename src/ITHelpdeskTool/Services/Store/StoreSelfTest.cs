@@ -86,10 +86,17 @@ public static class StoreSelfTest
             var w = WingetService.Locate()!;
             var bad = new ConcurrentBag<string>();
             var ids = StoreCatalog.Apps.Where(a => a.Kind == StoreKind.Winget).Select(a => a.Id).ToList();
-            await Parallel.ForEachAsync(ids, new ParallelOptions { MaxDegreeOfParallelism = 6 }, async (id, ct) =>
+            await Parallel.ForEachAsync(ids, new ParallelOptions { MaxDegreeOfParallelism = 3 }, async (id, ct) =>
             {
-                var r = await ProcessRunner.RunAsync(w, $"show --id \"{id}\" --exact --source {WingetService.SourceOf(id)} --accept-source-agreements --disable-interactivity", ct: ct);
-                if (r.ExitCode != 0) bad.Add($"{id} ({WingetService.Explain(r.ExitCode)})");
+                // Lỗi nội bộ / mạng của winget khi gọi nhiều cùng lúc → thử lại; chỉ tính là sai khi vẫn hỏng sau 3 lần
+                ProcessResult? r = null;
+                for (var i = 0; i < 3; i++)
+                {
+                    r = await ProcessRunner.RunAsync(w, $"show --id \"{id}\" --exact --source {WingetService.SourceOf(id)} --accept-source-agreements --disable-interactivity", ct: ct);
+                    if (r.ExitCode == 0) break;
+                    await Task.Delay(2000 * (i + 1), ct);
+                }
+                if (r!.ExitCode != 0) bad.Add($"{id} ({WingetService.Explain(r.ExitCode)})");
             });
             Check(bad.IsEmpty, "không có trên winget: " + string.Join(", ", bad));
             var dup = StoreCatalog.Apps.GroupBy(a => a.Id).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
