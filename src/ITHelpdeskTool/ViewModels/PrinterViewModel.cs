@@ -180,5 +180,20 @@ public sealed partial class PrinterViewModel : PageViewModel
     }
 
     [RelayCommand] private void OpenSettings() => PrinterService.OpenSettings();
-    [RelayCommand] private void OpenPrintManagement() => ShellLauncher.Open("printmanagement.msc");
+    [RelayCommand]
+    private async Task OpenPrintManagementAsync()
+    {
+        if (PrinterService.HasPrintManagement) { PrinterService.OpenPrintManagement(); return; }
+        if (PrinterService.IsHomeEdition)
+        {
+            DialogWindow.Info("Windows Home không có Print Management",
+                "Print Management chỉ có trên Windows Pro / Enterprise / Education. Trên máy này hãy dùng các nút ngay trong trang Máy in, hoặc Settings → Printers & scanners.");
+            return;
+        }
+        if (!DialogWindow.Confirm("Máy chưa có Print Management",
+                "Print Management là tính năng tuỳ chọn của Windows, máy này chưa cài. Cài ngay từ Windows Update (khoảng 1–3 phút, cần mạng)?", "Cài"))
+            return;
+        await Run("Đang cài Print Management…", PrinterService.InstallPrintManagementAsync, refresh: false);
+        if (PrinterService.HasPrintManagement) PrinterService.OpenPrintManagement();
+    }
 }

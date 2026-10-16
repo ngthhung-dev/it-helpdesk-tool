@@ -199,4 +199,33 @@ public static class PrinterService
     }
 
     public static void OpenSettings() => ShellLauncher.Open("ms-settings:printers");
+
+    // ================= Print Management =================
+    public const string PrintMgmtCapability = "Print.Management.Console~~~~0.0.1.0";
+    public static string PrintMgmtPath => System.IO.Path.Combine(Environment.SystemDirectory, "printmanagement.msc");
+    public static bool HasPrintManagement => System.IO.File.Exists(PrintMgmtPath);
+
+    /// <summary>Windows Home không có Print Management (và không cài thêm được).</summary>
+    public static bool IsHomeEdition
+    {
+        get
+        {
+            using var k = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
+            var ed = k?.GetValue("EditionID") as string ?? "";
+            return ed.StartsWith("Core", StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    public static void OpenPrintManagement() => ShellLauncher.Open(System.IO.Path.Combine(Environment.SystemDirectory, "mmc.exe"), $"\"{PrintMgmtPath}\"");
+
+    /// <summary>Cài tính năng tuỳ chọn "Print Management Console" (Windows Pro / Enterprise / Education) — tải từ Windows Update.</summary>
+    public static async Task<OpResult> InstallPrintManagementAsync()
+    {
+        var dism = System.IO.Path.Combine(Environment.SystemDirectory, "dism.exe");
+        var r = await ProcessRunner.RunAsync(dism, $"/Online /Add-Capability /CapabilityName:{PrintMgmtCapability} /NoRestart", encoding: ProcessRunner.Oem);
+        if (HasPrintManagement) return new OpResult(true, "Đã cài Print Management.");
+        var msg = r.Text.Trim();
+        return new OpResult(false, "Chưa cài được Print Management (cần mạng tới Windows Update, hoặc máy dùng WSUS chặn tính năng tuỳ chọn)." +
+                                   (msg.Length > 0 ? "\n\n" + msg[^Math.Min(msg.Length, 600)..] : ""));
+    }
 }
