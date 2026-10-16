@@ -195,18 +195,13 @@
                         </Border>
 
                         <!-- Lưới phần mềm -->
-                        <ItemsControl ItemsSource="{Binding Apps}">
+                        <ItemsControl ItemsSource="{Binding AppsView}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <!-- Thẻ co giãn đều theo bề ngang, mỗi thẻ rộng tối thiểu 300 -->
                                     <WrapPanel ItemWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={x:Static core:Converters.ColumnWidth}, ConverterParameter=300}"/>
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemContainerStyle>
-                                <Style TargetType="ContentPresenter">
-                                    <Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource BoolVis}}"/>
-                                </Style>
-                            </ItemsControl.ItemContainerStyle>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border x:Name="Card" Height="112" Margin="0,0,10,10" CornerRadius="12" Padding="14,12"

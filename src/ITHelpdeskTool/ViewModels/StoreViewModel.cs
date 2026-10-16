@@ -74,6 +74,11 @@ public sealed partial class StoreViewModel : PageViewModel
 
     public InstallQueue Queue { get; } = new();
     public ObservableCollection<StoreAppRow> Apps { get; } = [];
+    /// <summary>
+    /// Danh sách hiển thị đã lọc. Lọc bằng CollectionView (không ẩn thẻ bằng Collapsed): WrapPanel có ItemWidth
+    /// vẫn chừa chỗ cho phần tử bị ẩn, làm lưới bị trống ô ở đầu.
+    /// </summary>
+    public System.ComponentModel.ICollectionView AppsView { get; }
     public ObservableCollection<CategoryChip> Categories { get; } = [];
     public ObservableCollection<UpgradeRow> Upgrades { get; } = [];
     public ObservableCollection<SearchRow> SearchResults { get; } = [];
@@ -115,6 +120,7 @@ public sealed partial class StoreViewModel : PageViewModel
             row.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(StoreAppRow.IsChecked)) UpdateCount(); };
             Apps.Add(row);
         }
+        AppsView = new System.Windows.Data.ListCollectionView(Apps) { Filter = o => o is StoreAppRow r && r.IsVisible };
         Categories.Add(new CategoryChip("", "Tất cả", Apps.Count) { IsSelected = true });
         foreach (var c in StoreCatalog.Categories) Categories.Add(new CategoryChip(c, c, Apps.Count(r => r.App.Category == c)));
         foreach (var chip in Categories)
@@ -219,6 +225,7 @@ public sealed partial class StoreViewModel : PageViewModel
                                          || r.App.Description.Contains(f, StringComparison.CurrentCultureIgnoreCase)
                                          || r.App.Id.Contains(f, StringComparison.OrdinalIgnoreCase));
         SearchText = f.Length >= 2 ? $"Tìm “{f}” trong toàn bộ kho winget" : "";
+        AppsView.Refresh();
     }
 
     // ================= Cài / gỡ =================
