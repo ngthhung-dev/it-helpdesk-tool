@@ -70,6 +70,13 @@ public static class StoreCatalog
         new("Obsidian.Obsidian", "Obsidian", Office, "Ghi chú Markdown"),
         new("Mozilla.Thunderbird", "Thunderbird", Office, "Ứng dụng email miễn phí"),
         new("Cyanfish.NAPS2", "NAPS2", Office, "Scan tài liệu ra PDF, có OCR"),
+        // Phần mềm của ngthhung — lấy bản mới nhất trên GitHub Releases
+        new("pdf-editor-lite", "PDF Editor Lite", Office, "Xem, sửa PDF tiếng Việt: ghi chú, sắp xếp trang, OCR, ký số — miễn phí", StoreKind.Download,
+            @"github:ngthhung-dev/pdf-editor-lite|Setup\.exe$", @"^PDF Editor Lite\b"),
+        new("mail-lite", "Mail Lite", Office, "Đọc mail nhiều tài khoản (Gmail, Microsoft 365, IMAP), giao diện kiểu Outlook", StoreKind.Download,
+            @"github:ngthhung-dev/mail-lite|Setup\.exe$", @"^Mail Lite\b"),
+        new("bartender-lite", "Bartender Lite", Office, "Thiết kế và in tem nhãn, mã vạch — miễn phí", StoreKind.Download,
+            @"github:ngthhung-dev/bartender-lite|Setup\.exe$", @"^Bartender Lite\b"),
 
         // ---- Chat ----
         new("zalo", "Zalo PC", Chat, "Chat, gọi video — tải từ trang Zalo", StoreKind.Download,
