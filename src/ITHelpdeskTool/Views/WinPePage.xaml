@@ -29,6 +29,20 @@
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
         </Style>
+        <Style x:Key="Step" TargetType="Border">
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+            <Setter Property="Margin" Value="0,0,14,0"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+        </Style>
+        <Style x:Key="StepNum" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
     </UserControl.Resources>
 
     <Grid Margin="28,4,22,20">
@@ -53,96 +67,135 @@
         <ScrollViewer Grid.Row="1" x:Name="PageScroller" VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
             <StackPanel>
 
-                <!-- ADK -->
+                <!-- 1. Windows ADK -->
                 <Border c:SectionIndex.Title="Windows ADK" Style="{StaticResource Card}" Margin="0,0,0,12" IsEnabled="{Binding IsIdle}">
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Left" Text="&#xE73E;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource GoodBrush}" Margin="0,0,12,0"
-                                   VerticalAlignment="Top" Visibility="{Binding HasAdk, Converter={StaticResource BoolVis}}"/>
-                        <StackPanel>
-                            <TextBlock Text="Windows ADK" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                        <Border DockPanel.Dock="Left" Style="{StaticResource Step}"><TextBlock Text="1" Style="{StaticResource StepNum}"/></Border>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                            <Button Style="{StaticResource LinkButton}" Content="Trang Microsoft" Command="{Binding OpenAdkPageCommand}" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                            <Button Style="{StaticResource BtnPrimary}" Content="Cài Windows ADK" Command="{Binding InstallAdkCommand}"
+                                    Visibility="{Binding HasAdk, Converter={x:Static core:Converters.NotVis}}"/>
+                        </StackPanel>
+                        <StackPanel VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Windows ADK" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                                <TextBlock Text="&#xE73E;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource GoodBrush}" Margin="8,0,0,0"
+                                           VerticalAlignment="Center" Visibility="{Binding HasAdk, Converter={StaticResource BoolVis}}"/>
+                            </StackPanel>
                             <TextBlock Text="{Binding AdkText}" Style="{StaticResource Hint}"/>
-                            <WrapPanel Margin="0,8,0,0">
-                                <Button Style="{StaticResource BtnPrimary}" Content="Cài Windows ADK" Command="{Binding InstallAdkCommand}" Margin="0,0,14,0"
-                                        Visibility="{Binding HasAdk, Converter={x:Static core:Converters.NotVis}}"/>
-                                <Button Style="{StaticResource LinkButton}" Content="Trang Microsoft" Command="{Binding OpenAdkPageCommand}" VerticalAlignment="Center"/>
-                            </WrapPanel>
                         </StackPanel>
                     </DockPanel>
                 </Border>
 
-                <!-- Tuỳ chọn -->
-                <Border c:SectionIndex.Title="Tuỳ chọn WinPE" Style="{StaticResource Card}" IsEnabled="{Binding IsIdle}">
-                    <StackPanel>
-                        <TextBlock Text="Tuỳ chọn WinPE" Style="{StaticResource H2}"/>
+                <!-- 2. Thành phần -->
+                <Border c:SectionIndex.Title="Thành phần" Style="{StaticResource Card}" Margin="0,0,0,12" IsEnabled="{Binding IsIdle}">
+                    <DockPanel>
+                        <Border DockPanel.Dock="Left" Style="{StaticResource Step}" VerticalAlignment="Top"><TextBlock Text="2" Style="{StaticResource StepNum}"/></Border>
+                        <StackPanel>
+                            <TextBlock Text="Thành phần" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                            <TextBlock Text="Thêm vào WinPE gốc (cmd, diskpart, bcdboot có sẵn). Càng nhiều thành phần, file càng lớn và tạo càng lâu." Style="{StaticResource Hint}" Margin="0,0,0,10"/>
+                            <ItemsControl ItemsSource="{Binding Components}">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsChecked}" Margin="0,0,16,10">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Item.Name}" Foreground="{StaticResource TextBrush}"/>
+                                                <TextBlock Text="{Binding Item.Description}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </CheckBox>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
 
-                        <TextBlock Text="Thành phần" Style="{StaticResource Label}"/>
-                        <ItemsControl ItemsSource="{Binding Components}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <CheckBox IsChecked="{Binding IsChecked}" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Item.Name}" Foreground="{StaticResource TextBrush}"/>
-                                            <TextBlock Text="{Binding Item.Description}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
-                                        </StackPanel>
-                                    </CheckBox>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                <!-- 3. Bổ sung -->
+                <Border c:SectionIndex.Title="Bổ sung" Style="{StaticResource Card}" Margin="0,0,0,12" IsEnabled="{Binding IsIdle}">
+                    <DockPanel>
+                        <Border DockPanel.Dock="Left" Style="{StaticResource Step}" VerticalAlignment="Top"><TextBlock Text="3" Style="{StaticResource StepNum}"/></Border>
+                        <StackPanel>
+                            <TextBlock Text="Bổ sung (không bắt buộc)" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
 
-                        <TextBlock Text="Driver thêm vào (không bắt buộc)" Style="{StaticResource Label}"/>
-                        <DockPanel>
-                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                                <Button Style="{StaticResource BtnSmall}" Content="Bỏ" Margin="0,0,6,0" Command="{Binding ClearDirCommand}" CommandParameter="drivers"
-                                        Visibility="{Binding DriversDir, Converter={x:Static core:Converters.NonEmptyVis}}"/>
-                                <Button Style="{StaticResource BtnSmall}" Content="Chọn thư mục…" Command="{Binding PickDriversCommand}"/>
-                            </StackPanel>
-                            <TextBlock Text="{Binding DriversDir, TargetNullValue='—'}" Style="{StaticResource PathText}"/>
-                        </DockPanel>
-                        <TextBlock Style="{StaticResource Hint}" Text="Driver ổ cứng (Intel RST / VMD, RAID, NVMe) khi WinPE không thấy ổ, hoặc driver card mạng."/>
-
-                        <TextBlock Text="Công cụ portable chép vào X:\Tools (không bắt buộc)" Style="{StaticResource Label}"/>
-                        <DockPanel>
-                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                                <Button Style="{StaticResource BtnSmall}" Content="Bỏ" Margin="0,0,6,0" Command="{Binding ClearDirCommand}" CommandParameter="tools"
-                                        Visibility="{Binding ToolsDir, Converter={x:Static core:Converters.NonEmptyVis}}"/>
-                                <Button Style="{StaticResource BtnSmall}" Content="Chọn thư mục…" Command="{Binding PickToolsCommand}"/>
-                            </StackPanel>
-                            <TextBlock Text="{Binding ToolsDir}" Style="{StaticResource PathText}"/>
-                        </DockPanel>
-
-                        <TextBlock Text="Lệnh chạy khi khởi động (không bắt buộc, mỗi dòng một lệnh)" Style="{StaticResource Label}"/>
-                        <TextBox Style="{StaticResource InputBox}" Text="{Binding StartCommands, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="60"
-                                 FontFamily="{StaticResource MonoFont}" VerticalContentAlignment="Top" TextWrapping="Wrap"/>
-
-                        <TextBlock Text="Thư mục làm việc" Style="{StaticResource Label}"/>
-                        <TextBox Style="{StaticResource InputBox}" Text="{Binding WorkDir, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}"/>
-
-                        <TextBlock Text="Xuất ra" Style="{StaticResource Label}"/>
-                        <Border Style="{StaticResource Card}" Padding="3" CornerRadius="8" HorizontalAlignment="Left">
-                            <StackPanel Orientation="Horizontal">
-                                <RadioButton Style="{StaticResource OutSeg}" IsChecked="{Binding ToIso}" Content="File ISO"/>
-                                <RadioButton Style="{StaticResource OutSeg}" IsChecked="{Binding ToUsb}" Content="USB"/>
-                            </StackPanel>
-                        </Border>
-                        <DockPanel Margin="0,10,0,0" Visibility="{Binding ToIso, Converter={StaticResource BoolVis}}">
-                            <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Đổi…" Command="{Binding PickIsoCommand}"/>
-                            <TextBlock Text="{Binding IsoPath}" Style="{StaticResource PathText}"/>
-                        </DockPanel>
-                        <DockPanel Margin="0,10,0,0" Visibility="{Binding ToUsb, Converter={StaticResource BoolVis}}">
-                            <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Làm mới" Margin="8,0,0,0" Command="{Binding RefreshUsbCommand}"/>
-                            <ComboBox ItemsSource="{Binding Disks}" SelectedItem="{Binding Disk}" DisplayMemberPath="Display"/>
-                        </DockPanel>
-
-                        <DockPanel Margin="0,18,0,0">
-                            <Button DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Command="{Binding BuildCommand}" IsEnabled="{Binding HasAdk}">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE756;" Style="{StaticResource Icon}" FontSize="13"/>
-                                    <TextBlock Text="Tạo WinPE" Margin="8,0,0,0"/>
+                            <DockPanel Margin="0,10,0,0">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                                    <Button Style="{StaticResource BtnSmall}" Content="Bỏ" Margin="0,0,6,0" Command="{Binding ClearDirCommand}" CommandParameter="drivers"
+                                            Visibility="{Binding DriversDir, Converter={x:Static core:Converters.NonEmptyVis}}"/>
+                                    <Button Style="{StaticResource BtnSmall}" Content="Chọn thư mục…" Command="{Binding PickDriversCommand}"/>
                                 </StackPanel>
-                            </Button>
-                            <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center" Text="Mất khoảng 5–15 phút tuỳ số thành phần."/>
-                        </DockPanel>
-                    </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Driver" Foreground="{StaticResource TextBrush}"/>
+                                    <TextBlock Text="{Binding DriversDir}" Style="{StaticResource PathText}" Visibility="{Binding DriversDir, Converter={x:Static core:Converters.NonEmptyVis}}"/>
+                                    <TextBlock Style="{StaticResource Hint}" Visibility="{Binding DriversDir, Converter={x:Static core:Converters.EmptyVis}}"
+                                               Text="Driver ổ cứng (Intel RST / VMD, RAID, NVMe) khi WinPE không thấy ổ, hoặc driver card mạng."/>
+                                </StackPanel>
+                            </DockPanel>
+
+                            <DockPanel Margin="0,12,0,0">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                                    <Button Style="{StaticResource BtnSmall}" Content="Bỏ" Margin="0,0,6,0" Command="{Binding ClearDirCommand}" CommandParameter="tools"
+                                            Visibility="{Binding ToolsDir, Converter={x:Static core:Converters.NonEmptyVis}}"/>
+                                    <Button Style="{StaticResource BtnSmall}" Content="Chọn thư mục…" Command="{Binding PickToolsCommand}"/>
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Công cụ portable" Foreground="{StaticResource TextBrush}"/>
+                                    <TextBlock Text="{Binding ToolsDir}" Style="{StaticResource PathText}" Visibility="{Binding ToolsDir, Converter={x:Static core:Converters.NonEmptyVis}}"/>
+                                    <TextBlock Style="{StaticResource Hint}" Visibility="{Binding ToolsDir, Converter={x:Static core:Converters.EmptyVis}}"
+                                               Text="Chép cả thư mục vào X:\Tools trong WinPE (vd 7-Zip, Notepad++, phần mềm cứu dữ liệu bản portable)."/>
+                                </StackPanel>
+                            </DockPanel>
+
+                            <TextBlock Text="Lệnh chạy khi khởi động" Foreground="{StaticResource TextBrush}" Margin="0,12,0,0"/>
+                            <TextBlock Text="Mỗi dòng một lệnh, chạy sau khi WinPE khởi động xong (vd wpeutil InitializeNetwork)." Style="{StaticResource Hint}" Margin="0,0,0,6"/>
+                            <TextBox Style="{StaticResource InputBox}" Text="{Binding StartCommands, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="60"
+                                     FontFamily="{StaticResource MonoFont}" VerticalContentAlignment="Top" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <!-- 4. Xuất ra -->
+                <Border c:SectionIndex.Title="Xuất ra" Style="{StaticResource Card}" IsEnabled="{Binding IsIdle}">
+                    <DockPanel>
+                        <Border DockPanel.Dock="Left" Style="{StaticResource Step}" VerticalAlignment="Top"><TextBlock Text="4" Style="{StaticResource StepNum}"/></Border>
+                        <StackPanel>
+                            <TextBlock Text="Xuất ra" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                            <DockPanel>
+                                <Border DockPanel.Dock="Left" Style="{StaticResource Card}" Padding="3" CornerRadius="8" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource OutSeg}" IsChecked="{Binding ToIso}" Content="File ISO"/>
+                                        <RadioButton Style="{StaticResource OutSeg}" IsChecked="{Binding ToUsb}" Content="USB"/>
+                                    </StackPanel>
+                                </Border>
+                                <DockPanel VerticalAlignment="Center" Visibility="{Binding ToIso, Converter={StaticResource BoolVis}}">
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Đổi…" Margin="8,0,0,0" Command="{Binding PickIsoCommand}"/>
+                                    <TextBlock Text="{Binding IsoPath}" Style="{StaticResource PathText}"/>
+                                </DockPanel>
+                                <DockPanel VerticalAlignment="Center" Visibility="{Binding ToUsb, Converter={StaticResource BoolVis}}">
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Làm mới" Margin="8,0,0,0" Command="{Binding RefreshUsbCommand}"/>
+                                    <ComboBox ItemsSource="{Binding Disks}" SelectedItem="{Binding Disk}" DisplayMemberPath="Display"/>
+                                </DockPanel>
+                            </DockPanel>
+                            <TextBlock Text="USB sẽ bị xoá toàn bộ dữ liệu." FontSize="12" Foreground="{StaticResource WarnBrush}" Margin="0,6,0,0"
+                                       Visibility="{Binding ToUsb, Converter={StaticResource BoolVis}}"/>
+
+                            <DockPanel Margin="0,12,0,0">
+                                <TextBlock DockPanel.Dock="Left" Text="Thư mục làm việc" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBox Style="{StaticResource InputBox}" Text="{Binding WorkDir, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}"
+                                         ToolTip="Nơi ADK dựng WinPE tạm thời (cần khoảng 1–2 GB trống)"/>
+                            </DockPanel>
+
+                            <DockPanel Margin="0,16,0,0">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Command="{Binding BuildCommand}" IsEnabled="{Binding HasAdk}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE756;" Style="{StaticResource Icon}" FontSize="13"/>
+                                        <TextBlock Text="Tạo WinPE" Margin="8,0,0,0"/>
+                                    </StackPanel>
+                                </Button>
+                                <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center" Text="Mất khoảng 5–15 phút tuỳ số thành phần. Cần cài Windows ADK ở bước 1."/>
+                            </DockPanel>
+                        </StackPanel>
+                    </DockPanel>
                 </Border>
             </StackPanel>
         </ScrollViewer>

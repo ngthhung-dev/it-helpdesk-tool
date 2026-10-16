@@ -61,6 +61,7 @@ public static class Converters
     public static readonly NotConverter Not = new();
     public static readonly CountToVisibility CountVis = new();
     public static readonly NonEmptyToVisibility NonEmptyVis = new();
+    public static readonly NonEmptyToVisibility EmptyVis = new() { Invert = true };
     public static readonly ZeroToVisibility ZeroVis = new();
     public static readonly BoolToVisibility NotVis = new() { Invert = true };
     /// <summary>Khác null → Visible.</summary>
@@ -71,8 +72,9 @@ public static class Converters
 /// <summary>Chuỗi khác rỗng → Visible.</summary>
 public sealed class NonEmptyToVisibility : IValueConverter
 {
+    public bool Invert { get; init; }
     public object Convert(object? value, Type t, object? p, CultureInfo c) =>
-        value is string s && s.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        (value is string s && s.Length > 0) != Invert ? Visibility.Visible : Visibility.Collapsed;
     public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => throw new NotSupportedException();
 }
 
