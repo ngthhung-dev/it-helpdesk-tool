@@ -26,11 +26,11 @@ public partial class MainWindow : Window
     private void UpdateThemeButton()
     {
         var m = ThemeService.Mode;
-        ThemeButton.Content = m switch { ThemeMode.Light => "\uE706", ThemeMode.Dark => "\uE708", _ => "\uE7F4" };
-        ThemeButton.ToolTip = "Giao diện: " + m switch { ThemeMode.Light => "sáng", ThemeMode.Dark => "tối", _ => "theo hệ thống" };
-        ThemeSystem.IsChecked = m == ThemeMode.System;
-        ThemeLight.IsChecked = m == ThemeMode.Light;
-        ThemeDark.IsChecked = m == ThemeMode.Dark;
+        ThemeButton.Content = m switch { AppTheme.Light => "\uE706", AppTheme.Dark => "\uE708", _ => "\uE7F4" };
+        ThemeButton.ToolTip = "Giao diện: " + m switch { AppTheme.Light => "sáng", AppTheme.Dark => "tối", _ => "theo hệ thống" };
+        ThemeSystem.IsChecked = m == AppTheme.System;
+        ThemeLight.IsChecked = m == AppTheme.Light;
+        ThemeDark.IsChecked = m == AppTheme.Dark;
     }
 
     private void Theme_Click(object sender, RoutedEventArgs e)
@@ -42,7 +42,7 @@ public partial class MainWindow : Window
 
     private void ThemeItem_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is System.Windows.Controls.MenuItem { Tag: string t } && Enum.TryParse<ThemeMode>(t, out var m)) ThemeService.Set(m);
+        if (sender is System.Windows.Controls.MenuItem { Tag: string t } && Enum.TryParse<AppTheme>(t, out var m)) ThemeService.Set(m);
         UpdateThemeButton();
     }
 

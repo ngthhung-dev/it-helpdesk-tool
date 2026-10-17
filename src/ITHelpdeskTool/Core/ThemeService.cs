@@ -4,7 +4,7 @@ using Microsoft.Win32;
 
 namespace ITHelpdeskTool.Core;
 
-public enum ThemeMode { System, Light, Dark }
+public enum AppTheme { System, Light, Dark }
 
 /// <summary>
 /// Đổi giao diện Sáng / Tối / Theo hệ thống. Mọi màu trong app lấy bằng DynamicResource từ các khoá *Brush,
@@ -15,7 +15,7 @@ public static class ThemeService
     private const string Key = @"HKEY_CURRENT_USER\Software\ngthhung\IT Helpdesk Tool";
     private static bool _hooked;
 
-    public static ThemeMode Mode { get; private set; } = ThemeMode.System;
+    public static AppTheme Mode { get; private set; } = AppTheme.System;
     public static bool IsDark { get; private set; } = true;
 
     /// <summary>Báo khi đổi màu — cho các control tự vẽ (bảng, vòng tròn) vẽ lại.</summary>
@@ -46,9 +46,9 @@ public static class ThemeService
     {
         Mode = overrideMode?.ToLowerInvariant() switch
         {
-            "light" => ThemeMode.Light,
-            "dark" => ThemeMode.Dark,
-            "system" => ThemeMode.System,
+            "light" => AppTheme.Light,
+            "dark" => AppTheme.Dark,
+            "system" => AppTheme.System,
             _ => ReadSaved(),
         };
         Apply();
@@ -57,23 +57,23 @@ public static class ThemeService
             _hooked = true;
             SystemEvents.UserPreferenceChanged += (_, e) =>
             {
-                if (Mode == ThemeMode.System && e.Category is UserPreferenceCategory.General or UserPreferenceCategory.Color)
+                if (Mode == AppTheme.System && e.Category is UserPreferenceCategory.General or UserPreferenceCategory.Color)
                     Application.Current?.Dispatcher.BeginInvoke(Apply);
             };
         }
     }
 
-    public static void Set(ThemeMode mode)
+    public static void Set(AppTheme mode)
     {
         Mode = mode;
         try { Registry.SetValue(Key, "Theme", mode.ToString()); } catch { }
         Apply();
     }
 
-    private static ThemeMode ReadSaved()
+    private static AppTheme ReadSaved()
     {
-        try { return Enum.TryParse<ThemeMode>(Registry.GetValue(Key, "Theme", null) as string, out var m) ? m : ThemeMode.System; }
-        catch { return ThemeMode.System; }
+        try { return Enum.TryParse<AppTheme>(Registry.GetValue(Key, "Theme", null) as string, out var m) ? m : AppTheme.System; }
+        catch { return AppTheme.System; }
     }
 
     public static bool SystemIsDark()
@@ -89,7 +89,7 @@ public static class ThemeService
     {
         var res = Application.Current?.Resources;
         if (res is null) return;
-        var dark = Mode switch { ThemeMode.Dark => true, ThemeMode.Light => false, _ => SystemIsDark() };
+        var dark = Mode switch { AppTheme.Dark => true, AppTheme.Light => false, _ => SystemIsDark() };
         var first = !_applied;
         _applied = true;
         if (!first && dark == IsDark) return;
