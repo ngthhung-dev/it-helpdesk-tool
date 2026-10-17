@@ -82,10 +82,19 @@ public static class MultiZaloService
         return OpResult.Success($"Đã tạo hồ sơ “{name}” tại {p.Folder}.");
     }
 
+    /// <summary>
+    /// Chỉ liên kết các thư mục Zalo thật sự dùng (lưu file nhận được, chọn/gửi file). Liên kết (junction) không chiếm dung lượng —
+    /// nó chỉ là lối dẫn tới thư mục thật — và được đặt ẩn để thư mục hồ sơ gọn gàng.
+    /// </summary>
     private static readonly Environment.SpecialFolder[] Linked =
     [
-        Environment.SpecialFolder.DesktopDirectory, Environment.SpecialFolder.MyDocuments, Environment.SpecialFolder.MyPictures,
-        Environment.SpecialFolder.MyVideos, Environment.SpecialFolder.MyMusic,
+        Environment.SpecialFolder.DesktopDirectory, Environment.SpecialFolder.MyDocuments,
+    ];
+
+    /// <summary>Thư mục bản cũ từng liên kết, nay bỏ (chỉ gỡ khi là junction, không bao giờ đụng vào thư mục thật).</summary>
+    private static readonly Environment.SpecialFolder[] Obsolete =
+    [
+        Environment.SpecialFolder.MyPictures, Environment.SpecialFolder.MyVideos, Environment.SpecialFolder.MyMusic,
     ];
 
     /// <summary>Thư mục trong hồ sơ trỏ (junction) tới thư mục thật của người dùng.</summary>
@@ -102,11 +111,37 @@ public static class MultiZaloService
 
     private static void LinkUserFolders(ZaloProfile p)
     {
+        foreach (var f in Obsolete)
+        {
+            var target = Environment.GetFolderPath(f);
+            if (target.Length > 0) RemoveLink(Path.Combine(p.Folder, Path.GetFileName(target)));
+        }
         foreach (var (link, target) in Links(p))
         {
-            if (Directory.Exists(link) || !Directory.Exists(target)) continue;
-            Junction(link, target);
+            if (!Directory.Exists(link) && Directory.Exists(target)) Junction(link, target);
+            Hide(link);
         }
+    }
+
+    private static void RemoveLink(string link)
+    {
+        try
+        {
+            var di = new DirectoryInfo(link);
+            if (di.Exists && di.Attributes.HasFlag(FileAttributes.ReparsePoint)) di.Delete(false);
+        }
+        catch { }
+    }
+
+    private static void Hide(string link)
+    {
+        try
+        {
+            var di = new DirectoryInfo(link);
+            if (di.Exists && di.Attributes.HasFlag(FileAttributes.ReparsePoint) && !di.Attributes.HasFlag(FileAttributes.Hidden))
+                di.Attributes |= FileAttributes.Hidden;
+        }
+        catch { }
     }
 
     /// <summary>
@@ -128,14 +163,11 @@ public static class MultiZaloService
     /// <summary>Gỡ các junction trước khi xoá hồ sơ để không bao giờ xoá nhầm vào thư mục thật.</summary>
     private static void UnlinkUserFolders(ZaloProfile p)
     {
-        foreach (var (link, _) in Links(p))
+        foreach (var (link, _) in Links(p)) RemoveLink(link);
+        foreach (var f in Obsolete)
         {
-            try
-            {
-                var di = new DirectoryInfo(link);
-                if (di.Exists && di.Attributes.HasFlag(FileAttributes.ReparsePoint)) di.Delete(false);
-            }
-            catch { }
+            var target = Environment.GetFolderPath(f);
+            if (target.Length > 0) RemoveLink(Path.Combine(p.Folder, Path.GetFileName(target)));
         }
     }
 
@@ -246,7 +278,7 @@ public static class MultiZaloService
         long t = 0;
         try
         {
-            foreach (var f in new DirectoryInfo(dir).EnumerateFiles("*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true }))
+            foreach (var f in new DirectoryInfo(dir).EnumerateFiles("*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint }))
                 try { t += f.Length; } catch { }
         }
         catch { }
@@ -257,7 +289,8 @@ public static class MultiZaloService
     {
         if (IsRunning(p.DataDir)) return OpResult.Fail($"Zalo “{p.Name}” đang mở — đóng trước khi xoá.");
         UnlinkUserFolders(p);
-        if (Links(p).Any(l => Directory.Exists(l.Link) && new DirectoryInfo(l.Link).Attributes.HasFlag(FileAttributes.ReparsePoint)))
+        if (Directory.Exists(p.Folder) && new DirectoryInfo(p.Folder).EnumerateDirectories("*", new EnumerationOptions { AttributesToSkip = 0, IgnoreInaccessible = true })
+                .Any(d => d.Attributes.HasFlag(FileAttributes.ReparsePoint)))
             return OpResult.Fail("Không gỡ được liên kết thư mục trong hồ sơ — dừng để không xoá nhầm dữ liệu thật.");
         try { if (Directory.Exists(p.Folder)) Directory.Delete(p.Folder, true); }
         catch (Exception ex) { return OpResult.Fail($"Không xoá được thư mục: {ex.Message}"); }

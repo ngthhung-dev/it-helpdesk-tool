@@ -47,7 +47,8 @@ public sealed partial class RepairViewModel : PageViewModel
     public ObservableCollection<CrashDump> Crashes { get; } = [];
 
     // Nguồn DISM
-    [ObservableProperty] private string _sourceText = "Windows Update (mặc định)";
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasCustomSource))] private string _sourceText = "Windows Update (mặc định)";
+    public bool HasCustomSource => RepairService.DismSource.Length > 0;
     private string? _mountedIso;
 
     public RepairViewModel()
@@ -205,6 +206,7 @@ public sealed partial class RepairViewModel : PageViewModel
     {
         RepairService.DismSource = "";
         SourceText = "Windows Update (mặc định)";
+        OnPropertyChanged(nameof(HasCustomSource));
         if (_mountedIso is { } iso) { _mountedIso = null; await ImageService.DismountAsync(iso); }
     }
 

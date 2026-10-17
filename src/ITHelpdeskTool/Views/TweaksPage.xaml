@@ -66,7 +66,7 @@
                                     ToolTip="Áp dụng ngay thay đổi giao diện mà không cần đăng xuất"/>
                             <Button Style="{StaticResource BtnDanger}" Content="Trả tất cả về mặc định" Command="{Binding ResetAllCommand}"/>
                         </StackPanel>
-                        <Button Style="{StaticResource BtnPrimary}" HorizontalAlignment="Left" Command="{Binding ApplyRecommendedCommand}">
+                        <Button Style="{StaticResource BtnPrimary}" HorizontalAlignment="Left" Command="{Binding ApplyRecommendedCommand}" ToolTip="{Binding RecommendedTip}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE735;" Style="{StaticResource Icon}" FontSize="13"/>
                                 <TextBlock Text="Bật các mục khuyên dùng" Margin="8,0,0,0"/>

@@ -64,7 +64,8 @@
                             </Button>
                             <Button Style="{StaticResource LinkButton}" Content="Dùng bộ cài ISO làm nguồn…" Margin="0,0,12,6" VerticalAlignment="Center" Command="{Binding PickSourceCommand}"
                                     ToolTip="Khi máy không có mạng hoặc DISM báo không tìm thấy file nguồn"/>
-                            <Button Style="{StaticResource LinkButton}" Content="Dùng Windows Update" Margin="0,0,0,6" VerticalAlignment="Center" Command="{Binding ClearSourceCommand}"/>
+                            <Button Style="{StaticResource LinkButton}" Content="Bỏ ISO, dùng lại Windows Update" Margin="0,0,0,6" VerticalAlignment="Center" Command="{Binding ClearSourceCommand}"
+                                    Visibility="{Binding HasCustomSource, Converter={StaticResource BoolVis}}"/>
                         </WrapPanel>
                     </StackPanel>
                 </Border>

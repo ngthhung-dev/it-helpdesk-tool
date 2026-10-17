@@ -96,8 +96,9 @@ public static partial class SysConfigService
                 IsDnsAuto(settingId),
                 a.Str("MACAddress")));
         }
-        // Card đang kết nối lên đầu
-        return list.OrderByVi(x => x.Name).ToList();
+        // Card đang kết nối (có gateway) lên đầu, rồi A-Z
+        return list.OrderByDescending(x => x.Connected && x.Gateway.Length > 0).ThenByDescending(x => x.Connected)
+            .ThenByVi(x => x.Name).ToList();
     }
 
     private static bool IsDnsAuto(string settingId)

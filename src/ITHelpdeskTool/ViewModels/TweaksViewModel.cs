@@ -123,7 +123,10 @@ public sealed partial class TweaksViewModel : PageViewModel
         var avail = AllItems.Count(i => i.IsAvailable);
         var rec = AllItems.Where(i => i.IsAvailable && i.Recommended).ToList();
         Summary = $"Đang bật {AllItems.Count(i => i.IsOn)}/{avail} tweak · mục khuyên dùng: {rec.Count(i => i.IsOn)}/{rec.Count}";
+        RecommendedTip = "Mục khuyên dùng (✓ = đang bật):\n" + string.Join("\n", rec.Select(i => (i.IsOn ? "✓ " : "• ") + i.Title));
     }
+
+    [ObservableProperty] private string _recommendedTip = "";
 
     partial void OnFilterChanged(string value)
     {

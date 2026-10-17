@@ -157,7 +157,12 @@ public sealed partial class SysConfigViewModel : PageViewModel
         var list = await Task.Run(S.ReadAdapters);
         Adapters.Clear();
         foreach (var a in list) Adapters.Add(a);
-        SelectedAdapter = Adapters.FirstOrDefault(a => a.Name == keep) ?? Adapters.FirstOrDefault(a => a.Connected) ?? Adapters.FirstOrDefault();
+        // Mặc định: card đang kết nối và ra được mạng (có IP + gateway) — thường là Ethernet hoặc Wi-Fi đang dùng
+        SelectedAdapter = Adapters.FirstOrDefault(a => a.Name == keep)
+                          ?? Adapters.FirstOrDefault(a => a.Connected && a.Ip.Length > 0 && a.Gateway.Length > 0)
+                          ?? Adapters.FirstOrDefault(a => a.Connected && a.Ip.Length > 0)
+                          ?? Adapters.FirstOrDefault(a => a.Connected)
+                          ?? Adapters.FirstOrDefault();
     }
 
     partial void OnSelectedAdapterChanged(AdapterInfo? value)

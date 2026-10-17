@@ -112,12 +112,42 @@ public static class RepairService
         return r.Success ? OpResult.Success("Đã tạo điểm khôi phục.") : OpResult.Fail($"Không tạo được điểm khôi phục: {OpResult.FirstLine(r.Error)} (máy có thể đang tắt System Protection).");
     }
 
+    private static int WuStartType()
+    {
+        try { return Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\wuauserv", "Start", 3) is int v ? v : 3; }
+        catch { return 3; }
+    }
+
     public static async Task<OpResult> DismRestoreAsync(Action<string> log, Action<int> p, CancellationToken ct)
     {
         var src = DismSource.Length > 0 ? $" /Source:{DismSource} /LimitAccess" : "";
-        var r = await RunLoggedAsync("dism.exe", $"/English /Online /Cleanup-Image /RestoreHealth{src}", log, ct,
-            ok: "DISM: kho thành phần đã được kiểm tra và sửa.", onLine: Percent(p));
-        if (!r.Ok) return OpResult.Fail("DISM chưa sửa được — thử chọn bộ cài ISO cùng phiên bản làm nguồn sửa. Nhật ký: C:\\Windows\\Logs\\DISM\\dism.log");
+        // Sửa qua Windows Update cần dịch vụ Windows Update: nếu đang bị tắt (Disabled) thì bật tạm, sửa xong trả lại như cũ
+        var wuDisabled = src.Length == 0 && WuStartType() == 4;
+        if (wuDisabled)
+        {
+            log("Dịch vụ Windows Update đang bị tắt — bật tạm để DISM tải file sửa…");
+            await ProcessRunner.ConsoleAsync("sc.exe", "config wuauserv start= demand", ct);
+        }
+        OpResult r;
+        try
+        {
+            if (src.Length == 0) await ProcessRunner.ConsoleAsync("sc.exe", "start wuauserv", ct);
+            r = await RunLoggedAsync("dism.exe", $"/English /Online /Cleanup-Image /RestoreHealth{src}", log, ct,
+                ok: "DISM: kho thành phần đã được kiểm tra và sửa.", onLine: Percent(p));
+        }
+        finally
+        {
+            if (wuDisabled)
+            {
+                await ProcessRunner.ConsoleAsync("sc.exe", "stop wuauserv", CancellationToken.None);
+                await ProcessRunner.ConsoleAsync("sc.exe", "config wuauserv start= disabled", CancellationToken.None);
+                log("Đã trả dịch vụ Windows Update về trạng thái tắt như trước.");
+            }
+        }
+        if (!r.Ok)
+            return OpResult.Fail(src.Length == 0
+                ? "DISM không tải được file sửa từ Windows Update (máy không có mạng, đang dùng WSUS hoặc Windows Update bị chặn). Bấm “Dùng bộ cài ISO làm nguồn…” và chọn ISO cùng phiên bản rồi chạy lại. Nhật ký: C:\\Windows\\Logs\\DISM\\dism.log"
+                : "DISM chưa sửa được bằng bộ cài này — kiểm tra ISO đúng phiên bản và build của máy. Nhật ký: C:\\Windows\\Logs\\DISM\\dism.log");
         return r;
     }
 

@@ -229,10 +229,10 @@ public sealed partial class PolicyViewModel : PageViewModel
             var users = await PolicyService.ReadUsersAsync();
             Users.Clear();
             foreach (var u in users) Users.Add(u);
-            // Mặc định chọn tài khoản thường đầu tiên (người dùng cần hạn chế), không có thì chọn chính mình
+            // Mặc định chọn tài khoản đang đăng nhập
             TargetUser = Users.FirstOrDefault(u => u.Sid == keep)
-                         ?? Users.FirstOrDefault(u => !u.IsAdmin && u.HasProfile)
                          ?? Users.FirstOrDefault(u => u.IsCurrent)
+                         ?? Users.FirstOrDefault(u => !u.IsAdmin && u.HasProfile)
                          ?? Users.FirstOrDefault();
             await LoadPasswordAsync();
         }
