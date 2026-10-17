@@ -97,7 +97,7 @@ public sealed partial class FontsViewModel : PageViewModel
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsIdle))] private bool _isBusy;
     public bool IsIdle => !IsBusy;
     [ObservableProperty] private string _busyText = "";
-    [ObservableProperty] private string _sample = "Nội dung xem trước font hiển thị";
+    [ObservableProperty] private string _sample = "Nội dung xem trước font hiển thị - 0123456789";
     [ObservableProperty] private bool _allUsers = true;
     public ObservableCollection<ActionLogEntry> ActionLog { get; } = [];
 
