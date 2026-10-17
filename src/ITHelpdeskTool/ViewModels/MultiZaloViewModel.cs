@@ -37,9 +37,37 @@ public sealed partial class MultiZaloViewModel : PageViewModel
     public bool IsIdle => !IsBusy;
     public ObservableCollection<ActionLogEntry> ActionLog { get; } = [];
 
+    // ===== Chụp màn hình khi mở nhiều Zalo =====
+    private const string KbKey = @"HKEY_CURRENT_USER\Control Panel\Keyboard";
+    [ObservableProperty] private bool _prtScnOn;
+
+    private void ReadPrtScn()
+    {
+        try { PrtScnOn = Registry.GetValue(KbKey, "PrintScreenKeyForSnippingEnabled", 0) is int v && v == 1; } catch { PrtScnOn = false; }
+    }
+
+    [RelayCommand]
+    private void EnablePrtScn()
+    {
+        try
+        {
+            Registry.SetValue(KbKey, "PrintScreenKeyForSnippingEnabled", 1, RegistryValueKind.DWord);
+            ReadPrtScn();
+            AddLog("Đã bật: bấm PrtScn để mở công cụ chụp màn hình của Windows (có thể cần đăng xuất/đăng nhập lại).", true);
+        }
+        catch (Exception ex) { AddLog("Không bật được phím PrtScn: " + ex.Message, false); }
+    }
+
+    [RelayCommand]
+    private void OpenSnip()
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ms-screenclip:") { UseShellExecute = true }); }
+        catch (Exception ex) { AddLog("Không mở được công cụ chụp: " + ex.Message, false); }
+    }
+
     public override void OnNavigatedTo()
     {
-        if (!_loaded) { _loaded = true; Refresh(); }
+        if (!_loaded) { _loaded = true; Refresh(); ReadPrtScn(); }
         _timer ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
         _timer.Tick -= Tick;
         _timer.Tick += Tick;

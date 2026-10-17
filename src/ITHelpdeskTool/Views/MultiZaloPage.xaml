@@ -144,6 +144,24 @@
                 </StackPanel>
             </Border>
 
+            <!-- Hạn chế khi mở nhiều Zalo -->
+            <Border c:SectionIndex.Title="Lưu ý" Style="{StaticResource Card}" BorderBrush="{StaticResource WarnBrush}" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="Lưu ý: chụp màn hình khi mở nhiều Zalo" Style="{StaticResource H2}"/>
+                    <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0"
+                               Text="Phím tắt chụp màn hình của Zalo (Ctrl+Alt+S, Ctrl+Alt+A) không dùng được khi mở từ 2 Zalo trở lên, kể cả khi đổi phím tắt khác nhau. Nguyên nhân: Zalo chụp màn hình bằng chương trình phụ ZaloCap.exe, mà chương trình này chỉ cho chạy một bản trên cả máy — Zalo mở sau tắt bộ chụp của Zalo mở trước nên các Zalo giành nhau. Đây là giới hạn của Zalo, không sửa được từ bên ngoài."/>
+                    <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0" Foreground="{StaticResource TextBrush}"
+                               Text="Cách thay thế (dùng được cho mọi Zalo): bấm Win+Shift+S hoặc PrtScn để chụp bằng công cụ của Windows, rồi bấm Ctrl+V vào ô chat Zalo để gửi ảnh."/>
+                    <WrapPanel Margin="0,10,0,0">
+                        <Button Style="{StaticResource BtnSmall}" Content="Chụp thử ngay" Margin="0,0,6,6" Command="{Binding OpenSnipCommand}"/>
+                        <Button Style="{StaticResource BtnSmall}" Content="Bật chụp bằng phím PrtScn" Margin="0,0,6,6" Command="{Binding EnablePrtScnCommand}"
+                                Visibility="{Binding PrtScnOn, Converter={StaticResource NotBoolVis}}"/>
+                        <TextBlock Text="✓ Phím PrtScn đang mở công cụ chụp màn hình" Foreground="{StaticResource GoodBrush}" FontSize="12" VerticalAlignment="Center" Margin="4,0,0,6"
+                                   Visibility="{Binding PrtScnOn, Converter={StaticResource BoolVis}}"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
             <ItemsControl ItemsSource="{Binding ActionLog}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
