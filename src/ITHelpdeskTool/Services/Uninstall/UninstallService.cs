@@ -185,6 +185,13 @@ public static class UninstallService
     {
         if (!a.HasUninstaller) return OpResult.Fail("Phần mềm này không có trình gỡ — dùng “Dọn phần còn sót” để xoá.");
         var (file, args, silent) = BuildCommand(a, quiet);
+        // MSI im lặng: ghi nhật ký để biết lý do khi trình gỡ từ chối (không có cửa sổ báo lỗi nào hiện ra)
+        string? msiLog = null;
+        if (silent && file.Equals("msiexec.exe", StringComparison.OrdinalIgnoreCase))
+        {
+            msiLog = Path.Combine(Path.GetTempPath(), $"ITHelpdesk-uninstall-{Guid.NewGuid():N}.log");
+            args += $" /l*v \"{msiLog}\"";
+        }
         Log.Info($"Gỡ {a.Name}: {file} {args}");
         try
         {
@@ -198,12 +205,54 @@ public static class UninstallService
             await p.WaitForExitAsync(ct);
             var code = p.ExitCode;
             // 0 = xong, 3010/1641 = cần khởi động lại, 1605 = MSI không còn cài
-            return code is 0 or 3010 or 1641 or 1605
-                ? OpResult.Success($"Trình gỡ {a.Name} đã chạy xong" + (code is 3010 or 1641 ? " (cần khởi động lại)." : "."), code is 3010 or 1641)
-                : OpResult.Fail($"Trình gỡ {a.Name} kết thúc với mã {code}.");
+            if (code is 0 or 3010 or 1641 or 1605)
+            {
+                TryDelete(msiLog);
+                return OpResult.Success($"Trình gỡ {a.Name} đã chạy xong" + (code is 3010 or 1641 ? " (cần khởi động lại)." : "."), code is 3010 or 1641);
+            }
+            var why = MsiCodeText(code);
+            var detail = msiLog is null ? null : MsiLogReason(msiLog);
+            TryDelete(msiLog);
+            return OpResult.Fail($"Không gỡ được {a.Name} (mã {code}{(why is null ? "" : " — " + why)})." +
+                (detail is null ? "" : $"\nLý do từ trình gỡ: {detail}") +
+                (silent ? "\nThử bỏ tích “Gỡ im lặng nếu được” rồi gỡ lại để xem thông báo của hãng." : ""));
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception ex) { return OpResult.Fail($"Không chạy được trình gỡ: {ex.Message}"); }
+    }
+
+    private static void TryDelete(string? f) { if (f is null) return; try { File.Delete(f); } catch { } }
+
+    private static string? MsiCodeText(int code) => code switch
+    {
+        1602 => "người dùng huỷ",
+        1603 => "trình gỡ báo lỗi nghiêm trọng",
+        1618 => "đang có một trình cài/gỡ khác chạy, chờ nó xong rồi thử lại",
+        1619 or 1620 => "không mở được gói cài đặt",
+        1624 => "lỗi áp dụng gói cấu hình",
+        1638 => "đang có phiên bản khác của sản phẩm",
+        1639 => "tham số không hợp lệ",
+        1722 or 1721 => "một bước tuỳ chỉnh của trình gỡ bị lỗi",
+        1730 => "cần quyền quản trị",
+        _ => null,
+    };
+
+    /// <summary>Đọc lý do lỗi trong nhật ký msiexec (thông báo của hãng, hoặc dòng "Error ...").</summary>
+    private static string? MsiLogReason(string path)
+    {
+        try
+        {
+            if (!File.Exists(path)) return null;
+            var lines = File.ReadAllLines(path);   // msiexec ghi UTF-16 có BOM — ReadAllLines tự nhận
+            string? Pick(Func<string, bool> f) => lines.Reverse().FirstOrDefault(f)?.Trim();
+            var m = Pick(l => Regex.IsMatch(l, @"^(MSI \(s\) .*?)?Product: .* -- ", RegexOptions.IgnoreCase))
+                    ?? Pick(l => l.StartsWith("Error ", StringComparison.OrdinalIgnoreCase) || l.Contains("-- Error ", StringComparison.OrdinalIgnoreCase));
+            if (m is null) return null;
+            var i = m.IndexOf(" -- ", StringComparison.Ordinal);
+            var t = i >= 0 ? m[(i + 4)..] : m;
+            return t.Length > 400 ? t[..400] + "…" : t;
+        }
+        catch { return null; }
     }
 
     // ================= Tìm phần còn sót =================

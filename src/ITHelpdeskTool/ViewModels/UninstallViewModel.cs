@@ -152,6 +152,13 @@ public sealed partial class UninstallViewModel : PageViewModel
         var ct = _waitCts.Token;
         var r = await UninstallService.RunUninstallerAsync(a, Quiet);
         AddLog(r.Message, r.Ok);
+        if (!r.Ok)
+        {
+            Stage = "";
+            StageText = r.Message;
+            DialogWindow.Info("Chưa gỡ được", r.Message, error: true);
+            return;
+        }
 
         // Nhiều trình gỡ (Inno, NSIS) tự chép ra thư mục tạm rồi thoát ngay → chờ mục trong registry biến mất
         try
