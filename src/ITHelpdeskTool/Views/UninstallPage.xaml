@@ -22,7 +22,7 @@
         <Style x:Key="Cmd" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
             <Setter Property="FontSize" Value="11.5"/>
-            <Setter Property="Foreground" Value="{StaticResource FaintBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource FaintBrush}"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
         <Style x:Key="Badge" TargetType="Border">
@@ -30,11 +30,11 @@
             <Setter Property="Padding" Value="6,1"/>
             <Setter Property="Margin" Value="0,0,8,0"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Background" Value="#14FFFFFF"/>
+            <Setter Property="Background" Value="{DynamicResource HoverBrush}"/>
         </Style>
         <Style x:Key="BadgeText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10.5"/>
-            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
         </Style>
         <Style x:Key="TabSeg" TargetType="RadioButton" BasedOn="{StaticResource Segment}">
             <Setter Property="GroupName" Value="uninstTab"/>
@@ -100,10 +100,10 @@
                                                 </Border>
                                                 <ControlTemplate.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="Bd" Property="Background" Value="{StaticResource HoverBrush}"/>
+                                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBrush}"/>
                                                     </Trigger>
                                                     <Trigger Property="IsSelected" Value="True">
-                                                        <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+                                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
                                                     </Trigger>
                                                 </ControlTemplate.Triggers>
                                             </ControlTemplate>
@@ -116,11 +116,11 @@
                                     <DockPanel Background="Transparent" MouseLeftButtonUp="App_Click">
                                         <Grid Width="28" Height="28" Margin="0,0,12,0">
                                             <Image Source="{Binding App.Icon}" Width="24" Height="24" RenderOptions.BitmapScalingMode="HighQuality"/>
-                                            <TextBlock Text="&#xE71D;" Style="{StaticResource Icon}" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center"
+                                            <TextBlock Text="&#xE71D;" Style="{StaticResource Icon}" Foreground="{DynamicResource MutedBrush}" HorizontalAlignment="Center"
                                                        Visibility="{Binding App.Icon, Converter={StaticResource NotNullVis}}"/>
                                         </Grid>
                                         <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding App.Name}" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding App.Name}" Foreground="{DynamicResource TextBrush}" TextTrimming="CharacterEllipsis"/>
                                             <TextBlock Text="{Binding App.Detail}" Style="{StaticResource Hint}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
                                         </StackPanel>
                                     </DockPanel>
@@ -164,7 +164,7 @@
                                         ToolTip="Dùng khi đã tự gỡ trước đó, hoặc phần mềm không còn trình gỡ"/>
                             </WrapPanel>
 
-                            <TextBlock Text="{Binding StageText}" Style="{StaticResource EmptyHidden}" Foreground="{StaticResource WarnBrush}" Margin="0,4,0,0"/>
+                            <TextBlock Text="{Binding StageText}" Style="{StaticResource EmptyHidden}" Foreground="{DynamicResource WarnBrush}" Margin="0,4,0,0"/>
 
                             <!-- Phần còn sót -->
                             <StackPanel Visibility="{Binding Leftovers.Count, Converter={x:Static core:Converters.CountVis}}" Margin="0,10,0,0">
@@ -180,7 +180,7 @@
                                 <ItemsControl ItemsSource="{Binding Leftovers}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,8">
+                                            <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,8">
                                                 <DockPanel>
                                                     <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsChecked}" VerticalAlignment="Top" Margin="0,2,10,0"/>
                                                     <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Mở" VerticalAlignment="Top" Margin="8,0,0,0"
@@ -189,11 +189,11 @@
                                                         <StackPanel Orientation="Horizontal">
                                                             <Border Style="{StaticResource Badge}"><TextBlock Text="{Binding Item.KindText}" Style="{StaticResource BadgeText}"/></Border>
                                                             <Border Style="{StaticResource Badge}" Background="#1AFBBF24" Visibility="{Binding Item.HighConfidence, Converter={StaticResource NotBoolVis}}">
-                                                                <TextBlock Text="Xem kỹ" Style="{StaticResource BadgeText}" Foreground="{StaticResource WarnBrush}"/>
+                                                                <TextBlock Text="Xem kỹ" Style="{StaticResource BadgeText}" Foreground="{DynamicResource WarnBrush}"/>
                                                             </Border>
                                                             <TextBlock Text="{Binding SizeText}" Style="{StaticResource Hint}" VerticalAlignment="Center"/>
                                                         </StackPanel>
-                                                        <TextBlock Text="{Binding Item.Path}" Style="{StaticResource Cmd}" Foreground="{StaticResource TextBrush}" Margin="0,4,0,0"/>
+                                                        <TextBlock Text="{Binding Item.Path}" Style="{StaticResource Cmd}" Foreground="{DynamicResource TextBrush}" Margin="0,4,0,0"/>
                                                         <TextBlock Text="{Binding Item.Detail}" Style="{StaticResource Hint}"/>
                                                     </StackPanel>
                                                 </DockPanel>
@@ -232,15 +232,15 @@
                         <ItemsControl ItemsSource="{Binding StoreApps}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,8"
+                                    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,8"
                                             Visibility="{Binding IsVisible, Converter={StaticResource BoolVis}}">
                                         <DockPanel>
                                             <CheckBox IsChecked="{Binding IsChecked}" VerticalAlignment="Center" Margin="0,0,12,0"/>
                                             <StackPanel>
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding App.Display}" Foreground="{StaticResource TextBrush}" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="{Binding App.Display}" Foreground="{DynamicResource TextBrush}" Margin="0,0,8,0"/>
                                                     <Border Style="{StaticResource Badge}" Background="#1AFBBF24" Visibility="{Binding App.IsBloat, Converter={StaticResource BoolVis}}">
-                                                        <TextBlock Text="Cài sẵn, thường không cần" Style="{StaticResource BadgeText}" Foreground="{StaticResource WarnBrush}"/>
+                                                        <TextBlock Text="Cài sẵn, thường không cần" Style="{StaticResource BadgeText}" Foreground="{DynamicResource WarnBrush}"/>
                                                     </Border>
                                                 </StackPanel>
                                                 <TextBlock Style="{StaticResource Hint}">
@@ -258,11 +258,11 @@
         </Grid>
 
         <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20" CornerRadius="20" Padding="18,9"
-                Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
                 Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
-                <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource TextBrush}"/>
+                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{DynamicResource AccentBrush}" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding BusyText}" Foreground="{DynamicResource TextBrush}"/>
             </StackPanel>
         </Border>
     </Grid>

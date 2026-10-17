@@ -28,21 +28,21 @@
         </Style>
         <Style x:Key="StateText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11.5"/>
-            <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource GoodBrush}"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Style.Triggers>
-                <DataTrigger Binding="{Binding HasUpdate}" Value="True"><Setter Property="Foreground" Value="{StaticResource WarnBrush}"/></DataTrigger>
+                <DataTrigger Binding="{Binding HasUpdate}" Value="True"><Setter Property="Foreground" Value="{DynamicResource WarnBrush}"/></DataTrigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="CardIcon" TargetType="Border">
             <Setter Property="Width" Value="30"/>
             <Setter Property="Height" Value="30"/>
             <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
             <Setter Property="Margin" Value="0,0,12,0"/>
         </Style>
         <Style x:Key="Row" TargetType="Border">
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
             <Setter Property="Padding" Value="0,9"/>
         </Style>
@@ -74,18 +74,18 @@
                     <TextBlock Text="App Store" Style="{StaticResource H1}"/>
                     <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" FontSize="13" TextWrapping="Wrap">
                         <Run Text="Cài phần mềm sạch từ nguồn chính hãng — chọn bộ có sẵn hoặc tự tích, app cài lần lượt, im lặng, không phải bấm Next."/>
-                        <Run Text="{Binding WingetText, Mode=OneWay}" Foreground="{StaticResource FaintBrush}"/>
+                        <Run Text="{Binding WingetText, Mode=OneWay}" Foreground="{DynamicResource FaintBrush}"/>
                     </TextBlock>
                 </StackPanel>
             </DockPanel>
 
             <!-- Thiếu winget -->
-            <Border Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource Card}" Margin="0,0,0,12" BorderBrush="{StaticResource WarnBrush}"
+            <Border Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource Card}" Margin="0,0,0,12" BorderBrush="{DynamicResource WarnBrush}"
                     Visibility="{Binding WingetMissing, Converter={StaticResource BoolVis}}">
                 <DockPanel>
                     <Button DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Content="Cài winget" Command="{Binding RepairWingetCommand}" VerticalAlignment="Center"/>
                     <StackPanel Margin="0,0,16,0">
-                        <TextBlock Text="Máy chưa có winget" Foreground="{StaticResource WarnBrush}" FontWeight="SemiBold"/>
+                        <TextBlock Text="Máy chưa có winget" Foreground="{DynamicResource WarnBrush}" FontWeight="SemiBold"/>
                         <TextBlock Style="{StaticResource Hint}" Text="Windows 10 bản cũ hoặc máy mới cài chưa cập nhật App Installer. Bấm “Cài winget” để tự đăng ký / tải bản mới nhất từ Microsoft."/>
                     </StackPanel>
                 </DockPanel>
@@ -151,8 +151,8 @@
                         <Border Style="{StaticResource Card}" Margin="0,0,0,10" Padding="16,10" Visibility="{Binding SearchText, Converter={x:Static core:Converters.NonEmptyVis}}">
                             <DockPanel>
                                 <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Tìm" Command="{Binding SearchWingetCommand}"/>
-                                <TextBlock Text="&#xE721;" Style="{StaticResource Icon}" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding SearchText}" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="&#xE721;" Style="{StaticResource Icon}" Foreground="{DynamicResource AccentBrush}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding SearchText}" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
                             </DockPanel>
                         </Border>
 
@@ -165,7 +165,7 @@
                                 <ItemsControl ItemsSource="{Binding SearchResults}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,7">
+                                            <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,7">
                                                 <DockPanel>
                                                     <Grid DockPanel.Dock="Right" VerticalAlignment="Center">
                                                         <Button Style="{StaticResource BtnSmall}" Content="Cài"
@@ -177,13 +177,13 @@
                                                                 </MultiBinding>
                                                             </Button.Visibility>
                                                         </Button>
-                                                        <TextBlock Text="Đã cài" Foreground="{StaticResource GoodBrush}" FontSize="12" VerticalAlignment="Center"
+                                                        <TextBlock Text="Đã cài" Foreground="{DynamicResource GoodBrush}" FontSize="12" VerticalAlignment="Center"
                                                                    Visibility="{Binding IsInstalled, Converter={StaticResource BoolVis}}"/>
-                                                        <TextBlock Text="Trong hàng đợi" Foreground="{StaticResource AccentBrush}" FontSize="12" VerticalAlignment="Center"
+                                                        <TextBlock Text="Trong hàng đợi" Foreground="{DynamicResource AccentBrush}" FontSize="12" VerticalAlignment="Center"
                                                                    Visibility="{Binding IsQueued, Converter={StaticResource BoolVis}}"/>
                                                     </Grid>
                                                     <StackPanel Margin="0,0,12,0">
-                                                        <TextBlock Text="{Binding Row.Name}" Foreground="{StaticResource TextBrush}"/>
+                                                        <TextBlock Text="{Binding Row.Name}" Foreground="{DynamicResource TextBrush}"/>
                                                         <TextBlock Style="{StaticResource Hint}"><Run Text="{Binding Row.Id, Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding Row.Version, Mode=OneWay}"/></TextBlock>
                                                     </StackPanel>
                                                 </DockPanel>
@@ -205,11 +205,11 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border x:Name="Card" Height="112" Margin="0,0,10,10" CornerRadius="12" Padding="14,12"
-                                            Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                                            Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                                         <DockPanel>
                                             <DockPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
                                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                                                    <TextBlock Text="Trong hàng đợi…" Foreground="{StaticResource AccentBrush}" FontSize="12" VerticalAlignment="Center"
+                                                    <TextBlock Text="Trong hàng đợi…" Foreground="{DynamicResource AccentBrush}" FontSize="12" VerticalAlignment="Center"
                                                                Visibility="{Binding IsQueued, Converter={StaticResource BoolVis}}"/>
                                                     <StackPanel Orientation="Horizontal" Visibility="{Binding IsQueued, Converter={StaticResource NotBoolVis}}">
                                                         <Button Style="{StaticResource BtnSmall}" Content="Cài"
@@ -218,7 +218,7 @@
                                                         <Button Style="{StaticResource BtnSmall}" Content="Cập nhật" Margin="6,0,0,0"
                                                                 Visibility="{Binding HasUpdate, Converter={StaticResource BoolVis}}"
                                                                 Command="{Binding DataContext.UpgradeAppRowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
-                                                        <Button Style="{StaticResource BtnSmall}" Content="Gỡ" Margin="6,0,0,0" Foreground="{StaticResource BadBrush}"
+                                                        <Button Style="{StaticResource BtnSmall}" Content="Gỡ" Margin="6,0,0,0" Foreground="{DynamicResource BadBrush}"
                                                                 Visibility="{Binding IsInstalled, Converter={StaticResource BoolVis}}"
                                                                 Command="{Binding DataContext.UninstallCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                                                     </StackPanel>
@@ -228,22 +228,22 @@
                                             <CheckBox DockPanel.Dock="Right" IsChecked="{Binding IsChecked}" VerticalAlignment="Top" Margin="8,0,0,0"
                                                       Visibility="{Binding IsInstalled, Converter={StaticResource NotBoolVis}}" ToolTip="Chọn để cài nhiều phần mềm cùng lúc"/>
                                             <Border Style="{StaticResource Avatar}" Margin="0,0,12,0" VerticalAlignment="Top">
-                                                <TextBlock Text="{Binding App.Initial}" FontSize="17" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"
+                                                <TextBlock Text="{Binding App.Initial}" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             </Border>
                                             <StackPanel>
-                                                <TextBlock Text="{Binding App.Name}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding App.Name}" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                                                 <TextBlock Text="{Binding App.Description}" Style="{StaticResource Hint}" Margin="0,2,0,0" MaxHeight="34" TextTrimming="CharacterEllipsis"/>
                                             </StackPanel>
                                         </DockPanel>
                                     </Border>
                                     <DataTemplate.Triggers>
                                         <Trigger SourceName="Card" Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Card" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                            <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                                         </Trigger>
                                         <DataTrigger Binding="{Binding IsChecked}" Value="True">
-                                            <Setter TargetName="Card" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
-                                            <Setter TargetName="Card" Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+                                            <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                            <Setter TargetName="Card" Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
                                         </DataTrigger>
                                     </DataTemplate.Triggers>
                                 </DataTemplate>
@@ -263,7 +263,7 @@
                                     Visibility="{Binding Upgrades.Count, Converter={x:Static core:Converters.CountVis}}"/>
                         </StackPanel>
                         <StackPanel>
-                            <TextBlock Text="{Binding UpgradeSummary}" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding UpgradeSummary}" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
                             <TextBlock Style="{StaticResource Hint}" Text="Chỉ gồm phần mềm winget nhận ra. Phần mềm đang mở có thể cần đóng lại để cập nhật."/>
                         </StackPanel>
                     </DockPanel>
@@ -271,23 +271,23 @@
                         <ItemsControl ItemsSource="{Binding Upgrades}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,8">
+                                    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,8">
                                         <DockPanel>
                                             <CheckBox IsChecked="{Binding IsChecked}" VerticalAlignment="Center" Margin="0,0,12,0" IsEnabled="{Binding CanUpgrade}"/>
                                             <Grid DockPanel.Dock="Right" VerticalAlignment="Center">
                                                 <Button Style="{StaticResource BtnSmall}" Content="Cập nhật" IsEnabled="{Binding CanUpgrade}"
                                                         Visibility="{Binding IsQueued, Converter={StaticResource NotBoolVis}}"
                                                         Command="{Binding DataContext.UpgradeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
-                                                <TextBlock Text="Trong hàng đợi" Foreground="{StaticResource AccentBrush}" FontSize="12"
+                                                <TextBlock Text="Trong hàng đợi" Foreground="{DynamicResource AccentBrush}" FontSize="12"
                                                            Visibility="{Binding IsQueued, Converter={StaticResource BoolVis}}"/>
                                             </Grid>
                                             <TextBlock DockPanel.Dock="Right" Width="230" Margin="0,0,16,0" VerticalAlignment="Center" FontSize="12.5">
-                                                <Run Text="{Binding Row.Version, Mode=OneWay}" Foreground="{StaticResource MutedBrush}"/>
-                                                <Run Text="  →  " Foreground="{StaticResource FaintBrush}"/>
-                                                <Run Text="{Binding Row.Available, Mode=OneWay}" Foreground="{StaticResource WarnBrush}"/>
+                                                <Run Text="{Binding Row.Version, Mode=OneWay}" Foreground="{DynamicResource MutedBrush}"/>
+                                                <Run Text="  →  " Foreground="{DynamicResource FaintBrush}"/>
+                                                <Run Text="{Binding Row.Available, Mode=OneWay}" Foreground="{DynamicResource WarnBrush}"/>
                                             </TextBlock>
                                             <StackPanel>
-                                                <TextBlock Text="{Binding Row.Name}" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Row.Name}" Foreground="{DynamicResource TextBrush}" TextTrimming="CharacterEllipsis"/>
                                                 <TextBlock Text="{Binding Row.Id}" Style="{StaticResource Hint}"/>
                                             </StackPanel>
                                         </DockPanel>
@@ -306,7 +306,7 @@
                         <StackPanel>
                             <DockPanel Margin="0,0,0,6">
                                 <Border Style="{StaticResource CardIcon}">
-                                    <TextBlock Text="&#xE7F8;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="&#xE7F8;" Style="{StaticResource Icon}" FontSize="14" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
                                 </Border>
                                 <TextBlock Text="Thành phần Windows" Style="{StaticResource H2}" VerticalAlignment="Center"/>
                             </DockPanel>
@@ -314,7 +314,7 @@
                                 <DockPanel>
                                     <CheckBox IsChecked="{Binding NetFx3}" VerticalAlignment="Top" Margin="0,2,12,0"/>
                                     <StackPanel>
-                                        <TextBlock Text="Bật .NET Framework 3.5 (gồm 2.0 và 3.0)" Foreground="{StaticResource TextBrush}"/>
+                                        <TextBlock Text="Bật .NET Framework 3.5 (gồm 2.0 và 3.0)" Foreground="{DynamicResource TextBrush}"/>
                                         <TextBlock Text="{Binding NetFx3State}" Style="{StaticResource Hint}"/>
                                     </StackPanel>
                                 </DockPanel>
@@ -323,7 +323,7 @@
                                 <DockPanel>
                                     <CheckBox IsChecked="{Binding UpgradeAll}" VerticalAlignment="Top" Margin="0,2,12,0"/>
                                     <StackPanel>
-                                        <TextBlock Text="Cập nhật mọi phần mềm khác lên bản mới nhất" Foreground="{StaticResource TextBrush}"/>
+                                        <TextBlock Text="Cập nhật mọi phần mềm khác lên bản mới nhất" Foreground="{DynamicResource TextBrush}"/>
                                         <TextBlock Text="winget upgrade --all — chạy sau cùng" Style="{StaticResource Hint}"/>
                                     </StackPanel>
                                 </DockPanel>
@@ -340,13 +340,13 @@
                                     <Button Style="{StaticResource BtnSmall}" Content="Chọn thư mục…" Command="{Binding PickFolderCommand}"/>
                                 </StackPanel>
                                 <Border Style="{StaticResource CardIcon}">
-                                    <TextBlock Text="&#xE8B7;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="&#xE8B7;" Style="{StaticResource Icon}" FontSize="14" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
                                 </Border>
                                 <TextBlock Text="Bộ cài có sẵn trong thư mục / USB" Style="{StaticResource H2}" VerticalAlignment="Center"/>
                             </DockPanel>
                             <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,6"
                                        Text="Bấm “Chọn thư mục…” hoặc kéo thả thư mục vào đây (vd thư mục bộ cài trên USB). App nhận diện bộ cài MSI, Inno Setup, NSIS, InstallShield, WiX… để cài im lặng; bộ cài không rõ kiểu sẽ mở giao diện bình thường."/>
-                            <TextBlock Text="{Binding OfflineFolder}" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Foreground="{StaticResource FaintBrush}"
+                            <TextBlock Text="{Binding OfflineFolder}" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Foreground="{DynamicResource FaintBrush}"
                                        Visibility="{Binding OfflineFolder, Converter={x:Static core:Converters.NonEmptyVis}}"/>
                             <ItemsControl ItemsSource="{Binding Offline}" Margin="0,6,0,0">
                                 <ItemsControl.ItemTemplate>
@@ -355,13 +355,13 @@
                                             <DockPanel>
                                                 <CheckBox IsChecked="{Binding IsChecked}" VerticalAlignment="Center" Margin="0,0,12,0"/>
                                                 <TextBlock DockPanel.Dock="Right" Text="{Binding SizeText}" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="12,0,0,0"/>
-                                                <TextBlock x:Name="Ty" DockPanel.Dock="Right" Text="{Binding Type.Label}" FontSize="11.5" VerticalAlignment="Center" Foreground="{StaticResource GoodBrush}"/>
-                                                <TextBlock Text="{Binding FileName}" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                                <TextBlock x:Name="Ty" DockPanel.Dock="Right" Text="{Binding Type.Label}" FontSize="11.5" VerticalAlignment="Center" Foreground="{DynamicResource GoodBrush}"/>
+                                                <TextBlock Text="{Binding FileName}" Foreground="{DynamicResource TextBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,12,0"/>
                                             </DockPanel>
                                         </Border>
                                         <DataTemplate.Triggers>
                                             <DataTrigger Binding="{Binding Type.CanSilent}" Value="False">
-                                                <Setter TargetName="Ty" Property="Foreground" Value="{StaticResource WarnBrush}"/>
+                                                <Setter TargetName="Ty" Property="Foreground" Value="{DynamicResource WarnBrush}"/>
                                             </DataTrigger>
                                         </DataTemplate.Triggers>
                                     </DataTemplate>
@@ -401,11 +401,11 @@
         </Grid>
 
         <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20" CornerRadius="20" Padding="18,9"
-                Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
                 Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
-                <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource TextBrush}"/>
+                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{DynamicResource AccentBrush}" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding BusyText}" Foreground="{DynamicResource TextBrush}"/>
             </StackPanel>
         </Border>
     </Grid>

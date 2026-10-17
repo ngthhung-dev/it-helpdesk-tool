@@ -29,13 +29,13 @@
                 <ItemsControl ItemsSource="{Binding Items}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,8">
+                            <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,8">
                                 <DockPanel>
                                     <TextBlock x:Name="Ico" DockPanel.Dock="Left" Width="22" Margin="0,1,6,0" VerticalAlignment="Top"
-                                               Style="{StaticResource Icon}" FontSize="13" Text="&#xE823;" Foreground="{StaticResource FaintBrush}"/>
+                                               Style="{StaticResource Icon}" FontSize="13" Text="&#xE823;" Foreground="{DynamicResource FaintBrush}"/>
                                     <StackPanel>
-                                        <TextBlock Text="{Binding Name}" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock x:Name="St" Text="{Binding Status}" FontSize="11.5" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextBrush}" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock x:Name="St" Text="{Binding Status}" FontSize="11.5" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"/>
                                         <ProgressBar x:Name="Pb" IsIndeterminate="True" Height="3" Margin="0,5,0,0" Visibility="Collapsed"/>
                                     </StackPanel>
                                 </DockPanel>
@@ -43,17 +43,17 @@
                             <DataTemplate.Triggers>
                                 <DataTrigger Binding="{Binding State}" Value="Running">
                                     <Setter TargetName="Ico" Property="Text" Value="&#xE895;"/>
-                                    <Setter TargetName="Ico" Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                                    <Setter TargetName="Ico" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                                     <Setter TargetName="Pb" Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding State}" Value="Done">
                                     <Setter TargetName="Ico" Property="Text" Value="&#xE73E;"/>
-                                    <Setter TargetName="Ico" Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                    <Setter TargetName="Ico" Property="Foreground" Value="{DynamicResource GoodBrush}"/>
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding State}" Value="Failed">
                                     <Setter TargetName="Ico" Property="Text" Value="&#xE783;"/>
-                                    <Setter TargetName="Ico" Property="Foreground" Value="{StaticResource BadBrush}"/>
-                                    <Setter TargetName="St" Property="Foreground" Value="{StaticResource BadBrush}"/>
+                                    <Setter TargetName="Ico" Property="Foreground" Value="{DynamicResource BadBrush}"/>
+                                    <Setter TargetName="St" Property="Foreground" Value="{DynamicResource BadBrush}"/>
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding State}" Value="Cancelled">
                                     <Setter TargetName="Ico" Property="Text" Value="&#xE711;"/>

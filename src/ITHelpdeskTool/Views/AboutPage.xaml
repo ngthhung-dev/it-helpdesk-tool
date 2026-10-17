@@ -8,7 +8,7 @@
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
         <Style x:Key="RowVal" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="FontSize" Value="14"/>
         </Style>
@@ -26,7 +26,7 @@
             <Image Source="/Assets/app.png" Width="96" Height="96" RenderOptions.BitmapScalingMode="HighQuality"/>
             <TextBlock Text="{Binding AppName}" Style="{StaticResource H1}" HorizontalAlignment="Center" Margin="0,16,0,4"/>
             <TextBlock Style="{StaticResource Muted}" HorizontalAlignment="Center" FontSize="13">
-                <Run Text="Phiên bản"/> <Run Text="{Binding Version, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
+                <Run Text="Phiên bản"/> <Run Text="{Binding Version, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/>
                 <Run Text="·"/> <Run Text="{Binding Runtime, Mode=OneWay}"/>
             </TextBlock>
             <TextBlock Text="Bộ công cụ hỗ trợ IT cho Windows: kiểm tra máy, tối ưu, cài đặt phần mềm, sửa lỗi hệ thống."
@@ -39,13 +39,13 @@
                     <TextBlock Text="Tác giả &amp; liên hệ" Style="{StaticResource H2}" Margin="0,0,0,16"/>
 
                     <DockPanel Margin="0,0,0,14">
-                        <TextBlock Text="&#xE77B;" Style="{StaticResource Icon}" Foreground="{StaticResource AccentBrush}" Width="30"/>
+                        <TextBlock Text="&#xE77B;" Style="{StaticResource Icon}" Foreground="{DynamicResource AccentBrush}" Width="30"/>
                         <TextBlock Text="Tác giả" Style="{StaticResource RowKey}"/>
                         <TextBlock Text="{Binding Author}" Style="{StaticResource RowVal}"/>
                     </DockPanel>
 
                     <DockPanel Margin="0,0,0,14">
-                        <TextBlock Text="&#xE715;" Style="{StaticResource Icon}" Foreground="{StaticResource AccentBrush}" Width="30"/>
+                        <TextBlock Text="&#xE715;" Style="{StaticResource Icon}" Foreground="{DynamicResource AccentBrush}" Width="30"/>
                         <TextBlock Text="Email" Style="{StaticResource RowKey}"/>
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                             <Button Style="{StaticResource SmallBtn}" Content="Chép" Command="{Binding CopyEmailCommand}"/>
@@ -55,7 +55,7 @@
                     </DockPanel>
 
                     <DockPanel>
-                        <TextBlock Text="&#xE717;" Style="{StaticResource Icon}" Foreground="{StaticResource AccentBrush}" Width="30"/>
+                        <TextBlock Text="&#xE717;" Style="{StaticResource Icon}" Foreground="{DynamicResource AccentBrush}" Width="30"/>
                         <TextBlock Text="Điện thoại / Zalo" Style="{StaticResource RowKey}"/>
                         <Button DockPanel.Dock="Right" Style="{StaticResource SmallBtn}" Content="Chép" Command="{Binding CopyPhoneCommand}"/>
                         <TextBlock Text="{Binding Phone}" Style="{StaticResource RowVal}"/>
@@ -71,7 +71,7 @@
                 </StackPanel>
             </Button>
 
-            <TextBlock Text="{Binding Status}" Foreground="{StaticResource GoodBrush}" HorizontalAlignment="Center"
+            <TextBlock Text="{Binding Status}" Foreground="{DynamicResource GoodBrush}" HorizontalAlignment="Center"
                        Margin="0,12,0,0" Height="18"/>
             <TextBlock Text="{Binding Copyright}" Style="{StaticResource Caption}" FontWeight="Normal"
                        HorizontalAlignment="Center" Margin="0,8,0,0"/>

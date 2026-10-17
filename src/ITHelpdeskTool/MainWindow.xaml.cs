@@ -1,3 +1,4 @@
+using ITHelpdeskTool.Core;
 using System.Windows;
 using ITHelpdeskTool.Services;
 
@@ -8,6 +9,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        UpdateThemeButton();
         StateChanged += (_, _) =>
         {
             AppState.IsMinimized = WindowState == WindowState.Minimized;
@@ -19,6 +21,29 @@ public partial class MainWindow : Window
             Log.Mark("Cửa sổ đã hiển thị");
             UiWatchdog.Start(Dispatcher);   // bắt đầu canh treo sau khi đã mở xong
         };
+    }
+
+    private void UpdateThemeButton()
+    {
+        var m = ThemeService.Mode;
+        ThemeButton.Content = m switch { ThemeMode.Light => "\uE706", ThemeMode.Dark => "\uE708", _ => "\uE7F4" };
+        ThemeButton.ToolTip = "Giao diện: " + m switch { ThemeMode.Light => "sáng", ThemeMode.Dark => "tối", _ => "theo hệ thống" };
+        ThemeSystem.IsChecked = m == ThemeMode.System;
+        ThemeLight.IsChecked = m == ThemeMode.Light;
+        ThemeDark.IsChecked = m == ThemeMode.Dark;
+    }
+
+    private void Theme_Click(object sender, RoutedEventArgs e)
+    {
+        UpdateThemeButton();
+        ThemeMenu.PlacementTarget = ThemeButton;
+        ThemeMenu.IsOpen = true;
+    }
+
+    private void ThemeItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.MenuItem { Tag: string t } && Enum.TryParse<ThemeMode>(t, out var m)) ThemeService.Set(m);
+        UpdateThemeButton();
     }
 
     private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;

@@ -17,7 +17,7 @@
             <Setter Property="TextTrimming" Value="None"/>
         </Style>
         <Style x:Key="Row" TargetType="Border">
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
             <Setter Property="Padding" Value="0,10"/>
         </Style>
@@ -70,10 +70,10 @@
                                                             Command="{Binding DataContext.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                                 </StackPanel>
                                                 <StackPanel Margin="0,0,10,0">
-                                                    <TextBlock Text="{Binding F.Name}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding F.Name}" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                                                     <TextBlock Text="{Binding F.Detail}" Style="{StaticResource Hint}"/>
-                                                    <TextBlock Text="{Binding F.Folder}" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Foreground="{StaticResource FaintBrush}" TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Text="Gần giới hạn 50 GB — nên lưu trữ bớt thư cũ (File › Tools › Clean Up / Archive)." FontSize="12" Foreground="{StaticResource WarnBrush}"
+                                                    <TextBlock Text="{Binding F.Folder}" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Foreground="{DynamicResource FaintBrush}" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="Gần giới hạn 50 GB — nên lưu trữ bớt thư cũ (File › Tools › Clean Up / Archive)." FontSize="12" Foreground="{DynamicResource WarnBrush}"
                                                                TextWrapping="Wrap" Visibility="{Binding F.NearLimit, Converter={StaticResource BoolVis}}"/>
                                                 </StackPanel>
                                             </DockPanel>
@@ -105,7 +105,7 @@
                             <DockPanel Margin="0,0,0,6">
                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="0,0,10,0">
-                                        <Run Text="Hồ sơ mặc định:"/> <Run Text="{Binding DefaultProfile, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
+                                        <Run Text="Hồ sơ mặc định:"/> <Run Text="{Binding DefaultProfile, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/>
                                     </TextBlock>
                                     <Button Style="{StaticResource BtnSmall}" Content="Mail Setup (hồ sơ &amp; file dữ liệu)" Command="{Binding MailSetupCommand}"/>
                                 </StackPanel>
@@ -120,7 +120,7 @@
                                         <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Mở" CommandParameter="/safe" VerticalAlignment="Center"
                                                 Command="{Binding StartWithCommand}" IsEnabled="{Binding HasOutlook}"/>
                                         <StackPanel Margin="0,0,8,0">
-                                            <TextBlock Text="Chế độ an toàn" Foreground="{StaticResource TextBrush}"/>
+                                            <TextBlock Text="Chế độ an toàn" Foreground="{DynamicResource TextBrush}"/>
                                             <TextBlock Text="Tắt add-in — dùng khi Outlook treo / văng lúc mở." Style="{StaticResource Hint}"/>
                                         </StackPanel>
                                     </DockPanel>
@@ -130,7 +130,7 @@
                                         <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Mở" CommandParameter="/resetnavpane" VerticalAlignment="Center"
                                                 Command="{Binding StartWithCommand}" IsEnabled="{Binding HasOutlook}"/>
                                         <StackPanel Margin="0,0,8,0">
-                                            <TextBlock Text="Đặt lại khung thư mục" Foreground="{StaticResource TextBrush}"/>
+                                            <TextBlock Text="Đặt lại khung thư mục" Foreground="{DynamicResource TextBrush}"/>
                                             <TextBlock Text="Sửa lỗi không mở được do khung bên trái hỏng." Style="{StaticResource Hint}"/>
                                         </StackPanel>
                                     </DockPanel>
@@ -140,7 +140,7 @@
                                         <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Mở" CommandParameter="/cleanviews" VerticalAlignment="Center"
                                                 Command="{Binding StartWithCommand}" IsEnabled="{Binding HasOutlook}"/>
                                         <StackPanel Margin="0,0,8,0">
-                                            <TextBlock Text="Đặt lại kiểu hiển thị" Foreground="{StaticResource TextBrush}"/>
+                                            <TextBlock Text="Đặt lại kiểu hiển thị" Foreground="{DynamicResource TextBrush}"/>
                                             <TextBlock Text="Khi danh sách thư hiển thị sai / mất cột." Style="{StaticResource Hint}"/>
                                         </StackPanel>
                                     </DockPanel>
@@ -150,7 +150,7 @@
                                         <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Mở" CommandParameter="/cleanreminders" VerticalAlignment="Center"
                                                 Command="{Binding StartWithCommand}" IsEnabled="{Binding HasOutlook}"/>
                                         <StackPanel Margin="0,0,8,0">
-                                            <TextBlock Text="Xoá nhắc nhở lỗi" Foreground="{StaticResource TextBrush}"/>
+                                            <TextBlock Text="Xoá nhắc nhở lỗi" Foreground="{DynamicResource TextBrush}"/>
                                             <TextBlock Text="Khi nhắc lịch hiện liên tục / không tắt được." Style="{StaticResource Hint}"/>
                                         </StackPanel>
                                     </DockPanel>
@@ -182,13 +182,13 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock FontSize="12" TextWrapping="Wrap" Margin="0,0,0,3">
-                                        <Run Text="{Binding Time, Mode=OneWay}" Foreground="{StaticResource FaintBrush}"/>
+                                        <Run Text="{Binding Time, Mode=OneWay}" Foreground="{DynamicResource FaintBrush}"/>
                                         <Run Text="{Binding Text, Mode=OneWay}">
                                             <Run.Style>
                                                 <Style TargetType="Run">
-                                                    <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource GoodBrush}"/>
                                                     <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Ok}" Value="False"><Setter Property="Foreground" Value="{StaticResource BadBrush}"/></DataTrigger>
+                                                        <DataTrigger Binding="{Binding Ok}" Value="False"><Setter Property="Foreground" Value="{DynamicResource BadBrush}"/></DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </Run.Style>
@@ -204,11 +204,11 @@
         </Grid>
 
         <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20" CornerRadius="20" Padding="18,9"
-                Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
                 Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
-                <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource TextBrush}"/>
+                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{DynamicResource AccentBrush}" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding BusyText}" Foreground="{DynamicResource TextBrush}"/>
             </StackPanel>
         </Border>
     </Grid>

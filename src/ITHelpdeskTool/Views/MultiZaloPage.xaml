@@ -54,11 +54,11 @@
 
     <ScrollViewer Grid.Row="1" x:Name="PageScroller" VerticalScrollBarVisibility="Auto" Padding="28,6,22,28">
         <StackPanel>
-            <Border Style="{StaticResource Card}" BorderBrush="{StaticResource WarnBrush}" Margin="0,0,0,12" Visibility="{Binding Installed, Converter={StaticResource NotBoolVis}}">
+            <Border Style="{StaticResource Card}" BorderBrush="{DynamicResource WarnBrush}" Margin="0,0,0,12" Visibility="{Binding Installed, Converter={StaticResource NotBoolVis}}">
                 <DockPanel>
                     <Button DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Content="Cài Zalo PC" Command="{Binding InstallZaloCommand}" VerticalAlignment="Center"/>
                     <StackPanel>
-                        <TextBlock Text="Chưa cài Zalo PC" Foreground="{StaticResource WarnBrush}" FontWeight="SemiBold"/>
+                        <TextBlock Text="Chưa cài Zalo PC" Foreground="{DynamicResource WarnBrush}" FontWeight="SemiBold"/>
                         <TextBlock Style="{StaticResource Hint}" Text="Cài Zalo từ trang App Store (tải từ trang Zalo), rồi quay lại đây tạo hồ sơ."/>
                     </StackPanel>
                 </DockPanel>
@@ -70,13 +70,13 @@
                     <StackPanel>
                         <DockPanel>
                             <Border DockPanel.Dock="Right" Style="{StaticResource RunBadge}" Visibility="{Binding MainRunning, Converter={StaticResource BoolVis}}">
-                                <TextBlock Text="Đang mở" FontSize="11.5" Foreground="{StaticResource GoodBrush}"/>
+                                <TextBlock Text="Đang mở" FontSize="11.5" Foreground="{DynamicResource GoodBrush}"/>
                             </Border>
                             <Border Width="40" Height="40" CornerRadius="10" Background="#2A5B8CFF" Margin="0,0,12,0">
-                                <TextBlock Text="Z" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Text="Z" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="Zalo chính" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                                <TextBlock Text="Zalo chính" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
                                 <TextBlock Style="{StaticResource Hint}"><Run Text="Hồ sơ mặc định ·"/> <Run Text="{Binding MainSize, Mode=OneWay}"/></TextBlock>
                             </StackPanel>
                         </DockPanel>
@@ -94,24 +94,24 @@
                                 <StackPanel>
                                     <DockPanel>
                                         <Border DockPanel.Dock="Right" Style="{StaticResource RunBadge}" Visibility="{Binding Running, Converter={StaticResource BoolVis}}">
-                                            <TextBlock Text="Đang mở" FontSize="11.5" Foreground="{StaticResource GoodBrush}"/>
+                                            <TextBlock Text="Đang mở" FontSize="11.5" Foreground="{DynamicResource GoodBrush}"/>
                                         </Border>
                                         <Border Style="{StaticResource Avatar}" Margin="0,0,12,0">
-                                            <TextBlock Text="{Binding Initial}" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding Initial}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </Border>
                                         <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding P.Name}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding P.Name}" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                                             <TextBlock Text="{Binding SizeText}" Style="{StaticResource Hint}"/>
                                         </StackPanel>
                                     </DockPanel>
-                                    <TextBlock Text="{Binding P.Folder}" FontFamily="{StaticResource MonoFont}" FontSize="11" Foreground="{StaticResource FaintBrush}" TextTrimming="CharacterEllipsis" Margin="0,8,0,0"/>
+                                    <TextBlock Text="{Binding P.Folder}" FontFamily="{StaticResource MonoFont}" FontSize="11" Foreground="{DynamicResource FaintBrush}" TextTrimming="CharacterEllipsis" Margin="0,8,0,0"/>
                                     <WrapPanel Margin="0,10,0,0">
                                         <Button Style="{StaticResource BtnPrimary}" Content="Mở" Margin="0,0,6,6" Padding="14,4" CommandParameter="{Binding}"
                                                 Command="{Binding DataContext.StartCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                         <Button Style="{StaticResource Act}" Content="Lối tắt Desktop" Command="{Binding DataContext.ShortcutCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                         <Button Style="{StaticResource Act}" Content="Đổi tên" Command="{Binding DataContext.RenameCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                         <Button Style="{StaticResource Act}" Content="Thư mục" Command="{Binding DataContext.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                                        <Button Style="{StaticResource Act}" Content="Xoá" Foreground="{StaticResource BadBrush}" Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                        <Button Style="{StaticResource Act}" Content="Xoá" Foreground="{DynamicResource BadBrush}" Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                     </WrapPanel>
                                 </StackPanel>
                             </Border>
@@ -138,25 +138,25 @@
                     <DockPanel Margin="0,10,0,0">
                         <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Đổi…" Margin="8,0,0,0" Command="{Binding PickBaseCommand}"/>
                         <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center">
-                            <Run Text="Lưu dữ liệu tại:"/> <Run Text="{Binding BaseDir, Mode=OneWay}" Foreground="{StaticResource TextBrush}" FontFamily="{StaticResource MonoFont}"/>
+                            <Run Text="Lưu dữ liệu tại:"/> <Run Text="{Binding BaseDir, Mode=OneWay}" Foreground="{DynamicResource TextBrush}" FontFamily="{StaticResource MonoFont}"/>
                         </TextBlock>
                     </DockPanel>
                 </StackPanel>
             </Border>
 
             <!-- Hạn chế khi mở nhiều Zalo -->
-            <Border c:SectionIndex.Title="Lưu ý" Style="{StaticResource Card}" BorderBrush="{StaticResource WarnBrush}" Margin="0,0,0,12">
+            <Border c:SectionIndex.Title="Lưu ý" Style="{StaticResource Card}" BorderBrush="{DynamicResource WarnBrush}" Margin="0,0,0,12">
                 <StackPanel>
                     <TextBlock Text="Lưu ý: chụp màn hình khi mở nhiều Zalo" Style="{StaticResource H2}"/>
                     <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0"
                                Text="Phím tắt chụp màn hình của Zalo (Ctrl+Alt+S, Ctrl+Alt+A) không dùng được khi mở từ 2 Zalo trở lên, kể cả khi đổi phím tắt khác nhau. Nguyên nhân: Zalo chụp màn hình bằng chương trình phụ ZaloCap.exe, mà chương trình này chỉ cho chạy một bản trên cả máy — Zalo mở sau tắt bộ chụp của Zalo mở trước nên các Zalo giành nhau. Đây là giới hạn của Zalo, không sửa được từ bên ngoài."/>
-                    <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0" Foreground="{StaticResource TextBrush}"
+                    <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0" Foreground="{DynamicResource TextBrush}"
                                Text="Cách thay thế (dùng được cho mọi Zalo): bấm Win+Shift+S hoặc PrtScn để chụp bằng công cụ của Windows, rồi bấm Ctrl+V vào ô chat Zalo để gửi ảnh."/>
                     <WrapPanel Margin="0,10,0,0">
                         <Button Style="{StaticResource BtnSmall}" Content="Chụp thử ngay" Margin="0,0,6,6" Command="{Binding OpenSnipCommand}"/>
                         <Button Style="{StaticResource BtnSmall}" Content="Bật chụp bằng phím PrtScn" Margin="0,0,6,6" Command="{Binding EnablePrtScnCommand}"
                                 Visibility="{Binding PrtScnOn, Converter={StaticResource NotBoolVis}}"/>
-                        <TextBlock Text="✓ Phím PrtScn đang mở công cụ chụp màn hình" Foreground="{StaticResource GoodBrush}" FontSize="12" VerticalAlignment="Center" Margin="4,0,0,6"
+                        <TextBlock Text="✓ Phím PrtScn đang mở công cụ chụp màn hình" Foreground="{DynamicResource GoodBrush}" FontSize="12" VerticalAlignment="Center" Margin="4,0,0,6"
                                    Visibility="{Binding PrtScnOn, Converter={StaticResource BoolVis}}"/>
                     </WrapPanel>
                 </StackPanel>
@@ -166,13 +166,13 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <TextBlock FontSize="12" TextWrapping="Wrap" Margin="0,0,0,3">
-                            <Run Text="{Binding Time, Mode=OneWay}" Foreground="{StaticResource FaintBrush}"/>
+                            <Run Text="{Binding Time, Mode=OneWay}" Foreground="{DynamicResource FaintBrush}"/>
                             <Run Text="{Binding Text, Mode=OneWay}">
                                 <Run.Style>
                                     <Style TargetType="Run">
-                                        <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource GoodBrush}"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Ok}" Value="False"><Setter Property="Foreground" Value="{StaticResource BadBrush}"/></DataTrigger>
+                                            <DataTrigger Binding="{Binding Ok}" Value="False"><Setter Property="Foreground" Value="{DynamicResource BadBrush}"/></DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Run.Style>

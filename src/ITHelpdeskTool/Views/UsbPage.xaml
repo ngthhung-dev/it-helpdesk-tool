@@ -20,12 +20,12 @@
             <Setter Property="Width" Value="26"/>
             <Setter Property="Height" Value="26"/>
             <Setter Property="CornerRadius" Value="13"/>
-            <Setter Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
             <Setter Property="Margin" Value="0,0,12,0"/>
             <Setter Property="VerticalAlignment" Value="Top"/>
         </Style>
         <Style x:Key="StepNum" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -62,12 +62,12 @@
                     <DockPanel>
                         <Border DockPanel.Dock="Left" Style="{StaticResource Step}"><TextBlock Text="1" Style="{StaticResource StepNum}"/></Border>
                         <StackPanel>
-                            <TextBlock Text="Bộ cài Windows" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                            <TextBlock Text="Bộ cài Windows" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
                             <TextBlock Text="Chọn file ISO gốc của Microsoft (tải ở trang “Tải ISO”) hoặc thư mục đã giải nén bộ cài." Style="{StaticResource Hint}"
                                        Visibility="{Binding HasSource, Converter={x:Static core:Converters.NotVis}}"/>
                             <StackPanel Orientation="Horizontal" Visibility="{Binding HasSource, Converter={StaticResource BoolVis}}">
-                                <TextBlock Text="&#xE73E;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource GoodBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding SourceName}" Foreground="{StaticResource TextBrush}" FontSize="12.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                <TextBlock Text="&#xE73E;" Style="{StaticResource Icon}" FontSize="13" Foreground="{DynamicResource GoodBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding SourceName}" Foreground="{DynamicResource TextBrush}" FontSize="12.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="{Binding SourceText}" Style="{StaticResource Hint}" Visibility="{Binding SourceText, Converter={x:Static core:Converters.NonEmptyVis}}"/>
                             <WrapPanel Margin="0,10,0,0">
@@ -83,7 +83,7 @@
                     <DockPanel>
                         <Border DockPanel.Dock="Left" Style="{StaticResource Step}"><TextBlock Text="2" Style="{StaticResource StepNum}"/></Border>
                         <StackPanel>
-                            <TextBlock Text="USB" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                            <TextBlock Text="USB" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
                             <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,8"
                                        Text="Chỉ hiện ổ USB / thẻ nhớ — ổ cứng trong máy và ổ đang chạy Windows không bao giờ có trong danh sách."/>
                             <DockPanel>
@@ -106,7 +106,7 @@
                     <DockPanel>
                         <Border DockPanel.Dock="Left" Style="{StaticResource Step}"><TextBlock Text="3" Style="{StaticResource StepNum}"/></Border>
                         <StackPanel>
-                            <TextBlock Text="Kiểu khởi động &amp; tên USB" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                            <TextBlock Text="Kiểu khởi động &amp; tên USB" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
                             <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,8"
                                        Text="GPT cho máy UEFI (hầu hết máy từ 2013). MBR khi cần cài cho máy đời cũ chỉ có BIOS."/>
                             <WrapPanel>
@@ -136,8 +136,8 @@
                             </StackPanel>
                         </Button>
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Tạo USB" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
-                            <TextBlock Text="Toàn bộ dữ liệu trên USB sẽ bị xoá. Mất khoảng 10–20 phút tuỳ tốc độ USB." FontSize="12" Foreground="{StaticResource WarnBrush}" TextWrapping="Wrap"/>
+                            <TextBlock Text="Tạo USB" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
+                            <TextBlock Text="Toàn bộ dữ liệu trên USB sẽ bị xoá. Mất khoảng 10–20 phút tuỳ tốc độ USB." FontSize="12" Foreground="{DynamicResource WarnBrush}" TextWrapping="Wrap"/>
                         </StackPanel>
                     </DockPanel>
                 </Border>
@@ -153,14 +153,14 @@
                                 Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}"/>
                         <TextBlock Text="Tiến độ" Style="{StaticResource H2}"/>
                     </DockPanel>
-                    <TextBlock Text="{Binding Status}" Foreground="{StaticResource AccentBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding Status}" Foreground="{DynamicResource AccentBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                     <ProgressBar Height="6" Margin="0,6,0,0" Value="{Binding Progress}" Maximum="100" Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}"/>
                     <TextBlock Text="{Binding Result}" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
-                                <Setter Property="Foreground" Value="{StaticResource BadBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource BadBrush}"/>
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding ResultOk}" Value="True"><Setter Property="Foreground" Value="{StaticResource GoodBrush}"/></DataTrigger>
+                                    <DataTrigger Binding="{Binding ResultOk}" Value="True"><Setter Property="Foreground" Value="{DynamicResource GoodBrush}"/></DataTrigger>
                                     <Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger>
                                 </Style.Triggers>
                             </Style>
@@ -168,7 +168,7 @@
                     </TextBlock>
                 </StackPanel>
                 <TextBox Text="{Binding LogText, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent"
-                         Foreground="{StaticResource MutedBrush}" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Padding="14,0,10,12"
+                         Foreground="{DynamicResource MutedBrush}" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Padding="14,0,10,12"
                          TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
             </DockPanel>
         </Border>

@@ -48,12 +48,12 @@
             <StackPanel>
 
                 <!-- Sửa tự động -->
-                <Border c:SectionIndex.Title="Sửa tự động" Style="{StaticResource Card}" Margin="0,0,0,12" Background="{StaticResource AccentSoftBrush}" BorderBrush="{StaticResource AccentBrush}">
+                <Border c:SectionIndex.Title="Sửa tự động" Style="{StaticResource Card}" Margin="0,0,0,12" Background="{DynamicResource AccentSoftBrush}" BorderBrush="{DynamicResource AccentBrush}">
                     <StackPanel>
-                        <TextBlock Text="Sửa file hệ thống tự động" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                        <TextBlock Text="Sửa file hệ thống tự động" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
                         <TextBlock Style="{StaticResource Hint}" Text="Tạo điểm khôi phục → DISM RestoreHealth → SFC. Dùng khi Windows chạy chập chờn, lỗi ứng dụng hệ thống, cập nhật hỏng."/>
                         <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,0">
-                            <Run Text="Nguồn sửa DISM:"/> <Run Text="{Binding SourceText, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
+                            <Run Text="Nguồn sửa DISM:"/> <Run Text="{Binding SourceText, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/>
                         </TextBlock>
                         <WrapPanel Margin="0,10,0,0">
                             <Button Style="{StaticResource BtnPrimary}" Command="{Binding AutoRepairCommand}" IsEnabled="{Binding IsIdle}" Margin="0,0,14,6">
@@ -79,27 +79,27 @@
                                     <ItemsControl ItemsSource="{Binding Tools}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
+                                                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
                                                     <DockPanel>
                                                         <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Chạy" VerticalAlignment="Center" Margin="12,0,0,0"
                                                                 IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                 Command="{Binding DataContext.RunCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
-                                                        <Border DockPanel.Dock="Left" Width="30" Height="30" CornerRadius="8" Background="{StaticResource Surface2Brush}" Margin="0,0,12,0" VerticalAlignment="Top">
-                                                            <TextBlock Text="{Binding Tool.Glyph}" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                                        <Border DockPanel.Dock="Left" Width="30" Height="30" CornerRadius="8" Background="{DynamicResource Surface2Brush}" Margin="0,0,12,0" VerticalAlignment="Top">
+                                                            <TextBlock Text="{Binding Tool.Glyph}" Style="{StaticResource Icon}" FontSize="14" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
                                                         </Border>
                                                         <StackPanel>
-                                                            <TextBlock Text="{Binding Tool.Title}" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
-                                                            <TextBlock Text="Cần khởi động lại" FontSize="11.5" Foreground="{StaticResource WarnBrush}"
+                                                            <TextBlock Text="{Binding Tool.Title}" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap"/>
+                                                            <TextBlock Text="Cần khởi động lại" FontSize="11.5" Foreground="{DynamicResource WarnBrush}"
                                                                        Visibility="{Binding Tool.NeedsRestart, Converter={StaticResource BoolVis}}"/>
                                                             <TextBlock Text="{Binding Tool.Description}" Style="{StaticResource Hint}"/>
                                                             <ProgressBar IsIndeterminate="True" Height="3" Margin="0,6,0,0" Visibility="{Binding IsRunning, Converter={StaticResource BoolVis}}"/>
-                                                            <TextBlock x:Name="Res" Text="{Binding Result}" Style="{StaticResource EmptyHidden}" Margin="0,4,0,0" Foreground="{StaticResource GoodBrush}"/>
+                                                            <TextBlock x:Name="Res" Text="{Binding Result}" Style="{StaticResource EmptyHidden}" Margin="0,4,0,0" Foreground="{DynamicResource GoodBrush}"/>
                                                         </StackPanel>
                                                     </DockPanel>
                                                 </Border>
                                                 <DataTemplate.Triggers>
                                                     <DataTrigger Binding="{Binding Tone}" Value="Bad">
-                                                        <Setter TargetName="Res" Property="Foreground" Value="{StaticResource BadBrush}"/>
+                                                        <Setter TargetName="Res" Property="Foreground" Value="{DynamicResource BadBrush}"/>
                                                     </DataTrigger>
                                                 </DataTemplate.Triggers>
                                             </DataTemplate>
@@ -126,13 +126,13 @@
                         <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Đọc lại" Command="{Binding LoadStatusCommand}"/>
                         <TextBlock Text="Tình trạng máy" Style="{StaticResource H2}" VerticalAlignment="Center"/>
                     </DockPanel>
-                    <TextBlock Text="{Binding OsText}" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding OsText}" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap"/>
                     <TextBlock Text="{Binding RebootText}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
-                                <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding RebootPending}" Value="True"><Setter Property="Foreground" Value="{StaticResource WarnBrush}"/></DataTrigger>
+                                    <DataTrigger Binding="{Binding RebootPending}" Value="True"><Setter Property="Foreground" Value="{DynamicResource WarnBrush}"/></DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </TextBlock.Style>
@@ -142,7 +142,7 @@
                     <ItemsControl ItemsSource="{Binding Crashes}" Margin="8,2,0,0">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock FontSize="11.5" Foreground="{StaticResource FaintBrush}" FontFamily="{StaticResource MonoFont}">
+                                <TextBlock FontSize="11.5" Foreground="{DynamicResource FaintBrush}" FontFamily="{StaticResource MonoFont}">
                                     <Run Text="{Binding Time, Mode=OneWay, StringFormat=dd/MM/yyyy HH:mm}"/> <Run Text="{Binding File, Mode=OneWay}"/>
                                 </TextBlock>
                             </DataTemplate>
@@ -170,13 +170,13 @@
                         </StackPanel>
                         <StackPanel>
                             <TextBlock Text="Nhật ký" Style="{StaticResource H2}"/>
-                            <TextBlock Text="{Binding Current}" Style="{StaticResource EmptyHidden}" Foreground="{StaticResource AccentBrush}"/>
+                            <TextBlock Text="{Binding Current}" Style="{StaticResource EmptyHidden}" Foreground="{DynamicResource AccentBrush}"/>
                         </StackPanel>
                     </DockPanel>
                     <ProgressBar DockPanel.Dock="Top" Height="3" Margin="16,0,16,6" Value="{Binding Progress}" IsIndeterminate="{Binding Indeterminate}"
                                  Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}"/>
                     <TextBox x:Name="LogBox" Text="{Binding LogText, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent"
-                             Foreground="{StaticResource MutedBrush}" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Padding="14,0,10,12"
+                             Foreground="{DynamicResource MutedBrush}" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Padding="14,0,10,12"
                              TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" TextChanged="LogBox_TextChanged"/>
                 </DockPanel>
             </Border>

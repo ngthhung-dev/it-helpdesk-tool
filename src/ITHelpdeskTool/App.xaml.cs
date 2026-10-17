@@ -1,3 +1,4 @@
+using ITHelpdeskTool.Core;
 using System.Runtime;
 using System.Windows;
 using System.Windows.Threading;
@@ -22,6 +23,10 @@ public partial class App : Application
         DispatcherUnhandledException += OnUnhandled;
         TaskScheduler.UnobservedTaskException += (_, ev) => { Log.Error("Task lỗi", ev.Exception); ev.SetObserved(); };
         base.OnStartup(e);
+
+        // Giao diện Sáng / Tối / Theo hệ thống (--theme light|dark để chụp ảnh kiểm thử)
+        var thi = Array.FindIndex(e.Args, a => a.Equals("--theme", StringComparison.OrdinalIgnoreCase));
+        ThemeService.Init(thi >= 0 && thi + 1 < e.Args.Length ? e.Args[thi + 1] : null);
 
         // Chế độ dòng lệnh: ITHelpdeskTool.exe --report <đường dẫn[.html|.txt|.json]>
         var i = Array.FindIndex(e.Args, a => a.Equals("--report", StringComparison.OrdinalIgnoreCase));

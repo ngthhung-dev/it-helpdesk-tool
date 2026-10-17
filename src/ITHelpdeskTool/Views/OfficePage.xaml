@@ -22,14 +22,14 @@
             <Setter Property="Width" Value="30"/>
             <Setter Property="Height" Value="30"/>
             <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
             <Setter Property="Margin" Value="0,0,12,0"/>
         </Style>
         <Style x:Key="Label" TargetType="TextBlock" BasedOn="{StaticResource Caption}">
             <Setter Property="Margin" Value="0,14,0,6"/>
         </Style>
         <Style x:Key="KV" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="Margin" Value="0,0,0,4"/>
         </Style>
@@ -71,7 +71,7 @@
                             <DockPanel Margin="0,0,0,10">
                                 <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Đọc lại" Command="{Binding RefreshCommand}" VerticalAlignment="Center"/>
                                 <Border Style="{StaticResource CardIcon}">
-                                    <TextBlock Text="&#xE7C3;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="&#xE7C3;" Style="{StaticResource Icon}" FontSize="14" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
                                 </Border>
                                 <TextBlock Text="Office trên máy này" Style="{StaticResource H2}" VerticalAlignment="Center"/>
                             </DockPanel>
@@ -81,12 +81,12 @@
                             <StackPanel Visibility="{Binding HasC2R, Converter={StaticResource BoolVis}}">
                                 <TextBlock Text="{Binding C2r.ProductText}" Style="{StaticResource KV}" FontWeight="SemiBold" FontSize="15"/>
                                 <TextBlock Style="{StaticResource Hint}" Margin="0,2,0,0">
-                                    <Run Text="Phiên bản"/> <Run Text="{Binding C2r.Version, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
-                                    <Run Text=" · "/><Run Text="{Binding C2r.Platform, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
-                                    <Run Text=" · ngôn ngữ"/> <Run Text="{Binding C2r.Culture, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
+                                    <Run Text="Phiên bản"/> <Run Text="{Binding C2r.Version, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/>
+                                    <Run Text=" · "/><Run Text="{Binding C2r.Platform, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/>
+                                    <Run Text=" · ngôn ngữ"/> <Run Text="{Binding C2r.Culture, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/>
                                 </TextBlock>
                                 <TextBlock Style="{StaticResource Hint}">
-                                    <Run Text="Kênh cập nhật:"/> <Run Text="{Binding C2r.Channel, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
+                                    <Run Text="Kênh cập nhật:"/> <Run Text="{Binding C2r.Channel, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/>
                                 </TextBlock>
 
                                 <WrapPanel Margin="0,12,0,0">
@@ -106,13 +106,13 @@
                                 <TextBlock Text="Office cài kiểu MSI (bản cũ)" Style="{StaticResource Caption}" Margin="0,0,0,4"/>
                                 <ItemsControl ItemsSource="{Binding MsiOffice}">
                                     <ItemsControl.ItemTemplate>
-                                        <DataTemplate><TextBlock Text="{Binding}" Foreground="{StaticResource WarnBrush}"/></DataTemplate>
+                                        <DataTemplate><TextBlock Text="{Binding}" Foreground="{DynamicResource WarnBrush}"/></DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                                 <TextBlock Style="{StaticResource Hint}" Text="Bản MSI cũ không cài song song được với Office mới — tích “Gỡ bản Office MSI cũ” khi cài."/>
                             </StackPanel>
 
-                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,14,0,0" Padding="0,12,0,0">
+                            <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,14,0,0" Padding="0,12,0,0">
                                 <DockPanel>
                                     <Button DockPanel.Dock="Right" Style="{StaticResource BtnDanger}" Content="Gỡ toàn bộ Office" Command="{Binding RemoveAllCommand}" VerticalAlignment="Center"/>
                                     <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="0,0,12,0"
@@ -127,7 +127,7 @@
                         <StackPanel>
                             <DockPanel Margin="0,0,0,10">
                                 <Border Style="{StaticResource CardIcon}">
-                                    <TextBlock Text="&#xE8D7;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="&#xE8D7;" Style="{StaticResource Icon}" FontSize="14" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
                                 </Border>
                                 <TextBlock Text="Bản quyền" Style="{StaticResource H2}" VerticalAlignment="Center"/>
                             </DockPanel>
@@ -136,7 +136,7 @@
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource Hint}">
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding SubscriptionActive}" Value="True">
-                                                <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource GoodBrush}"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -145,26 +145,26 @@
                             <ItemsControl ItemsSource="{Binding Licenses}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,8">
+                                        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,8">
                                             <DockPanel>
                                                 <Button x:Name="Rm" DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Gỡ key" VerticalAlignment="Center" Margin="10,0,0,0"
                                                         Command="{Binding DataContext.RemoveKeyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                                                         Visibility="{Binding Last5, Converter={x:Static core:Converters.NonEmptyVis}}"/>
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding Name}" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap"/>
                                                     <TextBlock FontSize="12">
-                                                        <Run x:Name="St" Text="{Binding StatusText, Mode=OneWay}" Foreground="{StaticResource WarnBrush}"/>
-                                                        <Run Text="  key …" Foreground="{StaticResource MutedBrush}"/><Run Text="{Binding Last5, Mode=OneWay}" Foreground="{StaticResource MutedBrush}"/>
+                                                        <Run x:Name="St" Text="{Binding StatusText, Mode=OneWay}" Foreground="{DynamicResource WarnBrush}"/>
+                                                        <Run Text="  key …" Foreground="{DynamicResource MutedBrush}"/><Run Text="{Binding Last5, Mode=OneWay}" Foreground="{DynamicResource MutedBrush}"/>
                                                     </TextBlock>
                                                 </StackPanel>
                                             </DockPanel>
                                         </Border>
                                         <DataTemplate.Triggers>
                                             <DataTrigger Binding="{Binding Licensed}" Value="True">
-                                                <Setter TargetName="St" Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                                <Setter TargetName="St" Property="Foreground" Value="{DynamicResource GoodBrush}"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding CoveredBySubscription}" Value="True">
-                                                <Setter TargetName="St" Property="Foreground" Value="{StaticResource MutedBrush}"/>
+                                                <Setter TargetName="St" Property="Foreground" Value="{DynamicResource MutedBrush}"/>
                                                 <Setter TargetName="Rm" Property="Visibility" Value="Collapsed"/>
                                             </DataTrigger>
                                         </DataTemplate.Triggers>
@@ -192,7 +192,7 @@
                     <StackPanel>
                         <DockPanel Margin="0,0,0,4">
                             <Border Style="{StaticResource CardIcon}">
-                                <TextBlock Text="&#xE896;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="&#xE896;" Style="{StaticResource Icon}" FontSize="14" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
                             </Border>
                             <TextBlock Text="Cài Office" Style="{StaticResource H2}" VerticalAlignment="Center"/>
                         </DockPanel>
@@ -271,11 +271,11 @@
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="Text" Value="{Binding SourceFolder}"/>
-                                                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding SourceFolder}" Value="">
                                                         <Setter Property="Text" Value="Tải trực tiếp từ máy chủ Microsoft"/>
-                                                        <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -300,7 +300,7 @@
                             <CheckBox IsChecked="{Binding ShowXml}" Content="Xem file cấu hình (XML)" VerticalAlignment="Center"/>
                         </DockPanel>
                         <TextBox Style="{StaticResource SelectableValue}" Text="{Binding Xml, Mode=OneWay}" FontFamily="{StaticResource MonoFont}" FontSize="12"
-                                 Margin="0,10,0,0" Padding="12" Background="{StaticResource Surface2Brush}" TextWrapping="Wrap"
+                                 Margin="0,10,0,0" Padding="12" Background="{DynamicResource Surface2Brush}" TextWrapping="Wrap"
                                  Visibility="{Binding ShowXml, Converter={StaticResource BoolVis}}"/>
                     </StackPanel>
                 </Border>
@@ -310,13 +310,13 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <TextBlock FontSize="12" TextWrapping="Wrap" Margin="0,0,0,3">
-                                <Run Text="{Binding Time, Mode=OneWay}" Foreground="{StaticResource FaintBrush}"/>
+                                <Run Text="{Binding Time, Mode=OneWay}" Foreground="{DynamicResource FaintBrush}"/>
                                 <Run Text="{Binding Text, Mode=OneWay}">
                                     <Run.Style>
                                         <Style TargetType="Run">
-                                            <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource GoodBrush}"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Ok}" Value="False"><Setter Property="Foreground" Value="{StaticResource BadBrush}"/></DataTrigger>
+                                                <DataTrigger Binding="{Binding Ok}" Value="False"><Setter Property="Foreground" Value="{DynamicResource BadBrush}"/></DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </Run.Style>
@@ -330,11 +330,11 @@
         </Grid>
 
         <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20" CornerRadius="20" Padding="18,9"
-                Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
                 Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
-                <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource TextBrush}"/>
+                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{DynamicResource AccentBrush}" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding BusyText}" Foreground="{DynamicResource TextBrush}"/>
             </StackPanel>
         </Border>
     </Grid>

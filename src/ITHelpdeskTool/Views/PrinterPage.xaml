@@ -72,13 +72,13 @@
                                         <StackPanel>
                                             <DockPanel>
                                                 <Border x:Name="Badge" DockPanel.Dock="Right" CornerRadius="6" Padding="8,2" Background="#1A34D399" VerticalAlignment="Top">
-                                                    <TextBlock x:Name="BadgeT" Text="{Binding P.StatusText}" FontSize="11.5" Foreground="{StaticResource GoodBrush}"/>
+                                                    <TextBlock x:Name="BadgeT" Text="{Binding P.StatusText}" FontSize="11.5" Foreground="{DynamicResource GoodBrush}"/>
                                                 </Border>
-                                                <TextBlock DockPanel.Dock="Left" Text="&#xE749;" Style="{StaticResource Icon}" FontSize="20" Foreground="{StaticResource AccentBrush}" Margin="0,2,12,0" VerticalAlignment="Top"/>
+                                                <TextBlock DockPanel.Dock="Left" Text="&#xE749;" Style="{StaticResource Icon}" FontSize="20" Foreground="{DynamicResource AccentBrush}" Margin="0,2,12,0" VerticalAlignment="Top"/>
                                                 <StackPanel>
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="{Binding P.Name}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                                        <TextBlock Text="  ★ mặc định" FontSize="12" Foreground="{StaticResource WarnBrush}" VerticalAlignment="Center"
+                                                        <TextBlock Text="{Binding P.Name}" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="  ★ mặc định" FontSize="12" Foreground="{DynamicResource WarnBrush}" VerticalAlignment="Center"
                                                                    Visibility="{Binding P.IsDefault, Converter={StaticResource BoolVis}}"/>
                                                     </StackPanel>
                                                     <TextBlock Text="{Binding P.Detail}" Style="{StaticResource Hint}"/>
@@ -95,7 +95,7 @@
                                                 <Button Style="{StaticResource Act}" Content="Thuộc tính" Command="{Binding DataContext.PropertiesCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                                 <Button x:Name="BShare" Style="{StaticResource Act}" Content="Chia sẻ" Command="{Binding DataContext.ShareCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                                 <Button Style="{StaticResource Act}" Content="Đổi tên" Command="{Binding DataContext.RenameCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                                                <Button Style="{StaticResource Act}" Content="Gỡ" Foreground="{StaticResource BadBrush}" Command="{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                <Button Style="{StaticResource Act}" Content="Gỡ" Foreground="{DynamicResource BadBrush}" Command="{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                             </WrapPanel>
                                             <StackPanel Visibility="{Binding ShowJobs, Converter={StaticResource BoolVis}}" Margin="0,4,0,0">
                                                 <TextBlock Text="Không có lệnh in nào đang chờ." Style="{StaticResource Hint}" Visibility="{Binding Jobs.Count, Converter={x:Static core:Converters.ZeroVis}}"/>
@@ -105,10 +105,10 @@
                                                             <DockPanel Margin="0,4,0,0">
                                                                 <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Huỷ" CommandParameter="{Binding}"
                                                                         Command="{Binding DataContext.CancelJobCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                                                                <TextBlock FontSize="12" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis">
-                                                                    <Run Text="{Binding Document, Mode=OneWay}"/> <Run Text="·" Foreground="{StaticResource FaintBrush}"/>
-                                                                    <Run Text="{Binding User, Mode=OneWay}" Foreground="{StaticResource MutedBrush}"/> <Run Text="·" Foreground="{StaticResource FaintBrush}"/>
-                                                                    <Run Text="{Binding Status, Mode=OneWay}" Foreground="{StaticResource WarnBrush}"/>
+                                                                <TextBlock FontSize="12" Foreground="{DynamicResource TextBrush}" TextTrimming="CharacterEllipsis">
+                                                                    <Run Text="{Binding Document, Mode=OneWay}"/> <Run Text="·" Foreground="{DynamicResource FaintBrush}"/>
+                                                                    <Run Text="{Binding User, Mode=OneWay}" Foreground="{DynamicResource MutedBrush}"/> <Run Text="·" Foreground="{DynamicResource FaintBrush}"/>
+                                                                    <Run Text="{Binding Status, Mode=OneWay}" Foreground="{DynamicResource WarnBrush}"/>
                                                                 </TextBlock>
                                                             </DockPanel>
                                                         </DataTemplate>
@@ -120,11 +120,11 @@
                                     <DataTemplate.Triggers>
                                         <DataTrigger Binding="{Binding P.Tone}" Value="Warn">
                                             <Setter TargetName="Badge" Property="Background" Value="#1AFBBF24"/>
-                                            <Setter TargetName="BadgeT" Property="Foreground" Value="{StaticResource WarnBrush}"/>
+                                            <Setter TargetName="BadgeT" Property="Foreground" Value="{DynamicResource WarnBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding P.Tone}" Value="Bad">
                                             <Setter TargetName="Badge" Property="Background" Value="#1AF87171"/>
-                                            <Setter TargetName="BadgeT" Property="Foreground" Value="{StaticResource BadBrush}"/>
+                                            <Setter TargetName="BadgeT" Property="Foreground" Value="{DynamicResource BadBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding P.Shared}" Value="True">
                                             <Setter TargetName="BShare" Property="Content" Value="Ngừng chia sẻ"/>
@@ -240,20 +240,20 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <Border x:Name="Bd" Margin="0,0,10,10" Padding="12,10" CornerRadius="10" BorderThickness="1"
-                                                        BorderBrush="{StaticResource BorderBrush}" Background="{StaticResource Surface2Brush}">
+                                                        BorderBrush="{DynamicResource BorderBrush}" Background="{DynamicResource Surface2Brush}">
                                                     <DockPanel>
                                                         <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Chạy" VerticalAlignment="Top" Margin="10,0,0,0"
                                                                 Command="{Binding DataContext.RunFixCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
-                                                        <Border DockPanel.Dock="Left" Width="30" Height="30" CornerRadius="15" Background="{StaticResource AccentSoftBrush}" VerticalAlignment="Top" Margin="0,0,10,0">
-                                                            <TextBlock x:Name="Ic" Text="{Binding Fix.Glyph}" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}"
+                                                        <Border DockPanel.Dock="Left" Width="30" Height="30" CornerRadius="15" Background="{DynamicResource AccentSoftBrush}" VerticalAlignment="Top" Margin="0,0,10,0">
+                                                            <TextBlock x:Name="Ic" Text="{Binding Fix.Glyph}" Style="{StaticResource Icon}" FontSize="13" Foreground="{DynamicResource AccentBrush}"
                                                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                         </Border>
                                                         <StackPanel>
-                                                            <TextBlock Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" TextWrapping="Wrap">
-                                                                <Run x:Name="W" Text="" Foreground="{StaticResource WarnBrush}"/><Run Text="{Binding Fix.Title, Mode=OneWay}"/>
+                                                            <TextBlock Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" TextWrapping="Wrap">
+                                                                <Run x:Name="W" Text="" Foreground="{DynamicResource WarnBrush}"/><Run Text="{Binding Fix.Title, Mode=OneWay}"/>
                                                             </TextBlock>
                                                             <TextBlock Text="{Binding Fix.Description}" Style="{StaticResource Hint}" Margin="0,2,0,0"/>
-                                                            <TextBlock x:Name="Res" Text="{Binding Result}" FontSize="11.5" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="{StaticResource GoodBrush}"
+                                                            <TextBlock x:Name="Res" Text="{Binding Result}" FontSize="11.5" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="{DynamicResource GoodBrush}"
                                                                        Visibility="{Binding Result, Converter={x:Static core:Converters.NonEmptyVis}}"/>
                                                         </StackPanel>
                                                     </DockPanel>
@@ -261,13 +261,13 @@
                                                 <DataTemplate.Triggers>
                                                     <DataTrigger Binding="{Binding Fix.IsWarn}" Value="True">
                                                         <Setter TargetName="W" Property="Text" Value="⚠ "/>
-                                                        <Setter TargetName="Ic" Property="Foreground" Value="{StaticResource WarnBrush}"/>
+                                                        <Setter TargetName="Ic" Property="Foreground" Value="{DynamicResource WarnBrush}"/>
                                                     </DataTrigger>
                                                     <DataTrigger Binding="{Binding Ok}" Value="False">
-                                                        <Setter TargetName="Res" Property="Foreground" Value="{StaticResource BadBrush}"/>
+                                                        <Setter TargetName="Res" Property="Foreground" Value="{DynamicResource BadBrush}"/>
                                                     </DataTrigger>
                                                     <Trigger SourceName="Bd" Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                                                     </Trigger>
                                                 </DataTemplate.Triggers>
                                             </DataTemplate>
@@ -287,13 +287,13 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock FontSize="12" TextWrapping="Wrap" Margin="0,0,0,3">
-                                        <Run Text="{Binding Time, Mode=OneWay}" Foreground="{StaticResource FaintBrush}"/>
+                                        <Run Text="{Binding Time, Mode=OneWay}" Foreground="{DynamicResource FaintBrush}"/>
                                         <Run Text="{Binding Text, Mode=OneWay}">
                                             <Run.Style>
                                                 <Style TargetType="Run">
-                                                    <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource GoodBrush}"/>
                                                     <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Ok}" Value="False"><Setter Property="Foreground" Value="{StaticResource BadBrush}"/></DataTrigger>
+                                                        <DataTrigger Binding="{Binding Ok}" Value="False"><Setter Property="Foreground" Value="{DynamicResource BadBrush}"/></DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </Run.Style>
@@ -309,11 +309,11 @@
         </Grid>
 
         <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20" CornerRadius="20" Padding="18,9"
-                Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
                 Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
-                <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource TextBrush}"/>
+                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{DynamicResource AccentBrush}" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding BusyText}" Foreground="{DynamicResource TextBrush}"/>
             </StackPanel>
         </Border>
     </Grid>

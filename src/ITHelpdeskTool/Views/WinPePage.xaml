@@ -25,7 +25,7 @@
         <Style x:Key="PathText" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
             <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
         </Style>
@@ -33,12 +33,12 @@
             <Setter Property="Width" Value="28"/>
             <Setter Property="Height" Value="28"/>
             <Setter Property="CornerRadius" Value="14"/>
-            <Setter Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
             <Setter Property="Margin" Value="0,0,14,0"/>
             <Setter Property="VerticalAlignment" Value="Top"/>
         </Style>
         <Style x:Key="StepNum" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -73,8 +73,8 @@
                         <Border DockPanel.Dock="Left" Style="{StaticResource Step}"><TextBlock Text="1" Style="{StaticResource StepNum}"/></Border>
                         <StackPanel>
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Windows ADK" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
-                                <TextBlock Text="&#xE73E;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource GoodBrush}" Margin="8,0,0,0"
+                                <TextBlock Text="Windows ADK" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
+                                <TextBlock Text="&#xE73E;" Style="{StaticResource Icon}" FontSize="13" Foreground="{DynamicResource GoodBrush}" Margin="8,0,0,0"
                                            VerticalAlignment="Center" Visibility="{Binding HasAdk, Converter={StaticResource BoolVis}}"/>
                             </StackPanel>
                             <TextBlock Text="{Binding AdkText}" Style="{StaticResource Hint}"/>
@@ -92,7 +92,7 @@
                     <DockPanel>
                         <Border DockPanel.Dock="Left" Style="{StaticResource Step}" VerticalAlignment="Top"><TextBlock Text="2" Style="{StaticResource StepNum}"/></Border>
                         <StackPanel>
-                            <TextBlock Text="Thành phần" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                            <TextBlock Text="Thành phần" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
                             <TextBlock Text="Thêm vào WinPE gốc (cmd, diskpart, bcdboot có sẵn). Càng nhiều thành phần, file càng lớn và tạo càng lâu." Style="{StaticResource Hint}" Margin="0,0,0,10"/>
                             <ItemsControl ItemsSource="{Binding Components}">
                                 <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -101,8 +101,8 @@
                                         <DockPanel Margin="0,0,16,10">
                                             <CheckBox x:Name="Cb" DockPanel.Dock="Left" IsChecked="{Binding IsChecked}" VerticalAlignment="Top" Margin="0,1,10,0"/>
                                             <StackPanel Background="Transparent" Cursor="Hand" MouseLeftButtonUp="Component_Click">
-                                                <TextBlock Text="{Binding Item.Name}" Foreground="{StaticResource TextBrush}"/>
-                                                <TextBlock Text="{Binding Item.Description}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding Item.Name}" Foreground="{DynamicResource TextBrush}"/>
+                                                <TextBlock Text="{Binding Item.Description}" FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"/>
                                             </StackPanel>
                                         </DockPanel>
                                     </DataTemplate>
@@ -117,7 +117,7 @@
                     <DockPanel>
                         <Border DockPanel.Dock="Left" Style="{StaticResource Step}" VerticalAlignment="Top"><TextBlock Text="3" Style="{StaticResource StepNum}"/></Border>
                         <StackPanel>
-                            <TextBlock Text="Bổ sung (không bắt buộc)" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                            <TextBlock Text="Bổ sung (không bắt buộc)" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
 
                             <DockPanel Margin="0,10,0,0">
                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
@@ -126,7 +126,7 @@
                                     <Button Style="{StaticResource BtnSmall}" Content="Chọn thư mục…" Command="{Binding PickDriversCommand}"/>
                                 </StackPanel>
                                 <StackPanel>
-                                    <TextBlock Text="Driver" Foreground="{StaticResource TextBrush}"/>
+                                    <TextBlock Text="Driver" Foreground="{DynamicResource TextBrush}"/>
                                     <TextBlock Text="{Binding DriversDir}" Style="{StaticResource PathText}" Visibility="{Binding DriversDir, Converter={x:Static core:Converters.NonEmptyVis}}"/>
                                     <TextBlock Style="{StaticResource Hint}" Visibility="{Binding DriversDir, Converter={x:Static core:Converters.EmptyVis}}"
                                                Text="Driver ổ cứng (Intel RST / VMD, RAID, NVMe) khi WinPE không thấy ổ, hoặc driver card mạng."/>
@@ -140,14 +140,14 @@
                                     <Button Style="{StaticResource BtnSmall}" Content="Chọn thư mục…" Command="{Binding PickToolsCommand}"/>
                                 </StackPanel>
                                 <StackPanel>
-                                    <TextBlock Text="Công cụ portable" Foreground="{StaticResource TextBrush}"/>
+                                    <TextBlock Text="Công cụ portable" Foreground="{DynamicResource TextBrush}"/>
                                     <TextBlock Text="{Binding ToolsDir}" Style="{StaticResource PathText}" Visibility="{Binding ToolsDir, Converter={x:Static core:Converters.NonEmptyVis}}"/>
                                     <TextBlock Style="{StaticResource Hint}" Visibility="{Binding ToolsDir, Converter={x:Static core:Converters.EmptyVis}}"
                                                Text="Chép cả thư mục vào X:\Tools trong WinPE (vd 7-Zip, Notepad++, phần mềm cứu dữ liệu bản portable)."/>
                                 </StackPanel>
                             </DockPanel>
 
-                            <TextBlock Text="Lệnh chạy khi khởi động" Foreground="{StaticResource TextBrush}" Margin="0,12,0,0"/>
+                            <TextBlock Text="Lệnh chạy khi khởi động" Foreground="{DynamicResource TextBrush}" Margin="0,12,0,0"/>
                             <TextBlock Text="Mỗi dòng một lệnh, chạy sau khi WinPE khởi động xong (vd wpeutil InitializeNetwork)." Style="{StaticResource Hint}" Margin="0,0,0,6"/>
                             <TextBox Style="{StaticResource InputBox}" Text="{Binding StartCommands, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="60"
                                      FontFamily="{StaticResource MonoFont}" VerticalContentAlignment="Top" TextWrapping="Wrap"/>
@@ -160,7 +160,7 @@
                     <DockPanel>
                         <Border DockPanel.Dock="Left" Style="{StaticResource Step}" VerticalAlignment="Top"><TextBlock Text="4" Style="{StaticResource StepNum}"/></Border>
                         <StackPanel>
-                            <TextBlock Text="Xuất ra" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                            <TextBlock Text="Xuất ra" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" Margin="0,0,0,8"/>
                             <DockPanel>
                                 <Border DockPanel.Dock="Left" Style="{StaticResource Card}" Padding="3" CornerRadius="8" Margin="0,0,12,0" VerticalAlignment="Center">
                                     <StackPanel Orientation="Horizontal">
@@ -177,7 +177,7 @@
                                     <ComboBox ItemsSource="{Binding Disks}" SelectedItem="{Binding Disk}" DisplayMemberPath="Display"/>
                                 </DockPanel>
                             </DockPanel>
-                            <TextBlock Text="USB sẽ bị xoá toàn bộ dữ liệu." FontSize="12" Foreground="{StaticResource WarnBrush}" Margin="0,6,0,0"
+                            <TextBlock Text="USB sẽ bị xoá toàn bộ dữ liệu." FontSize="12" Foreground="{DynamicResource WarnBrush}" Margin="0,6,0,0"
                                        Visibility="{Binding ToUsb, Converter={StaticResource BoolVis}}"/>
 
                             <DockPanel Margin="0,12,0,0">
@@ -210,14 +210,14 @@
                                 Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}"/>
                         <TextBlock Text="Tiến độ" Style="{StaticResource H2}"/>
                     </DockPanel>
-                    <TextBlock Text="{Binding Status}" Foreground="{StaticResource AccentBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding Status}" Foreground="{DynamicResource AccentBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                     <ProgressBar Height="6" Margin="0,6,0,0" Value="{Binding Progress}" Maximum="100" Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}"/>
                     <TextBlock Text="{Binding Result}" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
-                                <Setter Property="Foreground" Value="{StaticResource BadBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource BadBrush}"/>
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding ResultOk}" Value="True"><Setter Property="Foreground" Value="{StaticResource GoodBrush}"/></DataTrigger>
+                                    <DataTrigger Binding="{Binding ResultOk}" Value="True"><Setter Property="Foreground" Value="{DynamicResource GoodBrush}"/></DataTrigger>
                                     <Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger>
                                 </Style.Triggers>
                             </Style>
@@ -225,7 +225,7 @@
                     </TextBlock>
                 </StackPanel>
                 <TextBox x:Name="LogBox" Text="{Binding LogText, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent"
-                         Foreground="{StaticResource MutedBrush}" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Padding="14,0,10,12"
+                         Foreground="{DynamicResource MutedBrush}" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Padding="14,0,10,12"
                          TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" TextChanged="LogBox_TextChanged"/>
             </DockPanel>
         </Border>

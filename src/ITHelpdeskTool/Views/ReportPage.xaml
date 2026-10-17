@@ -17,19 +17,19 @@
         <Style x:Key="ToneValue" TargetType="TextBox" BasedOn="{StaticResource SelectableValue}">
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Tone}" Value="Good">
-                    <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource GoodBrush}"/>
                     <Setter Property="FontWeight" Value="SemiBold"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Tone}" Value="Warn">
-                    <Setter Property="Foreground" Value="{StaticResource WarnBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource WarnBrush}"/>
                     <Setter Property="FontWeight" Value="SemiBold"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Tone}" Value="Bad">
-                    <Setter Property="Foreground" Value="{StaticResource BadBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource BadBrush}"/>
                     <Setter Property="FontWeight" Value="SemiBold"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Tone}" Value="Muted">
-                    <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -38,16 +38,16 @@
         <Style x:Key="StateDot" TargetType="Ellipse">
             <Setter Property="Width" Value="7"/>
             <Setter Property="Height" Value="7"/>
-            <Setter Property="Fill" Value="{StaticResource FaintBrush}"/>
+            <Setter Property="Fill" Value="{DynamicResource FaintBrush}"/>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding State}" Value="Loading">
-                    <Setter Property="Fill" Value="{StaticResource AccentBrush}"/>
+                    <Setter Property="Fill" Value="{DynamicResource AccentBrush}"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding State}" Value="Done">
-                    <Setter Property="Fill" Value="{StaticResource GoodBrush}"/>
+                    <Setter Property="Fill" Value="{DynamicResource GoodBrush}"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding State}" Value="Error">
-                    <Setter Property="Fill" Value="{StaticResource BadBrush}"/>
+                    <Setter Property="Fill" Value="{DynamicResource BadBrush}"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -60,7 +60,7 @@
                 <DataTrigger Binding="{Binding State}" Value="Loading">
                     <Setter Property="Visibility" Value="Visible"/>
                     <Setter Property="Text" Value="Đang quét…"/>
-                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding State}" Value="Waiting">
                     <Setter Property="Visibility" Value="Visible"/>
@@ -73,7 +73,7 @@
                 <DataTrigger Binding="{Binding State}" Value="Error">
                     <Setter Property="Visibility" Value="Visible"/>
                     <Setter Property="Text" Value="{Binding Message}"/>
-                    <Setter Property="Foreground" Value="{StaticResource BadBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource BadBrush}"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -138,7 +138,7 @@
                 <DockPanel>
                     <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Mở thư mục"
                             Command="{Binding OpenExportFolderCommand}"/>
-                    <TextBlock Text="{Binding Toast}" Foreground="{StaticResource GoodBrush}"/>
+                    <TextBlock Text="{Binding Toast}" Foreground="{DynamicResource GoodBrush}"/>
                 </DockPanel>
             </Border>
 
@@ -169,18 +169,18 @@
                     <DockPanel Margin="0,0,0,10">
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                             <Border CornerRadius="6" Padding="8,2" Background="#1AF87171" Margin="6,0,0,0">
-                                <TextBlock Foreground="{StaticResource BadBrush}" FontSize="11.5">
+                                <TextBlock Foreground="{DynamicResource BadBrush}" FontSize="11.5">
                                     <Run Text="{Binding BadCount, Mode=OneWay}"/><Run Text=" nghiêm trọng"/>
                                 </TextBlock>
                             </Border>
                             <Border CornerRadius="6" Padding="8,2" Background="#1AFBBF24" Margin="6,0,0,0">
-                                <TextBlock Foreground="{StaticResource WarnBrush}" FontSize="11.5">
+                                <TextBlock Foreground="{DynamicResource WarnBrush}" FontSize="11.5">
                                     <Run Text="{Binding WarnCount, Mode=OneWay}"/><Run Text=" cần xem"/>
                                 </TextBlock>
                             </Border>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE7BA;" Style="{StaticResource Icon}" Foreground="{StaticResource WarnBrush}" Margin="0,0,10,0"/>
+                            <TextBlock Text="&#xE7BA;" Style="{StaticResource Icon}" Foreground="{DynamicResource WarnBrush}" Margin="0,0,10,0"/>
                             <TextBlock Text="Điểm cần chú ý" Style="{StaticResource H2}"/>
                         </StackPanel>
                     </DockPanel>
@@ -188,7 +188,7 @@
                     <TextBlock Text="Đang quét, chờ chút…" Style="{StaticResource Muted}"
                                Visibility="{Binding IsScanning, Converter={StaticResource BoolVis}}"/>
 
-                    <TextBlock Text="✓  Không phát hiện vấn đề nào." Foreground="{StaticResource GoodBrush}">
+                    <TextBlock Text="✓  Không phát hiện vấn đề nào." Foreground="{DynamicResource GoodBrush}">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -213,18 +213,18 @@
                                     <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Margin="2,0,12,0" VerticalAlignment="Center">
                                         <Ellipse.Style>
                                             <Style TargetType="Ellipse">
-                                                <Setter Property="Fill" Value="{StaticResource WarnBrush}"/>
+                                                <Setter Property="Fill" Value="{DynamicResource WarnBrush}"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding Tone}" Value="Bad">
-                                                        <Setter Property="Fill" Value="{StaticResource BadBrush}"/>
+                                                        <Setter Property="Fill" Value="{DynamicResource BadBrush}"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
                                         </Ellipse.Style>
                                     </Ellipse>
-                                    <TextBlock TextWrapping="Wrap" Foreground="{StaticResource TextBrush}">
-                                        <Run Text="{Binding Section, Mode=OneWay}" Foreground="{StaticResource MutedBrush}"/>
-                                        <Run Text="·" Foreground="{StaticResource FaintBrush}"/>
+                                    <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}">
+                                        <Run Text="{Binding Section, Mode=OneWay}" Foreground="{DynamicResource MutedBrush}"/>
+                                        <Run Text="·" Foreground="{DynamicResource FaintBrush}"/>
                                         <Run Text="{Binding What, Mode=OneWay}"/>
                                     </TextBlock>
                                 </DockPanel>
@@ -242,9 +242,9 @@
                             <StackPanel>
                                 <!-- Tiêu đề mục -->
                                 <DockPanel>
-                                    <Border Width="30" Height="30" CornerRadius="8" Background="{StaticResource AccentSoftBrush}" Margin="0,0,12,0">
+                                    <Border Width="30" Height="30" CornerRadius="8" Background="{DynamicResource AccentSoftBrush}" Margin="0,0,12,0">
                                         <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="14"
-                                                   Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                                   Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
                                     </Border>
                                     <TextBlock DockPanel.Dock="Right" Style="{StaticResource StateText}" VerticalAlignment="Center"
                                                MaxWidth="420" TextAlignment="Right"/>
@@ -287,7 +287,7 @@
                                                              Visibility="{Binding Filterable, Converter={StaticResource BoolVis}}"/>
                                                     <TextBlock Style="{StaticResource Caption}" VerticalAlignment="Center">
                                                         <Run Text="{Binding Title, Mode=OneWay}"/>
-                                                        <Run Text="{Binding Rows.Count, Mode=OneWay, StringFormat='({0})'}" Foreground="{StaticResource FaintBrush}"/>
+                                                        <Run Text="{Binding Rows.Count, Mode=OneWay, StringFormat='({0})'}" Foreground="{DynamicResource FaintBrush}"/>
                                                     </TextBlock>
                                                 </DockPanel>
                                                 <c:SimpleTable Table="{Binding}"/>

@@ -22,13 +22,13 @@
             <Setter Property="Padding" Value="6,1"/>
             <Setter Property="Margin" Value="8,0,0,0"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Background" Value="#14FFFFFF"/>
+            <Setter Property="Background" Value="{DynamicResource HoverBrush}"/>
         </Style>
         <DataTemplate x:Key="FolderRow">
-                                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
+                                    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
                                         <DockPanel>
                                             <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsChecked}" IsEnabled="{Binding Exists}" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                            <TextBlock DockPanel.Dock="Left" Text="{Binding F.Glyph}" Style="{StaticResource Icon}" FontSize="18" Foreground="{StaticResource AccentBrush}"
+                                            <TextBlock DockPanel.Dock="Left" Text="{Binding F.Glyph}" Style="{StaticResource Icon}" FontSize="18" Foreground="{DynamicResource AccentBrush}"
                                                        VerticalAlignment="Center" Margin="0,0,14,0"/>
                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                                                 <Button Style="{StaticResource BtnSmall}" Content="Mở" Margin="0,0,6,0" CommandParameter="{Binding}" IsEnabled="{Binding Exists}"
@@ -39,23 +39,23 @@
                                             </StackPanel>
                                             <StackPanel Margin="0,0,12,0">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding F.Name}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding F.Name}" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
                                                     <TextBlock Text="{Binding SizeText}" Style="{StaticResource Hint}" Margin="10,0,0,0" VerticalAlignment="Center"/>
                                                     <Border Style="{StaticResource Badge}" Background="#1A34D399" Visibility="{Binding OnSystemDrive, Converter={StaticResource NotBoolVis}}">
-                                                        <TextBlock Text="Đã ở ổ khác" FontSize="10.5" Foreground="{StaticResource GoodBrush}"/>
+                                                        <TextBlock Text="Đã ở ổ khác" FontSize="10.5" Foreground="{DynamicResource GoodBrush}"/>
                                                     </Border>
                                                     <Border Style="{StaticResource Badge}" Background="#1AFBBF24" Visibility="{Binding OneDrive, Converter={StaticResource BoolVis}}">
-                                                        <TextBlock Text="Trong OneDrive" FontSize="10.5" Foreground="{StaticResource WarnBrush}"/>
+                                                        <TextBlock Text="Trong OneDrive" FontSize="10.5" Foreground="{DynamicResource WarnBrush}"/>
                                                     </Border>
                                                 </StackPanel>
                                                 <TextBlock Text="{Binding F.Note}" Style="{StaticResource Hint}" Visibility="{Binding F.Note, Converter={x:Static core:Converters.NonEmptyVis}}"/>
-                                                <TextBlock Text="{Binding Path}" FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Path}" FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
                                                 <TextBlock Text="{Binding Status}" FontSize="12" TextWrapping="Wrap" Visibility="{Binding Status, Converter={x:Static core:Converters.NonEmptyVis}}">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
-                                                            <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                                            <Setter Property="Foreground" Value="{DynamicResource GoodBrush}"/>
                                                             <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding StatusOk}" Value="False"><Setter Property="Foreground" Value="{StaticResource BadBrush}"/></DataTrigger>
+                                                                <DataTrigger Binding="{Binding StatusOk}" Value="False"><Setter Property="Foreground" Value="{DynamicResource BadBrush}"/></DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
                                                     </TextBlock.Style>
@@ -78,7 +78,7 @@
                 <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" FontSize="13" TextWrapping="Wrap"
                            Text="Chuyển Desktop, Documents, Downloads, Pictures… sang ổ khác để giải phóng ổ C: và giữ dữ liệu an toàn khi cài lại Windows. Mọi ứng dụng vẫn tìm thấy thư mục như cũ."/>
                 <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,14">
-                    <Run Text="Tài khoản:"/> <Run Text="{Binding Account, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
+                    <Run Text="Tài khoản:"/> <Run Text="{Binding Account, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/>
                     <Run Text=" · "/><Run Text="{Binding SystemFree, Mode=OneWay}"/>
                 </TextBlock>
 
@@ -129,11 +129,11 @@
         </Grid>
 
         <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20" CornerRadius="20" Padding="18,9"
-                Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
                 Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
-                <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource TextBrush}"/>
+                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{DynamicResource AccentBrush}" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding BusyText}" Foreground="{DynamicResource TextBrush}"/>
             </StackPanel>
         </Border>
     </Grid>

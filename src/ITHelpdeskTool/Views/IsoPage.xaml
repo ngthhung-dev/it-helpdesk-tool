@@ -20,7 +20,7 @@
             <Setter Property="Width" Value="30"/>
             <Setter Property="Height" Value="30"/>
             <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
             <Setter Property="Margin" Value="0,0,12,0"/>
         </Style>
         <Style x:Key="EmptyHidden" TargetType="TextBlock" BasedOn="{StaticResource Hint}">
@@ -45,9 +45,9 @@
                 <TextBlock Text="{Binding Message}" FontSize="13" Margin="0,0,0,10">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock" BasedOn="{StaticResource EmptyHidden}">
-                            <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource GoodBrush}"/>
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding MessageOk}" Value="False"><Setter Property="Foreground" Value="{StaticResource BadBrush}"/></DataTrigger>
+                                <DataTrigger Binding="{Binding MessageOk}" Value="False"><Setter Property="Foreground" Value="{DynamicResource BadBrush}"/></DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </TextBlock.Style>
@@ -64,19 +64,19 @@
                         <DockPanel Margin="0,0,0,6">
                             <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Mở thư mục Downloads" Command="{Binding OpenDownloadsCommand}" VerticalAlignment="Center"/>
                             <Border Style="{StaticResource CardIcon}">
-                                <TextBlock Text="&#xE896;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="&#xE896;" Style="{StaticResource Icon}" FontSize="14" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
                             </Border>
                             <TextBlock Text="Nguồn tải chính thức" Style="{StaticResource H2}" VerticalAlignment="Center"/>
                         </DockPanel>
                         <ItemsControl ItemsSource="{Binding Downloads}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
+                                    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
                                         <DockPanel>
                                             <Button x:Name="Btn" DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Mở trang" VerticalAlignment="Center" Margin="12,0,0,0"
                                                     Command="{Binding DataContext.GetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                                             <StackPanel>
-                                                <TextBlock Text="{Binding Name}" Foreground="{StaticResource TextBrush}"/>
+                                                <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextBrush}"/>
                                                 <TextBlock Text="{Binding Description}" Style="{StaticResource Hint}"/>
                                             </StackPanel>
                                         </DockPanel>
@@ -100,7 +100,7 @@
                         <DockPanel Margin="0,0,0,8">
                             <Button DockPanel.Dock="Right" Content="Chọn file ISO…" Command="{Binding PickIsoCommand}" VerticalAlignment="Center"/>
                             <Border Style="{StaticResource CardIcon}">
-                                <TextBlock Text="&#xE958;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="&#xE958;" Style="{StaticResource Icon}" FontSize="14" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
                             </Border>
                             <TextBlock Text="Kiểm tra file ISO" Style="{StaticResource H2}" VerticalAlignment="Center"/>
                         </DockPanel>
@@ -108,16 +108,16 @@
                                    Visibility="{Binding HasIso, Converter={x:Static core:Converters.NotVis}}"/>
 
                         <StackPanel Visibility="{Binding HasIso, Converter={StaticResource BoolVis}}">
-                            <TextBlock FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap">
-                                <Run Text="{Binding IsoPath, Mode=OneWay}"/> <Run Text="·" Foreground="{StaticResource FaintBrush}"/> <Run Text="{Binding IsoSize, Mode=OneWay}" Foreground="{StaticResource MutedBrush}"/>
+                            <TextBlock FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap">
+                                <Run Text="{Binding IsoPath, Mode=OneWay}"/> <Run Text="·" Foreground="{DynamicResource FaintBrush}"/> <Run Text="{Binding IsoSize, Mode=OneWay}" Foreground="{DynamicResource MutedBrush}"/>
                             </TextBlock>
                             <TextBlock Text="{Binding MediaText}" Style="{StaticResource Hint}" Margin="0,6,0,0"/>
                             <ItemsControl ItemsSource="{Binding Editions}" Margin="0,6,0,0">
                                 <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border CornerRadius="6" Background="{StaticResource Surface2Brush}" Padding="8,3" Margin="0,0,6,6">
-                                            <TextBlock Text="{Binding Display}" FontSize="12" Foreground="{StaticResource TextBrush}"/>
+                                        <Border CornerRadius="6" Background="{DynamicResource Surface2Brush}" Padding="8,3" Margin="0,0,6,6">
+                                            <TextBlock Text="{Binding Display}" FontSize="12" Foreground="{DynamicResource TextBrush}"/>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -135,13 +135,13 @@
                             </DockPanel>
                             <ProgressBar Height="3" Margin="0,8,0,0" Value="{Binding HashProgress}" Maximum="100"
                                          Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}"/>
-                            <TextBlock Text="{Binding Hash}" FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="{StaticResource TextBrush}" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding Hash}" FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="{DynamicResource TextBrush}" Margin="0,8,0,0" TextWrapping="Wrap"/>
                             <TextBlock x:Name="Res" Text="{Binding HashResult}" Margin="0,4,0,0" FontSize="13">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource EmptyHidden}">
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding HashTone}" Value="Good"><Setter Property="Foreground" Value="{StaticResource GoodBrush}"/></DataTrigger>
-                                            <DataTrigger Binding="{Binding HashTone}" Value="Bad"><Setter Property="Foreground" Value="{StaticResource BadBrush}"/></DataTrigger>
+                                            <DataTrigger Binding="{Binding HashTone}" Value="Good"><Setter Property="Foreground" Value="{DynamicResource GoodBrush}"/></DataTrigger>
+                                            <DataTrigger Binding="{Binding HashTone}" Value="Bad"><Setter Property="Foreground" Value="{DynamicResource BadBrush}"/></DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </TextBlock.Style>
@@ -154,11 +154,11 @@
         </Grid>
 
         <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20" CornerRadius="20" Padding="18,9"
-                Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
                 Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
-                <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource TextBrush}"/>
+                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{DynamicResource AccentBrush}" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding BusyText}" Foreground="{DynamicResource TextBrush}"/>
             </StackPanel>
         </Border>
     </Grid>

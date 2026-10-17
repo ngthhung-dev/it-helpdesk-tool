@@ -53,9 +53,9 @@
                 <!-- Sao lưu mã khôi phục -->
                 <Border c:SectionIndex.Title="Sao lưu mã khôi phục" Style="{StaticResource Card}" Margin="0,0,0,12" Visibility="{Binding Available, Converter={StaticResource BoolVis}}" IsEnabled="{Binding IsIdle}">
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Left" Text="&#xE8F7;" Style="{StaticResource Icon}" FontSize="20" Foreground="{StaticResource AccentBrush}" Margin="0,2,14,0" VerticalAlignment="Top"/>
+                        <TextBlock DockPanel.Dock="Left" Text="&#xE8F7;" Style="{StaticResource Icon}" FontSize="20" Foreground="{DynamicResource AccentBrush}" Margin="0,2,14,0" VerticalAlignment="Top"/>
                         <StackPanel>
-                            <TextBlock Text="Sao lưu mã khôi phục" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                            <TextBlock Text="Sao lưu mã khôi phục" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
                             <TextBlock Style="{StaticResource Hint}"
                                        Text="Lưu mã khôi phục của tất cả ổ đã mã hoá vào một file (.txt + .csv) — cất trên USB hoặc in giấy. Thay main, cập nhật BIOS, TPM lỗi mà không có mã này là mất dữ liệu."/>
                             <WrapPanel Margin="0,10,0,0">
@@ -73,9 +73,9 @@
                     </DockPanel>
                 </Border>
 
-                <Border Style="{StaticResource Card}" BorderBrush="{StaticResource WarnBrush}" Visibility="{Binding Available, Converter={StaticResource NotBoolVis}}">
+                <Border Style="{StaticResource Card}" BorderBrush="{DynamicResource WarnBrush}" Visibility="{Binding Available, Converter={StaticResource NotBoolVis}}">
                     <StackPanel>
-                        <TextBlock Text="BitLocker không có trên máy này" Foreground="{StaticResource WarnBrush}" FontWeight="SemiBold"/>
+                        <TextBlock Text="BitLocker không có trên máy này" Foreground="{DynamicResource WarnBrush}" FontWeight="SemiBold"/>
                         <TextBlock Text="{Binding UnavailableText}" Style="{StaticResource Hint}"/>
                     </StackPanel>
                 </Border>
@@ -86,10 +86,10 @@
                             <Border c:SectionIndex.Title="{Binding V.MountPoint}" Style="{StaticResource Card}" Margin="0,0,0,12">
                                 <StackPanel>
                                     <DockPanel>
-                                        <Border x:Name="Badge" DockPanel.Dock="Right" CornerRadius="6" Padding="8,3" Background="#14FFFFFF" VerticalAlignment="Top">
-                                            <TextBlock x:Name="BadgeT" Text="{Binding V.StateText}" FontSize="12" Foreground="{StaticResource MutedBrush}"/>
+                                        <Border x:Name="Badge" DockPanel.Dock="Right" CornerRadius="6" Padding="8,3" Background="{DynamicResource HoverBrush}" VerticalAlignment="Top">
+                                            <TextBlock x:Name="BadgeT" Text="{Binding V.StateText}" FontSize="12" Foreground="{DynamicResource MutedBrush}"/>
                                         </Border>
-                                        <TextBlock x:Name="Ico" DockPanel.Dock="Left" Text="&#xE785;" Style="{StaticResource Icon}" FontSize="22" Foreground="{StaticResource MutedBrush}"
+                                        <TextBlock x:Name="Ico" DockPanel.Dock="Left" Text="&#xE785;" Style="{StaticResource Icon}" FontSize="22" Foreground="{DynamicResource MutedBrush}"
                                                    Margin="0,2,14,0" VerticalAlignment="Top"/>
                                         <StackPanel>
                                             <TextBlock Text="{Binding V.MountPoint}" Style="{StaticResource H2}"/>
@@ -104,12 +104,12 @@
                                         <ItemsControl ItemsSource="{Binding RecoveryKeys}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Border Background="{StaticResource Surface2Brush}" CornerRadius="8" Padding="12,8" Margin="0,0,0,6">
+                                                    <Border Background="{DynamicResource Surface2Brush}" CornerRadius="8" Padding="12,8" Margin="0,0,0,6">
                                                         <DockPanel>
                                                             <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Chép" VerticalAlignment="Center"
                                                                     Command="{Binding DataContext.CopyKeyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                                                             <StackPanel>
-                                                                <TextBlock FontSize="11.5" Foreground="{StaticResource MutedBrush}">
+                                                                <TextBlock FontSize="11.5" Foreground="{DynamicResource MutedBrush}">
                                                                     <Run Text="Mã định danh:"/> <Run Text="{Binding Id, Mode=OneWay}"/>
                                                                 </TextBlock>
                                                                 <TextBox Style="{StaticResource SelectableValue}" Text="{Binding RecoveryPassword, Mode=OneWay}" FontFamily="{StaticResource MonoFont}" FontSize="15"/>
@@ -149,10 +149,10 @@
                                                 Command="{Binding DataContext.UnlockPasswordCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                         <Button x:Name="BUnRk" Style="{StaticResource Act}" Content="Mở khoá bằng mã khôi phục" Visibility="Collapsed"
                                                 Command="{Binding DataContext.UnlockRecoveryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                                        <Button x:Name="BOff" Style="{StaticResource Act}" Content="Tắt BitLocker" Foreground="{StaticResource BadBrush}" Visibility="Collapsed"
+                                        <Button x:Name="BOff" Style="{StaticResource Act}" Content="Tắt BitLocker" Foreground="{DynamicResource BadBrush}" Visibility="Collapsed"
                                                 Command="{Binding DataContext.DisableCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                     </WrapPanel>
-                                    <TextBlock x:Name="Warn" Style="{StaticResource Hint}" Foreground="{StaticResource WarnBrush}" Visibility="Collapsed"
+                                    <TextBlock x:Name="Warn" Style="{StaticResource Hint}" Foreground="{DynamicResource WarnBrush}" Visibility="Collapsed"
                                                Text="Ổ đã mã hoá nhưng chưa có mã khôi phục — thêm và lưu lại ngay để tránh mất dữ liệu."/>
                                 </StackPanel>
                             </Border>
@@ -168,9 +168,9 @@
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding V.On}" Value="True">
                                     <Setter TargetName="Ico" Property="Text" Value="&#xE72E;"/>
-                                    <Setter TargetName="Ico" Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                    <Setter TargetName="Ico" Property="Foreground" Value="{DynamicResource GoodBrush}"/>
                                     <Setter TargetName="Badge" Property="Background" Value="#1A34D399"/>
-                                    <Setter TargetName="BadgeT" Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                    <Setter TargetName="BadgeT" Property="Foreground" Value="{DynamicResource GoodBrush}"/>
                                     <Setter TargetName="BOff" Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
                                 <MultiDataTrigger>
@@ -182,17 +182,17 @@
                                 </MultiDataTrigger>
                                 <DataTrigger Binding="{Binding V.Suspended}" Value="True">
                                     <Setter TargetName="Ico" Property="Text" Value="&#xE72E;"/>
-                                    <Setter TargetName="Ico" Property="Foreground" Value="{StaticResource WarnBrush}"/>
+                                    <Setter TargetName="Ico" Property="Foreground" Value="{DynamicResource WarnBrush}"/>
                                     <Setter TargetName="Badge" Property="Background" Value="#1AFBBF24"/>
-                                    <Setter TargetName="BadgeT" Property="Foreground" Value="{StaticResource WarnBrush}"/>
+                                    <Setter TargetName="BadgeT" Property="Foreground" Value="{DynamicResource WarnBrush}"/>
                                     <Setter TargetName="BResume" Property="Visibility" Value="Visible"/>
                                     <Setter TargetName="BOff" Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding V.Locked}" Value="True">
                                     <Setter TargetName="Ico" Property="Text" Value="&#xE72E;"/>
-                                    <Setter TargetName="Ico" Property="Foreground" Value="{StaticResource WarnBrush}"/>
+                                    <Setter TargetName="Ico" Property="Foreground" Value="{DynamicResource WarnBrush}"/>
                                     <Setter TargetName="Badge" Property="Background" Value="#1AFBBF24"/>
-                                    <Setter TargetName="BadgeT" Property="Foreground" Value="{StaticResource WarnBrush}"/>
+                                    <Setter TargetName="BadgeT" Property="Foreground" Value="{DynamicResource WarnBrush}"/>
                                     <Setter TargetName="BUnPw" Property="Visibility" Value="Visible"/>
                                     <Setter TargetName="BUnRk" Property="Visibility" Value="Visible"/>
                                     <Setter TargetName="BSuspend" Property="Visibility" Value="Collapsed"/>
@@ -247,13 +247,13 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <TextBlock FontSize="12" TextWrapping="Wrap" Margin="0,0,0,3">
-                                <Run Text="{Binding Time, Mode=OneWay}" Foreground="{StaticResource FaintBrush}"/>
+                                <Run Text="{Binding Time, Mode=OneWay}" Foreground="{DynamicResource FaintBrush}"/>
                                 <Run Text="{Binding Text, Mode=OneWay}">
                                     <Run.Style>
                                         <Style TargetType="Run">
-                                            <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource GoodBrush}"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Ok}" Value="False"><Setter Property="Foreground" Value="{StaticResource BadBrush}"/></DataTrigger>
+                                                <DataTrigger Binding="{Binding Ok}" Value="False"><Setter Property="Foreground" Value="{DynamicResource BadBrush}"/></DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </Run.Style>
@@ -267,11 +267,11 @@
         </Grid>
 
         <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20" CornerRadius="20" Padding="18,9"
-                Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
                 Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
-                <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource TextBrush}"/>
+                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{DynamicResource AccentBrush}" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding BusyText}" Foreground="{DynamicResource TextBrush}"/>
             </StackPanel>
         </Border>
     </Grid>

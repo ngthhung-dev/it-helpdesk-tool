@@ -17,7 +17,7 @@
             <Setter Property="TextTrimming" Value="None"/>
         </Style>
         <Style x:Key="Row" TargetType="Border">
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
             <Setter Property="Padding" Value="0,10"/>
         </Style>
@@ -59,7 +59,7 @@
                                 <DockPanel>
                                     <CheckBox DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="{Binding Thumbnails}" VerticalAlignment="Center"/>
                                     <StackPanel>
-                                        <TextBlock Text="Ảnh thu nhỏ thay cho biểu tượng" Foreground="{StaticResource TextBrush}"/>
+                                        <TextBlock Text="Ảnh thu nhỏ thay cho biểu tượng" Foreground="{DynamicResource TextBrush}"/>
                                         <TextBlock Style="{StaticResource Hint}" Text="Xem trước ảnh, video, PDF ngay trên biểu tượng file."/>
                                     </StackPanel>
                                 </DockPanel>
@@ -68,7 +68,7 @@
                                 <DockPanel>
                                     <CheckBox DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="{Binding NetworkThumbnails}" VerticalAlignment="Center"/>
                                     <StackPanel>
-                                        <TextBlock Text="Ảnh thu nhỏ trên thư mục mạng" Foreground="{StaticResource TextBrush}"/>
+                                        <TextBlock Text="Ảnh thu nhỏ trên thư mục mạng" Foreground="{DynamicResource TextBrush}"/>
                                         <TextBlock Style="{StaticResource Hint}" Text="Thư mục chia sẻ / NAS. Tắt nếu mạng chậm."/>
                                     </StackPanel>
                                 </DockPanel>
@@ -77,7 +77,7 @@
                                 <DockPanel>
                                     <CheckBox DockPanel.Dock="Right" Style="{StaticResource Toggle}" IsChecked="{Binding PreviewHandlers}" VerticalAlignment="Center"/>
                                     <StackPanel>
-                                        <TextBlock Text="Hiện nội dung trong khung Preview" Foreground="{StaticResource TextBrush}"/>
+                                        <TextBlock Text="Hiện nội dung trong khung Preview" Foreground="{DynamicResource TextBrush}"/>
                                         <TextBlock Style="{StaticResource Hint}" Text="Mở khung bằng Alt + P trong File Explorer."/>
                                     </StackPanel>
                                 </DockPanel>
@@ -86,7 +86,7 @@
                                 <DockPanel>
                                     <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Chọn thư mục…" VerticalAlignment="Center" Command="{Binding UnblockFolderCommand}"/>
                                     <StackPanel Margin="0,0,8,0">
-                                        <TextBlock Text="File tải từ Internet không xem trước được" Foreground="{StaticResource TextBrush}"/>
+                                        <TextBlock Text="File tải từ Internet không xem trước được" Foreground="{DynamicResource TextBrush}"/>
                                         <TextBlock Style="{StaticResource Hint}" Text="Windows chặn xem trước file có đánh dấu “tải từ Internet” (tệp đính kèm, file Zalo / trình duyệt). Bỏ chặn cho cả thư mục."/>
                                     </StackPanel>
                                 </DockPanel>
@@ -104,14 +104,14 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <DockPanel Margin="0,0,0,5">
-                                            <TextBlock x:Name="Ico" DockPanel.Dock="Left" Width="20" Text="&#xE711;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource BadBrush}" VerticalAlignment="Center"/>
-                                            <TextBlock DockPanel.Dock="Left" Width="150" Text="{Binding Label}" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center"/>
-                                            <TextBlock x:Name="Info" Text="{Binding Suggest}" FontSize="12" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="Ico" DockPanel.Dock="Left" Width="20" Text="&#xE711;" Style="{StaticResource Icon}" FontSize="12" Foreground="{DynamicResource BadBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock DockPanel.Dock="Left" Width="150" Text="{Binding Label}" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="Info" Text="{Binding Suggest}" FontSize="12" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                                         </DockPanel>
                                         <DataTemplate.Triggers>
                                             <DataTrigger Binding="{Binding Ok}" Value="True">
                                                 <Setter TargetName="Ico" Property="Text" Value="&#xE73E;"/>
-                                                <Setter TargetName="Ico" Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                                <Setter TargetName="Ico" Property="Foreground" Value="{DynamicResource GoodBrush}"/>
                                                 <Setter TargetName="Info" Property="Text" Value="{Binding Handler}"/>
                                             </DataTrigger>
                                         </DataTemplate.Triggers>
@@ -138,15 +138,15 @@
                             </DockPanel>
 
                             <StackPanel Visibility="{Binding HasReport, Converter={StaticResource BoolVis}}" Margin="0,8,0,0">
-                                <TextBlock Text="{Binding Report.Name}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" FontSize="15" TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding Report.Name}" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" FontSize="15" TextWrapping="Wrap"/>
                                 <Border Background="#1AF87171" CornerRadius="8" Padding="10,6" Margin="0,8,0,0" Visibility="{Binding Report.ExtMismatch, Converter={StaticResource BoolVis}}">
-                                    <TextBlock Text="⚠ Đuôi file không khớp với nội dung thật — cẩn thận, có thể là mã độc giả dạng tài liệu." Foreground="{StaticResource BadBrush}" TextWrapping="Wrap" FontSize="12.5"/>
+                                    <TextBlock Text="⚠ Đuôi file không khớp với nội dung thật — cẩn thận, có thể là mã độc giả dạng tài liệu." Foreground="{DynamicResource BadBrush}" TextWrapping="Wrap" FontSize="12.5"/>
                                 </Border>
                                 <StackPanel Margin="0,8,0,0">
-                                    <DockPanel Margin="0,2"><TextBlock Text="Loại thật" Style="{StaticResource KLabel}"/><TextBlock Text="{Binding Report.RealType}" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Dung lượng" Style="{StaticResource KLabel}"/><TextBlock Foreground="{StaticResource TextBrush}"><Run Text="{Binding Report.Size, Mode=OneWay, StringFormat={}{0:N0} byte}"/></TextBlock></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Sửa lần cuối" Style="{StaticResource KLabel}"/><TextBlock Text="{Binding Report.Modified, StringFormat=dd/MM/yyyy HH:mm}" Foreground="{StaticResource TextBrush}"/></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="Nguồn" Style="{StaticResource KLabel}"/><TextBlock Text="{Binding Report.ZoneText}" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Loại thật" Style="{StaticResource KLabel}"/><TextBlock Text="{Binding Report.RealType}" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap"/></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Dung lượng" Style="{StaticResource KLabel}"/><TextBlock Foreground="{DynamicResource TextBrush}"><Run Text="{Binding Report.Size, Mode=OneWay, StringFormat={}{0:N0} byte}"/></TextBlock></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Sửa lần cuối" Style="{StaticResource KLabel}"/><TextBlock Text="{Binding Report.Modified, StringFormat=dd/MM/yyyy HH:mm}" Foreground="{DynamicResource TextBrush}"/></DockPanel>
+                                    <DockPanel Margin="0,2"><TextBlock Text="Nguồn" Style="{StaticResource KLabel}"/><TextBlock Text="{Binding Report.ZoneText}" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap"/></DockPanel>
                                     <DockPanel Margin="0,2" Visibility="{Binding Report.HostUrl, Converter={x:Static core:Converters.NonEmptyVis}}">
                                         <TextBlock Text="Tải từ" Style="{StaticResource KLabel}"/>
                                         <TextBox Style="{StaticResource SelectableValue}" Text="{Binding Report.HostUrl, Mode=OneWay}" FontSize="12" TextWrapping="Wrap"/>
@@ -156,9 +156,9 @@
                                         <TextBlock Text="{Binding Report.Signature}" TextWrapping="Wrap">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
-                                                    <Setter Property="Foreground" Value="{StaticResource WarnBrush}"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource WarnBrush}"/>
                                                     <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Report.Signed}" Value="True"><Setter Property="Foreground" Value="{StaticResource GoodBrush}"/></DataTrigger>
+                                                        <DataTrigger Binding="{Binding Report.Signed}" Value="True"><Setter Property="Foreground" Value="{DynamicResource GoodBrush}"/></DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </TextBlock.Style>
@@ -180,12 +180,12 @@
                                 </WrapPanel>
 
                                 <!-- Xem trước -->
-                                <Border Background="{StaticResource Surface2Brush}" CornerRadius="8" Margin="0,8,0,0" Padding="8"
+                                <Border Background="{DynamicResource Surface2Brush}" CornerRadius="8" Margin="0,8,0,0" Padding="8"
                                         Visibility="{Binding Image, Converter={x:Static core:Converters.NotNullVis}}">
                                     <Image Source="{Binding Image}" MaxHeight="420" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
                                 </Border>
                                 <TextBox Text="{Binding Report.Text, Mode=OneWay}" IsReadOnly="True" Margin="0,8,0,0" MaxHeight="420" Padding="10"
-                                         Background="{StaticResource Surface2Brush}" Foreground="{StaticResource TextBrush}" BorderThickness="0"
+                                         Background="{DynamicResource Surface2Brush}" Foreground="{DynamicResource TextBrush}" BorderThickness="0"
                                          FontFamily="{StaticResource MonoFont}" FontSize="12" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
                                          Visibility="{Binding Report.Text, Converter={x:Static core:Converters.NonEmptyVis}}"/>
                             </StackPanel>
@@ -197,13 +197,13 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <TextBlock FontSize="12" TextWrapping="Wrap" Margin="0,0,0,3">
-                                <Run Text="{Binding Time, Mode=OneWay}" Foreground="{StaticResource FaintBrush}"/>
+                                <Run Text="{Binding Time, Mode=OneWay}" Foreground="{DynamicResource FaintBrush}"/>
                                 <Run Text="{Binding Text, Mode=OneWay}">
                                     <Run.Style>
                                         <Style TargetType="Run">
-                                            <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource GoodBrush}"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Ok}" Value="False"><Setter Property="Foreground" Value="{StaticResource BadBrush}"/></DataTrigger>
+                                                <DataTrigger Binding="{Binding Ok}" Value="False"><Setter Property="Foreground" Value="{DynamicResource BadBrush}"/></DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </Run.Style>
@@ -217,11 +217,11 @@
         </Grid>
 
         <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20" CornerRadius="20" Padding="18,9"
-                Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
                 Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
-                <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource TextBrush}"/>
+                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{DynamicResource AccentBrush}" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding BusyText}" Foreground="{DynamicResource TextBrush}"/>
             </StackPanel>
         </Border>
     </Grid>

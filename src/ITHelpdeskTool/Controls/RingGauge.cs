@@ -38,6 +38,14 @@ public sealed class RingGauge : FrameworkElement
     private static readonly Brush Warn = Frozen(0xFB, 0xBF, 0x24);
     private static readonly Brush Bad = Frozen(0xF8, 0x71, 0x71);
 
+    public RingGauge()
+    {
+        Loaded += (_, _) => ITHelpdeskTool.Core.ThemeService.Changed += InvalidateVisual;
+        Unloaded += (_, _) => ITHelpdeskTool.Core.ThemeService.Changed -= InvalidateVisual;
+    }
+
+    private Brush Res(string key, Brush fallback) => TryFindResource(key) as Brush ?? fallback;
+
     protected override void OnRender(DrawingContext dc)
     {
         var size = Math.Min(ActualWidth, ActualHeight);
@@ -47,12 +55,13 @@ public sealed class RingGauge : FrameworkElement
         var r = (size - t) / 2;
         var c = new Point(ActualWidth / 2, ActualHeight / 2);
 
-        dc.DrawEllipse(null, new Pen(Track, t), c, r, r);
+        var track = ReferenceEquals(Track, DefaultTrack) ? Res("Surface2Brush", DefaultTrack) : Track;
+        dc.DrawEllipse(null, new Pen(track, t), c, r, r);
 
         var v = Math.Clamp(Value, 0, 100);
         if (v <= 0) return;
 
-        var brush = !UseThresholds ? Stroke : v >= 90 ? Bad : v >= 75 ? Warn : Stroke;
+        var brush = !UseThresholds ? Stroke : v >= 90 ? Res("BadBrush", Bad) : v >= 75 ? Res("WarnBrush", Warn) : Stroke;
         var pen = new Pen(brush, t) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
 
         if (v >= 99.99)

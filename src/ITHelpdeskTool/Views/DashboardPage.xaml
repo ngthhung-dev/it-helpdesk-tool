@@ -22,7 +22,7 @@
             <Setter Property="VerticalAlignment" Value="Top"/>
         </Style>
         <Style x:Key="ValText" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
         <Style x:Key="KvRow" TargetType="DockPanel">
@@ -60,7 +60,7 @@
                     <Run Text="{Binding Hardware.OsName, Mode=OneWay, FallbackValue='Windows'}"/>
                     <Run Text="{Binding Hardware.OsVersion, Mode=OneWay}"/>
                     <Run Text=" · Máy chạy liên tục"/>
-                    <Run Text="{Binding UptimeText, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
+                    <Run Text="{Binding UptimeText, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/>
                 </TextBlock>
             </StackPanel>
         </DockPanel>
@@ -78,18 +78,18 @@
                     <StackPanel>
                         <DockPanel>
                             <Grid DockPanel.Dock="Right" Width="58" Height="58">
-                                <c:RingGauge Value="{Binding CpuPercent}" Stroke="{StaticResource AccentBrush}" Thickness="6"/>
-                                <TextBlock Text="&#xE950;" Style="{StaticResource Icon}" HorizontalAlignment="Center" Foreground="{StaticResource MutedBrush}"/>
+                                <c:RingGauge Value="{Binding CpuPercent}" Stroke="{DynamicResource AccentBrush}" Thickness="6"/>
+                                <TextBlock Text="&#xE950;" Style="{StaticResource Icon}" HorizontalAlignment="Center" Foreground="{DynamicResource MutedBrush}"/>
                             </Grid>
                             <StackPanel>
                                 <TextBlock Text="CPU" Style="{StaticResource Caption}"/>
                                 <TextBlock Style="{StaticResource BigNumber}" Margin="0,4,0,0">
-                                    <Run Text="{Binding CpuPercent, StringFormat={}{0:0}, Mode=OneWay}"/><Run Text="%" FontSize="16" Foreground="{StaticResource MutedBrush}"/>
+                                    <Run Text="{Binding CpuPercent, StringFormat={}{0:0}, Mode=OneWay}"/><Run Text="%" FontSize="16" Foreground="{DynamicResource MutedBrush}"/>
                                 </TextBlock>
                                 <TextBlock Style="{StaticResource Muted}" Text="{Binding Hardware.Threads, StringFormat={}{0} luồng, FallbackValue='…'}"/>
                             </StackPanel>
                         </DockPanel>
-                        <c:Sparkline Values="{Binding CpuHistory}" Stroke="{StaticResource AccentBrush}" Height="34" Margin="0,10,0,0"/>
+                        <c:Sparkline Values="{Binding CpuHistory}" Stroke="{DynamicResource AccentBrush}" Height="34" Margin="0,10,0,0"/>
                     </StackPanel>
                 </Border>
 
@@ -98,18 +98,18 @@
                     <StackPanel>
                         <DockPanel>
                             <Grid DockPanel.Dock="Right" Width="58" Height="58">
-                                <c:RingGauge Value="{Binding RamPercent}" Stroke="{StaticResource VioletBrush}" Thickness="6"/>
-                                <TextBlock Text="&#xEEA0;" Style="{StaticResource Icon}" HorizontalAlignment="Center" Foreground="{StaticResource MutedBrush}"/>
+                                <c:RingGauge Value="{Binding RamPercent}" Stroke="{DynamicResource VioletBrush}" Thickness="6"/>
+                                <TextBlock Text="&#xEEA0;" Style="{StaticResource Icon}" HorizontalAlignment="Center" Foreground="{DynamicResource MutedBrush}"/>
                             </Grid>
                             <StackPanel>
                                 <TextBlock Text="RAM" Style="{StaticResource Caption}"/>
                                 <TextBlock Style="{StaticResource BigNumber}" Margin="0,4,0,0">
-                                    <Run Text="{Binding RamPercent, StringFormat={}{0:0}, Mode=OneWay}"/><Run Text="%" FontSize="16" Foreground="{StaticResource MutedBrush}"/>
+                                    <Run Text="{Binding RamPercent, StringFormat={}{0:0}, Mode=OneWay}"/><Run Text="%" FontSize="16" Foreground="{DynamicResource MutedBrush}"/>
                                 </TextBlock>
                                 <TextBlock Style="{StaticResource Muted}" Text="{Binding RamText}"/>
                             </StackPanel>
                         </DockPanel>
-                        <c:Sparkline Values="{Binding RamHistory}" Stroke="{StaticResource VioletBrush}" Height="34" Margin="0,10,0,0"/>
+                        <c:Sparkline Values="{Binding RamHistory}" Stroke="{DynamicResource VioletBrush}" Height="34" Margin="0,10,0,0"/>
                     </StackPanel>
                 </Border>
 
@@ -117,14 +117,14 @@
                 <Border Style="{StaticResource Card}" Margin="6">
                     <DockPanel>
                         <Grid DockPanel.Dock="Right" Width="58" Height="58" VerticalAlignment="Top">
-                            <c:RingGauge Value="{Binding BatteryPercent}" Stroke="{StaticResource GoodBrush}" Thickness="6" UseThresholds="False"/>
-                            <TextBlock Text="{Binding BatteryGlyph}" Style="{StaticResource Icon}" HorizontalAlignment="Center" Foreground="{StaticResource MutedBrush}"/>
+                            <c:RingGauge Value="{Binding BatteryPercent}" Stroke="{DynamicResource GoodBrush}" Thickness="6" UseThresholds="False"/>
+                            <TextBlock Text="{Binding BatteryGlyph}" Style="{StaticResource Icon}" HorizontalAlignment="Center" Foreground="{DynamicResource MutedBrush}"/>
                         </Grid>
                         <StackPanel>
                             <TextBlock Text="PIN" Style="{StaticResource Caption}"/>
                             <TextBlock Style="{StaticResource BigNumber}" Margin="0,4,0,0"
                                        Visibility="{Binding HasBattery, Converter={StaticResource BoolVis}}">
-                                <Run Text="{Binding BatteryPercent, Mode=OneWay}"/><Run Text="%" FontSize="16" Foreground="{StaticResource MutedBrush}"/>
+                                <Run Text="{Binding BatteryPercent, Mode=OneWay}"/><Run Text="%" FontSize="16" Foreground="{DynamicResource MutedBrush}"/>
                             </TextBlock>
                             <TextBlock Style="{StaticResource BigNumber}" Text="AC" Margin="0,4,0,0"
                                        Visibility="{Binding HasBattery, Converter={StaticResource NotBoolVis}}"/>
@@ -137,13 +137,13 @@
                 <Border Style="{StaticResource Card}" Margin="6">
                     <DockPanel>
                         <Grid DockPanel.Dock="Right" Width="58" Height="58" VerticalAlignment="Top">
-                            <c:RingGauge Value="{Binding SystemDrivePercent}" Stroke="{StaticResource WarnBrush}" Thickness="6"/>
-                            <TextBlock Text="&#xEDA2;" Style="{StaticResource Icon}" HorizontalAlignment="Center" Foreground="{StaticResource MutedBrush}"/>
+                            <c:RingGauge Value="{Binding SystemDrivePercent}" Stroke="{DynamicResource WarnBrush}" Thickness="6"/>
+                            <TextBlock Text="&#xEDA2;" Style="{StaticResource Icon}" HorizontalAlignment="Center" Foreground="{DynamicResource MutedBrush}"/>
                         </Grid>
                         <StackPanel>
                             <TextBlock Text="Ổ HỆ THỐNG" Style="{StaticResource Caption}"/>
                             <TextBlock Style="{StaticResource BigNumber}" Margin="0,4,0,0">
-                                <Run Text="{Binding SystemDrivePercent, StringFormat={}{0:0}, Mode=OneWay}"/><Run Text="%" FontSize="16" Foreground="{StaticResource MutedBrush}"/>
+                                <Run Text="{Binding SystemDrivePercent, StringFormat={}{0:0}, Mode=OneWay}"/><Run Text="%" FontSize="16" Foreground="{DynamicResource MutedBrush}"/>
                             </TextBlock>
                             <TextBlock Style="{StaticResource Muted}" Text="{Binding SystemDriveText}"/>
                         </StackPanel>
@@ -172,7 +172,7 @@
                                 <TextBlock Text="Tên máy" Style="{StaticResource KeyText}"/>
                                 <TextBlock Style="{StaticResource ValText}">
                                     <Run Text="{Binding Hardware.ComputerName, Mode=OneWay}"/>
-                                    <Run Text="{Binding Hardware.Domain, Mode=OneWay, StringFormat='· {0}'}" Foreground="{StaticResource MutedBrush}"/>
+                                    <Run Text="{Binding Hardware.Domain, Mode=OneWay, StringFormat='· {0}'}" Foreground="{DynamicResource MutedBrush}"/>
                                 </TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource KvRow}">
@@ -185,7 +185,7 @@
                             <DockPanel Style="{StaticResource KvRow}">
                                 <TextBlock Text="Serial" Style="{StaticResource KeyText}"/>
                                 <TextBox Text="{Binding Hardware.SerialNumber, Mode=OneWay, Converter={StaticResource Dash}}" IsReadOnly="True"
-                                         Background="Transparent" BorderThickness="0" Padding="0" Foreground="{StaticResource TextBrush}"
+                                         Background="Transparent" BorderThickness="0" Padding="0" Foreground="{DynamicResource TextBrush}"
                                          FontFamily="{StaticResource MonoFont}" ToolTip="Bôi đen để chép"/>
                             </DockPanel>
                             <DockPanel Style="{StaticResource KvRow}">
@@ -193,8 +193,8 @@
                                 <TextBlock Style="{StaticResource ValText}">
                                     <Run Text="{Binding Hardware.OsName, Mode=OneWay}"/>
                                     <Run Text="{Binding Hardware.OsVersion, Mode=OneWay}"/>
-                                    <Run Text="{Binding Hardware.OsBuild, Mode=OneWay, StringFormat='· build {0}'}" Foreground="{StaticResource MutedBrush}"/>
-                                    <Run Text="{Binding Hardware.Architecture, Mode=OneWay, StringFormat='· {0}'}" Foreground="{StaticResource MutedBrush}"/>
+                                    <Run Text="{Binding Hardware.OsBuild, Mode=OneWay, StringFormat='· build {0}'}" Foreground="{DynamicResource MutedBrush}"/>
+                                    <Run Text="{Binding Hardware.Architecture, Mode=OneWay, StringFormat='· {0}'}" Foreground="{DynamicResource MutedBrush}"/>
                                 </TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource KvRow}">
@@ -202,15 +202,15 @@
                                 <TextBlock Style="{StaticResource ValText}">
                                     <Run Text="{Binding Hardware.CpuName, Mode=OneWay}"/>
                                     <LineBreak/>
-                                    <Run Foreground="{StaticResource MutedBrush}" Text="{Binding Hardware.Cores, Mode=OneWay, StringFormat={}{0} nhân}"/>
-                                    <Run Foreground="{StaticResource MutedBrush}" Text="{Binding Hardware.Threads, Mode=OneWay, StringFormat='/ {0} luồng'}"/>
+                                    <Run Foreground="{DynamicResource MutedBrush}" Text="{Binding Hardware.Cores, Mode=OneWay, StringFormat={}{0} nhân}"/>
+                                    <Run Foreground="{DynamicResource MutedBrush}" Text="{Binding Hardware.Threads, Mode=OneWay, StringFormat='/ {0} luồng'}"/>
                                 </TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource KvRow}">
                                 <TextBlock Text="RAM" Style="{StaticResource KeyText}"/>
                                 <TextBlock Style="{StaticResource ValText}">
                                     <Run Text="{Binding Hardware.RamTotalGb, Mode=OneWay, StringFormat={}{0:0} GB}"/>
-                                    <Run Text="{Binding Hardware.RamDetail, Mode=OneWay}" Foreground="{StaticResource MutedBrush}"/>
+                                    <Run Text="{Binding Hardware.RamDetail, Mode=OneWay}" Foreground="{DynamicResource MutedBrush}"/>
                                 </TextBlock>
                             </DockPanel>
                             <DockPanel Style="{StaticResource KvRow}">
@@ -221,7 +221,7 @@
                                 <TextBlock Text="Mainboard" Style="{StaticResource KeyText}"/>
                                 <TextBlock Style="{StaticResource ValText}">
                                     <Run Text="{Binding Hardware.Mainboard, Mode=OneWay}"/>
-                                    <Run Text="{Binding Hardware.Bios, Mode=OneWay, StringFormat='· BIOS {0}'}" Foreground="{StaticResource MutedBrush}"/>
+                                    <Run Text="{Binding Hardware.Bios, Mode=OneWay, StringFormat='· BIOS {0}'}" Foreground="{DynamicResource MutedBrush}"/>
                                 </TextBlock>
                             </DockPanel>
                         </StackPanel>
@@ -240,9 +240,9 @@
                                             <TextBlock DockPanel.Dock="Right" Style="{StaticResource Muted}">
                                                 <Run Text="{Binding FreeGb, Mode=OneWay, StringFormat={}{0:0}}"/><Run Text=" GB trống / "/><Run Text="{Binding TotalGb, Mode=OneWay, StringFormat={}{0:0} GB}"/>
                                             </TextBlock>
-                                            <TextBlock Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis">
+                                            <TextBlock Foreground="{DynamicResource TextBrush}" TextTrimming="CharacterEllipsis">
                                                 <Run Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold"/>
-                                                <Run Text="{Binding Label, Mode=OneWay}" Foreground="{StaticResource MutedBrush}"/>
+                                                <Run Text="{Binding Label, Mode=OneWay}" Foreground="{DynamicResource MutedBrush}"/>
                                             </TextBlock>
                                         </DockPanel>
                                         <ProgressBar Value="{Binding UsedPercent, Mode=OneWay}" Maximum="100" Margin="0,7,0,4">
@@ -250,7 +250,7 @@
                                                 <Style TargetType="ProgressBar" BasedOn="{StaticResource {x:Type ProgressBar}}">
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding UsedPercent, Converter={x:Static core:Thresholds.Over90}}" Value="True">
-                                                            <Setter Property="Foreground" Value="{StaticResource BadBrush}"/>
+                                                            <Setter Property="Foreground" Value="{DynamicResource BadBrush}"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
@@ -281,8 +281,8 @@
                                 Command="{Binding DataContext.OpenToolCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                 CommandParameter="{Binding Target}" ToolTip="{Binding ToolTipText}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" Foreground="{StaticResource AccentBrush}"/>
-                                <TextBlock Text="{Binding Title}" Margin="10,0,0,0" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" Foreground="{DynamicResource AccentBrush}"/>
+                                <TextBlock Text="{Binding Title}" Margin="10,0,0,0" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                     </DataTemplate>

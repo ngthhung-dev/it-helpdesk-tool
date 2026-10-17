@@ -5,7 +5,7 @@
         xmlns:core="clr-namespace:ITHelpdeskTool.Core"
         Title="IT Helpdesk Tool" Icon="/Assets/app.ico" Width="1240" Height="800" MinWidth="980" MinHeight="620"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource BgBrush}"
+        Background="{DynamicResource BgBrush}"
         FontFamily="{StaticResource UiFont}" FontSize="13"
         TextOptions.TextFormattingMode="Display"
         UseLayoutRounding="True">
@@ -43,19 +43,19 @@
             </Grid.ColumnDefinitions>
 
             <!-- ============ SIDEBAR ============ -->
-            <Border Background="{StaticResource SidebarBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+            <Border Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
                 <DockPanel>
                     <!-- Logo -->
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="18,14,0,18">
                         <Image Source="/Assets/app.png" Width="30" Height="30" RenderOptions.BitmapScalingMode="HighQuality"/>
                         <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding AppName}" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"/>
-                            <TextBlock Text="{Binding Author, StringFormat='by {0}'}" FontSize="10.5" Foreground="{StaticResource FaintBrush}"/>
+                            <TextBlock Text="{Binding AppName}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"/>
+                            <TextBlock Text="{Binding Author, StringFormat='by {0}'}" FontSize="10.5" Foreground="{DynamicResource FaintBrush}"/>
                         </StackPanel>
                     </StackPanel>
 
                     <!-- Chân sidebar: bấm để mở trang Giới thiệu -->
-                    <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="10,8">
+                    <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="10,8">
                         <RadioButton Style="{StaticResource NavItem}" GroupName="nav" DataContext="{Binding AboutItem}"
                                      IsChecked="{Binding IsSelected, Mode=OneWay}" ToolTip="Giới thiệu &amp; liên hệ"
                                      Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -63,11 +63,11 @@
                             <DockPanel>
                                 <Border DockPanel.Dock="Right" CornerRadius="6" Padding="7,2" Background="#1A34D399"
                                         Visibility="{Binding DataContext.IsAdmin, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolVis}}">
-                                    <TextBlock Text="Admin" FontSize="11" Foreground="{StaticResource GoodBrush}"/>
+                                    <TextBlock Text="Admin" FontSize="11" Foreground="{DynamicResource GoodBrush}"/>
                                 </Border>
                                 <Border DockPanel.Dock="Right" CornerRadius="6" Padding="7,2" Background="#1AFBBF24"
                                         Visibility="{Binding DataContext.IsAdmin, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource NotBoolVis}}">
-                                    <TextBlock Text="Chưa có admin" FontSize="11" Foreground="{StaticResource WarnBrush}"/>
+                                    <TextBlock Text="Chưa có admin" FontSize="11" Foreground="{DynamicResource WarnBrush}"/>
                                 </Border>
                                 <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="15" Width="20"
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"/>
@@ -94,7 +94,7 @@
                                                                  Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                  CommandParameter="{Binding}">
                                                         <DockPanel>
-                                                            <Ellipse DockPanel.Dock="Right" Width="5" Height="5" Fill="{StaticResource FaintBrush}"
+                                                            <Ellipse DockPanel.Dock="Right" Width="5" Height="5" Fill="{DynamicResource FaintBrush}"
                                                                      VerticalAlignment="Center" ToolTip="Sắp có"
                                                                      Visibility="{Binding IsReady, Converter={StaticResource NotBoolVis}}"/>
                                                             <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="15" Width="20"
@@ -124,6 +124,15 @@
                 <!-- Thanh tiêu đề (kéo được) -->
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                        <Button Style="{StaticResource CaptionButton}" x:Name="ThemeButton" Content="&#xE7F4;" Click="Theme_Click" ToolTip="Giao diện: theo hệ thống">
+                            <Button.ContextMenu>
+                                <ContextMenu x:Name="ThemeMenu" Placement="Bottom">
+                                    <MenuItem x:Name="ThemeSystem" Header="Theo hệ thống" IsCheckable="True" Click="ThemeItem_Click" Tag="System"/>
+                                    <MenuItem x:Name="ThemeLight" Header="Sáng" IsCheckable="True" Click="ThemeItem_Click" Tag="Light"/>
+                                    <MenuItem x:Name="ThemeDark" Header="Tối" IsCheckable="True" Click="ThemeItem_Click" Tag="Dark"/>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
                         <Button Style="{StaticResource CaptionButton}" Content="&#xE921;" Click="Minimize_Click" ToolTip="Thu nhỏ"/>
                         <Button Style="{StaticResource CaptionButton}" x:Name="MaxButton" Content="&#xE922;" Click="Maximize_Click" ToolTip="Phóng to"/>
                         <Button Style="{StaticResource CloseButton}" Content="&#xE8BB;" Click="Close_Click" ToolTip="Đóng"/>

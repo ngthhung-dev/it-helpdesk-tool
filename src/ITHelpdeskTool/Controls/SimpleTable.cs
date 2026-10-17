@@ -18,7 +18,12 @@ public sealed class SimpleTable : ContentControl
 
     public ReportTable? Table { get => (ReportTable?)GetValue(TableProperty); set => SetValue(TableProperty, value); }
 
-    public SimpleTable() => Focusable = false;
+    public SimpleTable()
+    {
+        Focusable = false;
+        Loaded += (_, _) => ITHelpdeskTool.Core.ThemeService.Changed += Rebuild;
+        Unloaded += (_, _) => ITHelpdeskTool.Core.ThemeService.Changed -= Rebuild;
+    }
 
     private void OnTableChanged(ReportTable? oldT, ReportTable? newT)
     {

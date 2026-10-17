@@ -18,7 +18,7 @@
             <Setter Property="Width" Value="30"/>
             <Setter Property="Height" Value="30"/>
             <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
             <Setter Property="Margin" Value="0,0,12,0"/>
         </Style>
         <Style x:Key="Hint" TargetType="TextBlock" BasedOn="{StaticResource Muted}">
@@ -31,11 +31,11 @@
             <Setter Property="Padding" Value="6,1"/>
             <Setter Property="Margin" Value="8,0,0,0"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Background" Value="#14FFFFFF"/>
+            <Setter Property="Background" Value="{DynamicResource HoverBrush}"/>
         </Style>
         <Style x:Key="BadgeText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10.5"/>
-            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
         </Style>
         <Style x:Key="NumBox" TargetType="TextBox" BasedOn="{StaticResource InputBox}">
             <Setter Property="MaxLength" Value="5"/>
@@ -76,8 +76,8 @@
                         Visibility="{Binding NeedsRestart, Converter={StaticResource BoolVis}}">
                     <DockPanel>
                         <Button DockPanel.Dock="Right" Content="Khởi động lại ngay" Command="{Binding RestartCommand}"/>
-                        <TextBlock Text="&#xE7BA;" Style="{StaticResource Icon}" Foreground="{StaticResource WarnBrush}" Margin="0,0,10,0"/>
-                        <TextBlock Foreground="{StaticResource WarnBrush}" VerticalAlignment="Center" TextWrapping="Wrap"
+                        <TextBlock Text="&#xE7BA;" Style="{StaticResource Icon}" Foreground="{DynamicResource WarnBrush}" Margin="0,0,10,0"/>
+                        <TextBlock Foreground="{DynamicResource WarnBrush}" VerticalAlignment="Center" TextWrapping="Wrap"
                                    Text="Có policy chỉ có hiệu lực sau khi khởi động lại máy."/>
                     </DockPanel>
                 </Border>
@@ -86,8 +86,8 @@
                 <Border CornerRadius="10" Background="#1A5B8CFF" Padding="14,10" Margin="0,0,0,12"
                         Visibility="{Binding IsHome, Converter={StaticResource BoolVis}}">
                     <DockPanel>
-                        <TextBlock Text="&#xE946;" Style="{StaticResource Icon}" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
-                        <TextBlock Foreground="{StaticResource TextBrush}" TextWrapping="Wrap" VerticalAlignment="Center"
+                        <TextBlock Text="&#xE946;" Style="{StaticResource Icon}" Foreground="{DynamicResource AccentBrush}" Margin="0,0,10,0"/>
+                        <TextBlock Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap" VerticalAlignment="Center"
                                    Text="Máy đang chạy Windows Home: các mục gắn nhãn “Pro” Windows sẽ bỏ qua. Các mục còn lại vẫn có tác dụng."/>
                     </DockPanel>
                 </Border>
@@ -120,13 +120,13 @@
                                          Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged, Delay=150}"/>
                             </StackPanel>
                         </Grid>
-                        <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0" Foreground="{StaticResource WarnBrush}"
+                        <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0" Foreground="{DynamicResource WarnBrush}"
                                    Visibility="{Binding TargetIsAdmin, Converter={StaticResource BoolVis}}"
                                    Text="Đây là tài khoản quản trị — hạn chế sẽ áp dụng lên chính tài khoản này. Nên chọn tài khoản nhân viên."/>
                         <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0"
                                    Visibility="{Binding TargetNeedsProfile, Converter={StaticResource BoolVis}}"
                                    Text="Tài khoản này chưa đăng nhập lần nào nên chưa có hồ sơ — bấm “Tạo hồ sơ” để áp policy trước khi họ đăng nhập."/>
-                        <TextBlock Text="{Binding Summary}" Style="{StaticResource Hint}" Margin="0,10,0,0" Foreground="{StaticResource TextBrush}"/>
+                        <TextBlock Text="{Binding Summary}" Style="{StaticResource Hint}" Margin="0,10,0,0" Foreground="{DynamicResource TextBrush}"/>
                     </StackPanel>
                 </Border>
 
@@ -140,10 +140,10 @@
                                     <DockPanel Margin="0,0,0,14">
                                         <Border Style="{StaticResource CardIcon}">
                                             <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="14"
-                                                       Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                                       Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
                                         </Border>
                                         <Border DockPanel.Dock="Right" CornerRadius="6" Padding="8,2" Background="#1A5B8CFF" VerticalAlignment="Center">
-                                            <TextBlock Foreground="{StaticResource AccentBrush}" FontSize="11.5">
+                                            <TextBlock Foreground="{DynamicResource AccentBrush}" FontSize="11.5">
                                                 <Run Text="{Binding OnCount, Mode=OneWay}"/><Run Text=" đang bật"/>
                                             </TextBlock>
                                         </Border>
@@ -163,7 +163,7 @@
                                                           CommandParameter="{Binding}">
                                                     <StackPanel>
                                                         <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="{Binding Title}" Foreground="{StaticResource TextBrush}"/>
+                                                            <TextBlock Text="{Binding Title}" Foreground="{DynamicResource TextBrush}"/>
                                                             <Border Style="{StaticResource Badge}" Visibility="{Binding ShowProBadge, Converter={StaticResource BoolVis}}"
                                                                     ToolTip="Chỉ có tác dụng trên Windows Pro / Enterprise / Education">
                                                                 <TextBlock Text="Pro" Style="{StaticResource BadgeText}"/>
@@ -174,10 +174,10 @@
                                                             </Border>
                                                         </StackPanel>
                                                         <TextBlock Text="{Binding Description}" Style="{StaticResource Hint}" Margin="0,2,0,0"/>
-                                                        <TextBlock Text="{Binding Warning}" Style="{StaticResource Hint}" Foreground="{StaticResource WarnBrush}"
+                                                        <TextBlock Text="{Binding Warning}" Style="{StaticResource Hint}" Foreground="{DynamicResource WarnBrush}"
                                                                    Visibility="{Binding Warning, Converter={StaticResource NullVis}}"/>
                                                         <TextBlock Text="Máy này là Windows Home nên mục này không có tác dụng." Style="{StaticResource Hint}"
-                                                                   Foreground="{StaticResource WarnBrush}"
+                                                                   Foreground="{DynamicResource WarnBrush}"
                                                                    Visibility="{Binding NotOnThisEdition, Converter={StaticResource BoolVis}}"/>
                                                     </StackPanel>
                                                 </CheckBox>
@@ -186,7 +186,7 @@
                                     </ItemsControl>
 
                                     <!-- Chỉ cho dùng USB được phép (chỉ hiện trong nhóm Thiết bị & USB) -->
-                                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,14,0,0">
+                                    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,14,0,0">
                                         <Border.Style>
                                             <Style TargetType="Border">
                                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -207,10 +207,10 @@
                                                             Visibility="{Binding UsbWlEnabled, Converter={StaticResource BoolVis}}"/>
                                                 </StackPanel>
                                                 <StackPanel Margin="0,0,12,0">
-                                                    <TextBlock Text="Chỉ cho dùng USB được phép" Foreground="{StaticResource TextBrush}"/>
+                                                    <TextBlock Text="Chỉ cho dùng USB được phép" Foreground="{DynamicResource TextBrush}"/>
                                                     <TextBlock Style="{StaticResource Hint}" Margin="0,2,0,0"
                                                                Text="Chỉ các USB được chọn bên dưới mới đọc / chép được dữ liệu. Mọi USB lưu trữ, ổ cứng gắn ngoài khác cắm vào máy sẽ không được nhận."/>
-                                                    <TextBlock Text="{Binding UsbWlStatus}" Style="{StaticResource Hint}" Foreground="{StaticResource AccentBrush}" Margin="0,4,0,0"/>
+                                                    <TextBlock Text="{Binding UsbWlStatus}" Style="{StaticResource Hint}" Foreground="{DynamicResource AccentBrush}" Margin="0,4,0,0"/>
                                                 </StackPanel>
                                             </DockPanel>
 
@@ -234,14 +234,14 @@
                                                             </Button>
                                                             <CheckBox IsChecked="{Binding IsChecked}" VerticalAlignment="Center" Margin="0,0,10,0"
                                                                       Visibility="{Binding DataContext.UsbWlEnabled, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource NotBoolVis}}"/>
-                                                            <TextBlock Text="&#xE88E;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource AccentBrush}"
+                                                            <TextBlock Text="&#xE88E;" Style="{StaticResource Icon}" FontSize="16" Foreground="{DynamicResource AccentBrush}"
                                                                        VerticalAlignment="Center" Margin="0,0,12,0"/>
                                                             <StackPanel>
                                                                 <StackPanel Orientation="Horizontal">
-                                                                    <TextBlock Text="{Binding Disk.Display}" Foreground="{StaticResource TextBrush}"/>
+                                                                    <TextBlock Text="{Binding Disk.Display}" Foreground="{DynamicResource TextBrush}"/>
                                                                     <Border Style="{StaticResource Badge}" Background="#1A34D399" Margin="8,0,0,0"
                                                                             Visibility="{Binding IsAllowed, Converter={StaticResource BoolVis}}">
-                                                                        <TextBlock Text="Được phép" Style="{StaticResource BadgeText}" Foreground="{StaticResource GoodBrush}"/>
+                                                                        <TextBlock Text="Được phép" Style="{StaticResource BadgeText}" Foreground="{DynamicResource GoodBrush}"/>
                                                                     </Border>
                                                                 </StackPanel>
                                                                 <TextBlock Text="{Binding Disk.Detail}" Style="{StaticResource Hint}"/>
@@ -250,7 +250,7 @@
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
-                                            <TextBlock Style="{StaticResource Hint}" Foreground="{StaticResource WarnBrush}" Margin="0,12,0,0" TextWrapping="Wrap"
+                                            <TextBlock Style="{StaticResource Hint}" Foreground="{DynamicResource WarnBrush}" Margin="0,12,0,0" TextWrapping="Wrap"
                                                        Text="Không bật cùng “Chặn USB lưu trữ” hay “USB chỉ đọc” (sẽ chặn cả USB được phép). Khi bật, ổ cứng gắn ngoài và ổ ảo (VHD) mới cũng bị chặn; chuột, bàn phím, máy in USB vẫn dùng bình thường. Cần Windows 10 bản 2004 trở lên."/>
                                         </StackPanel>
                                     </Border>
@@ -265,7 +265,7 @@
                     <StackPanel>
                         <DockPanel Margin="0,0,0,14">
                             <Border Style="{StaticResource CardIcon}">
-                                <TextBlock Text="&#xE8D7;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="&#xE8D7;" Style="{StaticResource Icon}" FontSize="14" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
                             </Border>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="Mẫu nhanh:" Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="0,0,6,0"/>
@@ -369,17 +369,17 @@
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock" BasedOn="{StaticResource Icon}">
                                                     <Setter Property="Text" Value="&#xE73E;"/>
-                                                    <Setter Property="Foreground" Value="{StaticResource GoodBrush}"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource GoodBrush}"/>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding Ok}" Value="False">
                                                             <Setter Property="Text" Value="&#xE711;"/>
-                                                            <Setter Property="Foreground" Value="{StaticResource BadBrush}"/>
+                                                            <Setter Property="Foreground" Value="{DynamicResource BadBrush}"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </TextBlock.Style>
                                         </TextBlock>
-                                        <TextBlock Text="{Binding Text}" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding Text}" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap"/>
                                     </DockPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -392,11 +392,11 @@
 
         <!-- Thanh trạng thái khi đang làm -->
         <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20" CornerRadius="20" Padding="18,9"
-                Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
                 Visibility="{Binding IsBusy, Converter={StaticResource BoolVis}}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0"/>
-                <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource TextBrush}"/>
+                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13" Foreground="{DynamicResource AccentBrush}" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding BusyText}" Foreground="{DynamicResource TextBrush}"/>
             </StackPanel>
         </Border>
     </Grid>
