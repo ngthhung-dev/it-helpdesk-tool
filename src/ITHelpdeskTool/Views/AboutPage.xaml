@@ -63,13 +63,21 @@
                 </StackPanel>
             </Border>
 
-            <Button HorizontalAlignment="Center" Margin="0,16,0,0" Command="{Binding OpenLogsCommand}"
-                    ToolTip="Khi app lỗi hoặc chậm, gửi file app.log trong thư mục này cho tác giả">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE838;" Style="{StaticResource Icon}" FontSize="13"/>
-                    <TextBlock Text="Mở thư mục log" Margin="8,0,0,0"/>
-                </StackPanel>
-            </Button>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
+                <Button Command="{Binding ChangeLoginCommand}" Margin="0,0,8,0" ToolTip="Đổi tên đăng nhập và mật khẩu mở app trên máy này">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE72E;" Style="{StaticResource Icon}" FontSize="13"/>
+                        <TextBlock Text="Đổi mật khẩu mở app" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding OpenLogsCommand}"
+                        ToolTip="Khi app lỗi hoặc chậm, gửi file app.log trong thư mục này cho tác giả">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE838;" Style="{StaticResource Icon}" FontSize="13"/>
+                        <TextBlock Text="Mở thư mục log" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
 
             <TextBlock Text="{Binding Status}" Foreground="{DynamicResource GoodBrush}" HorizontalAlignment="Center"
                        Margin="0,12,0,0" Height="18"/>

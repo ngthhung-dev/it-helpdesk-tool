@@ -32,6 +32,21 @@ public sealed partial class AboutViewModel : PageViewModel
         ShellLauncher.Open(Log.Folder);
     }
 
+    /// <summary>Đổi tên đăng nhập / mật khẩu mở app.</summary>
+    [RelayCommand]
+    private void ChangeLogin()
+    {
+        var w = new Views.LoginWindow(Views.LoginWindow.Kind.Change, user: Services.Auth.LocalAuth.UserName) { Owner = Application.Current.MainWindow };
+        if (w.ShowDialog() == true) _ = ShowStatusAsync("Đã đổi tài khoản mở app");
+    }
+
+    private async Task ShowStatusAsync(string text)
+    {
+        Status = text;
+        await Task.Delay(2500);
+        if (Status == text) Status = "";
+    }
+
     [RelayCommand]
     private Task CopyEmailAsync() => CopyAsync(Email, "Đã chép email");
 

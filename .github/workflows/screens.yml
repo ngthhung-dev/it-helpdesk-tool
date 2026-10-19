@@ -54,7 +54,7 @@ jobs:
           Write-Host "Màn hình: $($b.Width)x$($b.Height)"
           foreach ($page in '${{ github.event.inputs.pages }}'.Split(',')) {
             $page = $page.Trim()
-            $p = Start-Process publish\ITHelpdeskTool.exe -ArgumentList '--page', $page, '--theme', '${{ github.event.inputs.theme }}' -PassThru
+            $p = Start-Process publish\ITHelpdeskTool.exe -ArgumentList '--no-login', '--page', $page, '--theme', '${{ github.event.inputs.theme }}' -PassThru
             $sw = [Diagnostics.Stopwatch]::StartNew()
             while ($p.MainWindowHandle -eq 0 -and $sw.ElapsedMilliseconds -lt 30000) { Start-Sleep -Milliseconds 100; $p.Refresh() }
             [U]::ShowWindow($p.MainWindowHandle, 3) | Out-Null      # phóng to
