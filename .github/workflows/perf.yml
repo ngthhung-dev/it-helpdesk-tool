@@ -17,8 +17,8 @@ jobs:
         shell: pwsh
         run: |
           # "old" = kiểu đóng gói bản 1.0.0 (1 file nén, không ReadyToRun) để so sánh
-          dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o out/old -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishReadyToRun=false
-          dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o out/new
+          dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o out/old -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishReadyToRun=false -p:TestBuild=true
+          dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o out/new -p:TestBuild=true
           Get-ChildItem out -Directory | ForEach-Object { $m = "{0}: {1:N0} MB, {2} files" -f $_.Name, ((Get-ChildItem $_ -Recurse | Measure-Object Length -Sum).Sum/1MB), (Get-ChildItem $_ -Recurse -File).Count; Write-Host "::notice title=size::$m" }
 
       - name: Đo

@@ -32,13 +32,17 @@ public partial class App : Application
         var i = Array.FindIndex(e.Args, a => a.Equals("--report", StringComparison.OrdinalIgnoreCase));
         if (i >= 0)
         {
+#if !TEST_BUILD
+            if (!Services.Auth.AppGate.Pass(e.Args)) { Shutdown(); return; }
+#endif
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
             var path = i + 1 < e.Args.Length ? e.Args[i + 1] : ReportExporter.SuggestedFileName(DateTime.Now);
             _ = RunReportCliAsync(path);
             return;
         }
 
-        // Tự kiểm tra trên máy test: ITHelpdeskTool.exe --selftest sysconfig <kết quả.json>
+#if TEST_BUILD
+        // Tự kiểm tra trên máy test: ITHelpdeskTool.exe --selftest sysconfig <kết quả.json> (chỉ có trong bản build kiểm thử)
         var ti = Array.FindIndex(e.Args, a => a.Equals("--selftest", StringComparison.OrdinalIgnoreCase));
         if (ti >= 0 && ti + 2 < e.Args.Length && e.Args[ti + 1] is "sysconfig" or "policy" or "startup" or "power" or "tweaks" or "cleanup" or "uninstall" or "store" or "fonts" or "office" or "windows" or "storage" or "utilities" or "ui")
         {
@@ -73,6 +77,7 @@ public partial class App : Application
             });
             return;
         }
+#endif
 
         var pi = Array.FindIndex(e.Args, a => a.Equals("--page", StringComparison.OrdinalIgnoreCase));
         if (pi >= 0 && pi + 1 < e.Args.Length) ViewModels.ShellViewModel.StartPage = e.Args[pi + 1];

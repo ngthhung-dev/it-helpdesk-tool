@@ -8,10 +8,10 @@ public static class AppGate
 {
     public static bool Pass(string[] args)
     {
-        // Máy kiểm thử tự động (GitHub Actions) chụp màn hình không có người nhập mật khẩu
-        if (args.Any(a => a.Equals("--no-login", StringComparison.OrdinalIgnoreCase))
-            && Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true")
-            return true;
+#if TEST_BUILD
+        // Chỉ có trong bản build cho máy kiểm thử tự động (chụp màn hình không có người nhập mật khẩu)
+        if (args.Any(a => a.Equals("--no-login", StringComparison.OrdinalIgnoreCase))) return true;
+#endif
 
         var app = Application.Current;
         var mode = app.ShutdownMode;

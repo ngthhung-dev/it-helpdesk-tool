@@ -16,6 +16,11 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <!-- Bản build cho máy kiểm thử tự động (-p:TestBuild=true): có --selftest và --no-login. Bản phát hành KHÔNG có. -->
+  <PropertyGroup Condition="'$(TestBuild)' == 'true'">
+    <DefineConstants>$(DefineConstants);TEST_BUILD</DefineConstants>
+  </PropertyGroup>
+
   <!-- Thông tin hiển thị trong Properties > Details của file .exe -->
   <PropertyGroup>
     <Version>1.0.0</Version>

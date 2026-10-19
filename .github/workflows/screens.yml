@@ -25,7 +25,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Publish
-        run: dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o publish
+        run: dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o publish -p:TestBuild=true
 
       - name: Chụp màn hình
         shell: pwsh
@@ -54,6 +54,23 @@ jobs:
           Write-Host "Màn hình: $($b.Width)x$($b.Height)"
           foreach ($page in '${{ github.event.inputs.pages }}'.Split(',')) {
             $page = $page.Trim()
+            if ($page -eq 'login') {
+              # Thử luồng đăng nhập thật: tạo tài khoản lần đầu → vào app → mở lại → nhập sai → nhập đúng
+              Remove-Item "$env:ProgramData\ngthhung\IT Helpdesk Tool\auth.dat" -Force -ErrorAction SilentlyContinue
+              function Open-App { $x = Start-Process publish\ITHelpdeskTool.exe -PassThru; $t = [Diagnostics.Stopwatch]::StartNew(); while ($x.MainWindowHandle -eq 0 -and $t.ElapsedMilliseconds -lt 30000) { Start-Sleep -Milliseconds 100; $x.Refresh() }; Start-Sleep 2; [U]::SetForegroundWindow($x.MainWindowHandle) | Out-Null; Start-Sleep 1; $x }
+              function Keys($k) { [System.Windows.Forms.SendKeys]::SendWait($k); Start-Sleep -Milliseconds 300 }
+              $p = Open-App; Shot 'login-1-setup'
+              Keys 'tester'; Keys '{TAB}'; Keys '123'; Keys '{TAB}'; Keys '123'; Keys '{ENTER}'; Start-Sleep 1; Shot 'login-2-short'
+              Keys '+{TAB}'; Keys '^a'; Keys 'Abc@12345'; Keys '{TAB}'; Keys '^a'; Keys 'Abc@12345'; Keys '{ENTER}'; Start-Sleep 6
+              $p.Refresh(); Shot 'login-3-main'; Write-Host "::notice title=login::sau khi tạo: title='$($p.MainWindowTitle)' exited=$($p.HasExited)"
+              Stop-Process $p -Force -ErrorAction SilentlyContinue; Start-Sleep 2
+              Write-Host "::notice title=login::auth.dat=$(Test-Path "$env:ProgramData\ngthhung\IT Helpdesk Tool\auth.dat")"
+              $p = Open-App; Shot 'login-4-login'
+              Keys 'sai-mat-khau'; Keys '{ENTER}'; Start-Sleep 2; Shot 'login-5-wrong'
+              Keys 'Abc@12345'; Keys '{ENTER}'; Start-Sleep 6; Shot 'login-6-ok'
+              Stop-Process $p -Force -ErrorAction SilentlyContinue; Start-Sleep 1
+              continue
+            }
             $p = Start-Process publish\ITHelpdeskTool.exe -ArgumentList '--no-login', '--page', $page, '--theme', '${{ github.event.inputs.theme }}' -PassThru
             $sw = [Diagnostics.Stopwatch]::StartNew()
             while ($p.MainWindowHandle -eq 0 -and $sw.ElapsedMilliseconds -lt 30000) { Start-Sleep -Milliseconds 100; $p.Refresh() }

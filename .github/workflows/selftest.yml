@@ -22,7 +22,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Publish
-        run: dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o publish
+        run: dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o publish -p:TestBuild=true
 
       - name: Chạy selftest
         shell: pwsh
