@@ -16,7 +16,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <!-- Bản build cho máy kiểm thử tự động (-p:TestBuild=true): có --selftest và --no-login. Bản phát hành KHÔNG có. -->
+  <!-- Bản build cho máy kiểm thử tự động (TestBuild=true): có chế độ selftest và bỏ qua đăng nhập. Bản phát hành KHÔNG có. -->
   <PropertyGroup Condition="'$(TestBuild)' == 'true'">
     <DefineConstants>$(DefineConstants);TEST_BUILD</DefineConstants>
   </PropertyGroup>
