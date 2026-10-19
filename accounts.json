@@ -9,15 +9,6 @@
       "enabled": true,
       "admin": true,
       "note": "Quản trị viên"
-    },
-    {
-      "user": "citest",
-      "salt": "Uv8qMjoi6Aqa/NHNtMUYRg==",
-      "hash": "IskcBhajBMTyRCvQxQ2Dud6g5JsSR8m9HLBW8HOpktU=",
-      "iter": 210000,
-      "enabled": true,
-      "admin": true,
-      "note": "Kiểm thử tự động (tạm)"
     }
   ]
 }
