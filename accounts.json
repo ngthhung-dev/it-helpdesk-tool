@@ -3,12 +3,12 @@
   "accounts": [
     {
       "user": "ngthhung",
-      "salt": "1mr+Ct3ZTfXrCRTyj/EGTw==",
-      "hash": "vkumi2+5elNIqOcTwnWrK2TtDBn8WUb6UaY2hnxBqJg=",
+      "salt": "U7nhtbMeqb/DTvpmYqEOAg==",
+      "hash": "M1QCca2ywpw1fmqbTPBXHPJ31jWaqEdMfzJMaWuUhxE=",
       "iter": 210000,
       "enabled": true,
       "admin": true,
-      "note": "Quản trị viên"
+      "note": "Qu\u1EA3n tr\u1ECB vi\u00EAn"
     }
   ]
 }
