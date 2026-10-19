@@ -14,6 +14,12 @@ on:
       auth:
         description: 'Cách đăng nhập: local / online'
         default: 'local'
+      test_user:
+        description: 'Tài khoản kiểm thử tạm (bản online)'
+        default: ''
+      test_pw:
+        description: 'Mật khẩu tài khoản kiểm thử tạm'
+        default: ''
 
 permissions:
   contents: write
@@ -33,8 +39,10 @@ jobs:
       - name: Chụp màn hình
         shell: pwsh
         env:
-          ADMIN_PW: ${{ secrets.ADMIN_TEST_PW }}
+          TEST_USER: ${{ github.event.inputs.test_user }}
+          TEST_PW: ${{ github.event.inputs.test_pw }}
         run: |
+          if ($env:TEST_PW) { Write-Host "::add-mask::$env:TEST_PW" }
           try { Set-DisplayResolution -Width 1600 -Height 1000 -Force -ErrorAction Stop } catch { Write-Host "Không đổi được độ phân giải: $_" }
           Add-Type -AssemblyName System.Windows.Forms, System.Drawing
           Add-Type @"
@@ -65,8 +73,9 @@ jobs:
               function Open-App2 { $x = Start-Process publish\ITHelpdeskTool.exe -ArgumentList '--page','about' -PassThru; $t = [Diagnostics.Stopwatch]::StartNew(); while ($x.MainWindowHandle -eq 0 -and $t.ElapsedMilliseconds -lt 30000) { Start-Sleep -Milliseconds 100; $x.Refresh() }; Start-Sleep 3; [U]::SetForegroundWindow($x.MainWindowHandle) | Out-Null; Start-Sleep 1; $x }
               function Keys($k) { [System.Windows.Forms.SendKeys]::SendWait($k); Start-Sleep -Milliseconds 300 }
               $p = Open-App2; Shot 'online-1-login'
-              Keys '^a'; Keys 'ngthhung'; Keys '{TAB}'; Keys 'sai-mat-khau'; Keys '{ENTER}'; Start-Sleep 4; Shot 'online-2-wrong'
-              [System.Windows.Forms.SendKeys]::SendWait($env:ADMIN_PW); Start-Sleep -Milliseconds 300; Keys '{ENTER}'; Start-Sleep 7
+              $tu = $env:TEST_USER; $tp = $env:TEST_PW
+              Keys '^a'; Keys $tu; Keys '{TAB}'; Keys 'sai-mat-khau'; Keys '{ENTER}'; Start-Sleep 4; Shot 'online-2-wrong'
+              [System.Windows.Forms.SendKeys]::SendWait($tp); Start-Sleep -Milliseconds 300; Keys '{ENTER}'; Start-Sleep 7
               $p.Refresh(); [U]::ShowWindow($p.MainWindowHandle, 3) | Out-Null; Start-Sleep 2; Shot 'online-3-about'
               $root = [System.Windows.Automation.AutomationElement]::RootElement
               $cond = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty, 'Quản lý tài khoản')
