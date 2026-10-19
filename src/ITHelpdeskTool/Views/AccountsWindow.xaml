@@ -47,6 +47,10 @@
                 <StackPanel>
                     <TextBlock Text="Thêm tài khoản" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" Margin="0,0,0,8"/>
                     <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="8"/>
@@ -56,10 +60,14 @@
                             <ColumnDefinition Width="8"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBox x:Name="NewUser" Style="{StaticResource InputBox}" Tag="Tên đăng nhập"/>
-                        <PasswordBox x:Name="NewPw" Grid.Column="2" ToolTip="Mật khẩu (tối thiểu 6 ký tự)"/>
-                        <TextBox x:Name="NewExpires" Grid.Column="4" Style="{StaticResource InputBox}" Tag="Hết hạn dd/MM/yyyy" ToolTip="Để trống = không hết hạn"/>
-                        <TextBox x:Name="NewNote" Grid.Column="6" Style="{StaticResource InputBox}" Tag="Ghi chú (vd tên người dùng)"/>
+                        <TextBlock Text="Tên đăng nhập" Style="{StaticResource Muted}" FontSize="11.5" Margin="0,0,0,4"/>
+                        <TextBlock Grid.Column="2" Text="Mật khẩu (tối thiểu 6 ký tự)" Style="{StaticResource Muted}" FontSize="11.5" Margin="0,0,0,4"/>
+                        <TextBlock Grid.Column="4" Text="Hết hạn (trống = không)" Style="{StaticResource Muted}" FontSize="11.5" Margin="0,0,0,4"/>
+                        <TextBlock Grid.Column="6" Text="Ghi chú" Style="{StaticResource Muted}" FontSize="11.5" Margin="0,0,0,4"/>
+                        <TextBox x:Name="NewUser" Grid.Row="1" Style="{StaticResource InputBox}" Tag="vd: ketoan01"/>
+                        <PasswordBox x:Name="NewPw" Grid.Row="1" Grid.Column="2"/>
+                        <TextBox x:Name="NewExpires" Grid.Row="1" Grid.Column="4" Style="{StaticResource InputBox}" Tag="dd/MM/yyyy"/>
+                        <TextBox x:Name="NewNote" Grid.Row="1" Grid.Column="6" Style="{StaticResource InputBox}" Tag="vd: Chị Lan kế toán"/>
                     </Grid>
                     <DockPanel Margin="0,8,0,0">
                         <Button DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Content="Thêm" MinWidth="90" Click="Add_Click"/>
