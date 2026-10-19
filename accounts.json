@@ -3,31 +3,12 @@
   "accounts": [
     {
       "user": "ngthhung",
-      "salt": "1mr\u002BCt3ZTfXrCRTyj/EGTw==",
-      "hash": "vkumi2\u002B5elNIqOcTwnWrK2TtDBn8WUb6UaY2hnxBqJg=",
+      "salt": "1mr+Ct3ZTfXrCRTyj/EGTw==",
+      "hash": "vkumi2+5elNIqOcTwnWrK2TtDBn8WUb6UaY2hnxBqJg=",
       "iter": 210000,
       "enabled": true,
       "admin": true,
-      "note": "Qu\u1EA3n tr\u1ECB vi\u00EAn"
-    },
-    {
-      "user": "citest",
-      "salt": "7V24l95exMEvoppt0ho8Ww==",
-      "hash": "MdtmuLAT3esedYd2kYiKaVCRWtgsf/a5eLErVscktME=",
-      "iter": 210000,
-      "enabled": true,
-      "admin": true,
-      "note": "Ki\u1EC3m th\u1EED t\u1EF1 \u0111\u1ED9ng (t\u1EA1m)"
-    },
-    {
-      "user": "ciadded",
-      "salt": "LxKIvFsoEvquZwxYicJjYA==",
-      "hash": "PHaqsstTfzZqvl2WeJdoixjuKhJVUgSeLvbAXk23bJw=",
-      "iter": 210000,
-      "enabled": true,
-      "expires": "2030-12-31",
-      "admin": false,
-      "note": "tao boi kiem thu"
+      "note": "Quản trị viên"
     }
   ]
 }
