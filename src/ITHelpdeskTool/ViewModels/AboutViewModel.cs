@@ -46,10 +46,10 @@ public sealed partial class AboutViewModel : PageViewModel
     {
 #if AUTH_ONLINE
         new Views.AccountsWindow().ShowDialog();
-        return;
-#endif
+#else
         var w = new Views.LoginWindow(Views.LoginWindow.Kind.Change, user: Services.Auth.LocalAuth.UserName) { Owner = Application.Current.MainWindow };
         if (w.ShowDialog() == true) _ = ShowStatusAsync("Đã đổi tài khoản mở app");
+#endif
     }
 
     private async Task ShowStatusAsync(string text)
