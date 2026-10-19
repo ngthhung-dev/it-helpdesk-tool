@@ -1,8 +1,10 @@
 <UserControl x:Class="ITHelpdeskTool.Views.AboutPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:core="clr-namespace:ITHelpdeskTool.Core">
 
     <UserControl.Resources>
+        <core:BoolToVisibility x:Key="BoolVis"/>
         <Style x:Key="RowKey" TargetType="TextBlock" BasedOn="{StaticResource Muted}">
             <Setter Property="Width" Value="120"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -64,10 +66,11 @@
             </Border>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
-                <Button Command="{Binding ChangeLoginCommand}" Margin="0,0,8,0" ToolTip="Đổi tên đăng nhập và mật khẩu mở app trên máy này">
+                <Button Command="{Binding ChangeLoginCommand}" Margin="0,0,8,0" ToolTip="Tài khoản đăng nhập để mở app"
+                        Visibility="{Binding CanManageLogin, Converter={StaticResource BoolVis}}">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE72E;" Style="{StaticResource Icon}" FontSize="13"/>
-                        <TextBlock Text="Đổi mật khẩu mở app" Margin="8,0,0,0"/>
+                        <TextBlock Text="{Binding LoginButtonText}" Margin="8,0,0,0"/>
                     </StackPanel>
                 </Button>
                 <Button Command="{Binding OpenLogsCommand}"

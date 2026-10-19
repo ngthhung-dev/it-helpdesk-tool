@@ -15,6 +15,11 @@ on:
         description: 'Hoặc tự nhập phiên bản (vd 1.2.3). Để trống = dùng số tự tăng / chỉ build'
         required: false
         default: ''
+      auth:
+        description: 'Cách đăng nhập khi mở app: local = tự đặt tài khoản lần đầu trên mỗi máy, online = kiểm tra tài khoản qua mạng'
+        type: choice
+        options: [online, local]
+        default: online
       replace_existing:
         description: 'Nếu release cùng phiên bản đã có thì xoá và tạo lại'
         type: boolean
@@ -64,10 +69,12 @@ jobs:
           Write-Host "Version: $v"
 
       - name: Build
-        run: dotnet build src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Debug
+        run: |
+          dotnet build src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Debug
+          dotnet build src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Debug -p:AuthMode=online -o build-online
 
       - name: Publish (single-file, self-contained)
-        run: dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o publish -p:Version=${{ steps.ver.outputs.version }}
+        run: dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o publish -p:Version=${{ steps.ver.outputs.version }} -p:AuthMode=${{ github.event.inputs.auth || 'online' }}
 
       - name: Kiểm tra thông tin file .exe
         shell: pwsh
@@ -110,7 +117,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.ver.outputs.version }}
-          name: IT Helpdesk Tool v${{ steps.ver.outputs.version }}
+          name: IT Helpdesk Tool v${{ steps.ver.outputs.version }}${{ (github.event.inputs.auth || 'online') == 'online' && ' (đăng nhập online)' || ' (tài khoản trên máy)' }}
           target_commitish: ${{ github.sha }}
           files: dist/*
           generate_release_notes: false

@@ -21,6 +21,11 @@
     <DefineConstants>$(DefineConstants);TEST_BUILD</DefineConstants>
   </PropertyGroup>
 
+  <!-- Đăng nhập kiểm tra qua mạng (AuthMode=online); mặc định là tài khoản đặt trên máy -->
+  <PropertyGroup Condition="'$(AuthMode)' == 'online'">
+    <DefineConstants>$(DefineConstants);AUTH_ONLINE</DefineConstants>
+  </PropertyGroup>
+
   <!-- Thông tin hiển thị trong Properties > Details của file .exe -->
   <PropertyGroup>
     <Version>1.0.0</Version>

@@ -18,11 +18,17 @@ public static class AppGate
         app.ShutdownMode = ShutdownMode.OnExplicitShutdown;   // đóng cửa sổ đăng nhập không làm tắt app trước khi kịp mở cửa sổ chính
         try
         {
+#if AUTH_ONLINE
+            var msg = Task.Run(OnlineAuth.LoginMessageAsync).GetAwaiter().GetResult();
+            LoginWindow w = new LoginWindow(LoginWindow.Kind.Login, OnlineAuth.SignInAsync, user: OnlineAuth.LastUser,
+                sub: "Đăng nhập bằng tài khoản được cấp. Cần kết nối Internet để kiểm tra.", hint: msg);
+#else
             LoginWindow w = LocalAuth.HasAccount
                 ? new LoginWindow(LoginWindow.Kind.Login,
                     async (u, p) => await Task.Run(() => LocalAuth.Verify(u, p)) ? null : "Sai tên đăng nhập hoặc mật khẩu.",
                     user: LocalAuth.UserName)
                 : new LoginWindow(LoginWindow.Kind.Setup);
+#endif
             var ok = w.ShowDialog() == true;
             Log.Info(ok ? $"Đăng nhập app: {w.User}" : "Thoát ở màn hình đăng nhập");
             return ok;
