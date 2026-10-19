@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "accounts": [
+    {
+      "user": "ngthhung",
+      "salt": "1mr+Ct3ZTfXrCRTyj/EGTw==",
+      "hash": "vkumi2+5elNIqOcTwnWrK2TtDBn8WUb6UaY2hnxBqJg=",
+      "iter": 210000,
+      "enabled": true,
+      "admin": true,
+      "note": "Quản trị viên"
+    }
+  ]
+}
