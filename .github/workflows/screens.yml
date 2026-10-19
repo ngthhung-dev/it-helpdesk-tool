@@ -41,6 +41,7 @@ jobs:
         env:
           TEST_USER: ${{ github.event.inputs.test_user }}
           TEST_PW: ${{ github.event.inputs.test_pw }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if ($env:TEST_PW) { Write-Host "::add-mask::$env:TEST_PW" }
           try { Set-DisplayResolution -Width 1600 -Height 1000 -Force -ErrorAction Stop } catch { Write-Host "Không đổi được độ phân giải: $_" }
@@ -72,6 +73,10 @@ jobs:
               Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
               function Open-App2 { $x = Start-Process publish\ITHelpdeskTool.exe -ArgumentList '--page','about' -PassThru; $t = [Diagnostics.Stopwatch]::StartNew(); while ($x.MainWindowHandle -eq 0 -and $t.ElapsedMilliseconds -lt 30000) { Start-Sleep -Milliseconds 100; $x.Refresh() }; Start-Sleep 3; [U]::SetForegroundWindow($x.MainWindowHandle) | Out-Null; Start-Sleep 1; $x }
               function Keys($k) { [System.Windows.Forms.SendKeys]::SendWait($k); Start-Sleep -Milliseconds 300 }
+              # Token tạm của workflow (ghi được nhánh accounts) → lưu như app lưu (DPAPI theo tài khoản Windows)
+              $tf = "$env:LOCALAPPDATA\ngthhung\IT Helpdesk Tool"; New-Item -ItemType Directory -Force $tf | Out-Null
+              $tb = [System.Security.Cryptography.ProtectedData]::Protect([Text.Encoding]::UTF8.GetBytes($env:GH_TOKEN), [Text.Encoding]::UTF8.GetBytes('ITHelpdeskTool.gh.v1'), 'CurrentUser')
+              [IO.File]::WriteAllBytes("$tf\gh.dat", $tb)
               $p = Open-App2; Shot 'online-1-login'
               $tu = $env:TEST_USER; $tp = $env:TEST_PW
               Keys '^a'; Keys $tu; Keys '{TAB}'; Keys 'sai-mat-khau'; Keys '{ENTER}'; Start-Sleep 4; Shot 'online-2-wrong'
@@ -85,6 +90,17 @@ jobs:
                 $bp = [System.Windows.Automation.TreeWalker]::ControlViewWalker.GetParent($btn)
                 foreach ($el in @($btn, $bp)) { try { $el.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke(); break } catch { } }
                 Start-Sleep 8; Shot 'online-4-accounts'
+                # Thêm tài khoản qua giao diện: gõ vào ô Tên đăng nhập → Tab sang mật khẩu → Tab ngày hết hạn → bấm Thêm
+                $nu = $root.FindFirst([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::AutomationIdProperty, 'NewUser')))
+                if ($nu) {
+                  $nu.SetFocus(); Start-Sleep -Milliseconds 300
+                  Keys 'ciadded'; Keys '{TAB}'; Keys 'Test@12345'; Keys '{TAB}'; Keys '31/12/2030'; Keys '{TAB}'; Keys 'tao boi kiem thu'
+                  $add = $root.FindFirst([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty, 'Thêm')))
+                  $add.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+                  Start-Sleep 10; Shot 'online-5-added'
+                  $j = (Invoke-WebRequest "https://api.github.com/repos/${{ github.repository }}/contents/accounts.json?ref=accounts" -Headers @{ Accept = 'application/vnd.github.raw'; Authorization = "Bearer $env:GH_TOKEN" } -UseBasicParsing).Content
+                  Write-Host "::notice title=login::sau khi thêm: $((($j | ConvertFrom-Json).accounts | ForEach-Object { $_.user + '/' + $_.expires }) -join ', ')"
+                }
               }
               Stop-Process $p -Force -ErrorAction SilentlyContinue; Start-Sleep 1
               continue
