@@ -333,6 +333,13 @@
                                     <TextBlock Text="Mở gpedit.msc" Margin="8,0,0,0"/>
                                 </StackPanel>
                             </Button>
+                            <Button Margin="0,0,8,8" Command="{Binding OpenAppLockerCommand}"
+                                    ToolTip="Mở AppLocker (Local Security Policy) để chặn / chỉ cho chạy đúng các app theo tài khoản — cần Windows Pro/Enterprise">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE72E;" Style="{StaticResource Icon}" FontSize="13"/>
+                                    <TextBlock Text="Mở AppLocker" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </Button>
                             <Button Margin="0,0,8,8" Style="{StaticResource BtnDanger}" Command="{Binding ResetAllCommand}"
                                     ToolTip="Tắt mọi policy trong trang này">
                                 <StackPanel Orientation="Horizontal">

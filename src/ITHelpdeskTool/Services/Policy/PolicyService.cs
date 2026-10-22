@@ -377,6 +377,9 @@ public static class PolicyService
 
     public static bool HasGpedit() => File.Exists(Path.Combine(Environment.SystemDirectory, "gpedit.msc"));
 
+    /// <summary>secpol.msc (Local Security Policy, chứa AppLocker) chỉ có trên Windows Pro/Enterprise.</summary>
+    public static bool HasSecpol() => File.Exists(Path.Combine(Environment.SystemDirectory, "secpol.msc"));
+
     /// <summary>Mô tả lỗi Win32 (dùng khi CreateProfile trả mã lỗi).</summary>
     internal static string Win32Message(int code) => new Win32Exception(code).Message;
 }

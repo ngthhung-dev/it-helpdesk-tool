@@ -64,6 +64,7 @@ public sealed partial class PolicyViewModel : PageViewModel
     private bool _loaded;
     public bool IsHome { get; } = PolicyService.IsHomeEdition();
     public bool HasGpedit { get; } = PolicyService.HasGpedit();
+    public bool HasSecpol { get; } = PolicyService.HasSecpol();
 
     public IReadOnlyList<PolicyGroup> Groups { get; }
     public ObservableCollection<PolicyUser> Users { get; } = [];
@@ -378,6 +379,31 @@ public sealed partial class PolicyViewModel : PageViewModel
         AddLog(r.Result.Message, r.Result.Ok);
         if (r.Path is not null) ShellLauncher.Open(r.Path);
         else DialogWindow.Info("Báo cáo policy", r.Result.Message, error: true);
+    }
+
+    /// <summary>Mở AppLocker (trong Local Security Policy) để quản trị viên tự lập quy tắc chặn/cho chạy app theo tài khoản.</summary>
+    [RelayCommand]
+    private void OpenAppLocker()
+    {
+        if (!HasSecpol)
+        {
+            DialogWindow.Info("Máy này không có AppLocker",
+                "AppLocker chỉ có trên Windows Pro, Enterprise hoặc Education. Máy đang chạy Windows Home nên không mở được.\n\n" +
+                "Để hạn chế chạy app trên Windows Home, có thể dùng các policy trong trang này (ghi thẳng vào registry).");
+            return;
+        }
+        if (!DialogWindow.Confirm("Mở AppLocker",
+                "App sẽ mở Local Security Policy của Windows. AppLocker nằm ở:\n" +
+                "Application Control Policies → AppLocker.\n\n" +
+                "Lưu ý để quy tắc có hiệu lực:\n" +
+                "• Chuột phải Executable Rules → Create Default Rules trước (tránh khoá nhầm Windows và admin).\n" +
+                "• Thêm quy tắc Deny/Allow cho nhóm người dùng muốn áp.\n" +
+                "• Bật dịch vụ Application Identity (AppIDSvc) thì quy tắc mới chạy.\n" +
+                "• Nên bật “Audit only” chạy thử trước khi “Enforce rules”.",
+                "Mở AppLocker"))
+            return;
+        AddLog("Mở AppLocker (Local Security Policy)", true);
+        ShellLauncher.Open("secpol.msc");
     }
 
     [RelayCommand]
