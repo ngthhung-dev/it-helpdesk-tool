@@ -9,6 +9,15 @@
       "enabled": true,
       "admin": true,
       "note": "Qu\u1EA3n tr\u1ECB vi\u00EAn"
+    },
+    {
+      "user": "user",
+      "salt": "x7eNA7O1PWhf9Jis2wIhmQ==",
+      "hash": "ESTqsCSkodYGCnPtnEEomYFOKOfuHlYr0PlUHGCB/q4=",
+      "iter": 210000,
+      "enabled": true,
+      "admin": false,
+      "note": "acc user dung chung"
     }
   ]
 }
