@@ -9,15 +9,6 @@
       "enabled": true,
       "admin": true,
       "note": "Qu\u1EA3n tr\u1ECB vi\u00EAn"
-    },
-    {
-      "user": "D152",
-      "salt": "ne4xtNr6X4pn04h/HuqAWA==",
-      "hash": "2LraFZGjrWvgREJw5Q7g/3D4WiPDFY7\u002BxzbiISmcyK0=",
-      "iter": 210000,
-      "enabled": true,
-      "admin": false,
-      "note": "D152"
     }
   ]
 }
