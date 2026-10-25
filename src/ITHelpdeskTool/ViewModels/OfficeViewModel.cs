@@ -141,7 +141,7 @@ public sealed partial class OfficeViewModel : PageViewModel
         try
         {
             var sub = OfficeService.HasSubscriptionLicense();
-            var account = sub ? OfficeService.SignedInAccount() : null;
+            var account = sub ? await Task.Run(OfficeService.ActivationAccount) : null;
             var list = OfficeService.MarkSubscription(await OfficeService.LicensesAsync(), sub);
             Licenses.Clear();
             foreach (var l in list) Licenses.Add(l);

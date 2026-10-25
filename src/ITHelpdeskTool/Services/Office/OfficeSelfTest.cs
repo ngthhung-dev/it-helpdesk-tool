@@ -67,6 +67,16 @@ public static class OfficeSelfTest
             await Task.CompletedTask;
             return string.Join(" | ", l.Select(x => $"{x.Name}: {x.StatusText}"));
         });
+        await t.Do("license.account.token", async () =>
+        {
+            static string B64(string s) => Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(s)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+            var jwt = B64("{\"alg\":\"RS256\"}") + "." + B64("{\"aud\":\"x\",\"upn\":\"Administrator@447kcx.onmicrosoft.com\",\"email\":\"other@x.com\"}") + ".sig";
+            var got = OfficeService.EmailFromToken("prefix junk " + jwt + " suffix");
+            Check(got == "Administrator@447kcx.onmicrosoft.com", $"đọc email từ token sai: {got}");
+            Check(OfficeService.EmailFromToken("không có token nào") is null, "văn bản không phải token phải trả null");
+            await Task.CompletedTask;
+            return got!;
+        });
 
         await t.Do("detect.before", async () =>
         {

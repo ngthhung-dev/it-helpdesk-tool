@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using ITHelpdeskTool.Services.SysConfig;
@@ -86,24 +87,78 @@ public static class OfficeService
         catch { return false; }
     }
 
-    /// <summary>Tài khoản đang đăng nhập trong Office (email), nếu có.</summary>
-    public static string? SignedInAccount()
+    /// <summary>
+    /// Tài khoản Microsoft 365 đang CẤP PHÉP cho Office (đúng tài khoản ở dòng "Subscription Product for ..." trong Word),
+    /// rồi mới đến tài khoản đăng nhập nếu chỉ có đúng một. Trả null khi không chắc, để không hiện nhầm email.
+    /// </summary>
+    public static string? ActivationAccount() => LicensingAccount() ?? SingleIdentityAccount();
+
+    /// <summary>
+    /// Đọc email từ token giấy phép vNext (%LOCALAPPDATA%\Microsoft\Office\Licenses). Đây là nguồn đáng tin:
+    /// chính tài khoản Office dùng để kích hoạt. KHÔNG lấy từ danh sách Identity trong registry vì nơi đó
+    /// còn giữ cả tài khoản cũ đã đăng xuất (gây hiện sai email).
+    /// </summary>
+    public static string? LicensingAccount()
+    {
+        try
+        {
+            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Office\Licenses");
+            if (!Directory.Exists(dir)) return null;
+            foreach (var f in new DirectoryInfo(dir).EnumerateFiles("*", SearchOption.AllDirectories).OrderByDescending(f => f.LastWriteTimeUtc))
+            {
+                string text;
+                try { text = File.ReadAllText(f.FullName); } catch { continue; }
+                if (EmailFromToken(text) is { } mail) return mail;
+            }
+        }
+        catch { }
+        return null;
+    }
+
+    private static readonly Regex JwtRx = new(@"eyJ[A-Za-z0-9_-]+\.(eyJ[A-Za-z0-9_-]+)\.", RegexOptions.Compiled);
+    private static readonly string[] UpnClaims = ["upn", "email", "unique_name", "preferred_username", "verified_primary_email", "login_hint"];
+
+    internal static string? EmailFromToken(string text)
+    {
+        foreach (Match m in JwtRx.Matches(text))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(Encoding.UTF8.GetString(Base64Url(m.Groups[1].Value)));
+                foreach (var claim in UpnClaims)
+                    if (doc.RootElement.TryGetProperty(claim, out var v))
+                    {
+                        var s = v.ValueKind == JsonValueKind.Array && v.GetArrayLength() > 0 ? v[0].GetString() : v.GetString();
+                        if (!string.IsNullOrWhiteSpace(s) && s.Contains('@')) return s.Trim();
+                    }
+            }
+            catch { }
+        }
+        return null;
+    }
+
+    private static byte[] Base64Url(string s)
+    {
+        s = s.Replace('-', '+').Replace('_', '/');
+        s += (s.Length % 4) switch { 2 => "==", 3 => "=", _ => "" };
+        return Convert.FromBase64String(s);
+    }
+
+    /// <summary>Email trong registry Identity CHỈ khi có đúng một tài khoản (không mơ hồ); nhiều tài khoản thì trả null.</summary>
+    public static string? SingleIdentityAccount()
     {
         try
         {
             using var ids = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Office\16.0\Common\Identity\Identities");
             if (ids is null) return null;
-            string? fallback = null;
+            var mails = new List<string>();
             foreach (var n in ids.GetSubKeyNames())
             {
                 using var k = ids.OpenSubKey(n);
-                var mail = (k?.GetValue("EmailAddress") ?? k?.GetValue("SignInName")) as string;
-                if (string.IsNullOrWhiteSpace(mail)) continue;
-                // Ưu tiên tài khoản công ty / trường học (ADAL) — tài khoản cấp giấy phép Microsoft 365 doanh nghiệp
-                if (n.EndsWith("_ADAL", StringComparison.OrdinalIgnoreCase)) return mail.Trim();
-                fallback ??= mail.Trim();
+                if ((k?.GetValue("EmailAddress") ?? k?.GetValue("SignInName")) is string mail && !string.IsNullOrWhiteSpace(mail))
+                    mails.Add(mail.Trim());
             }
-            return fallback;
+            return mails.Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1 ? mails[0] : null;
         }
         catch { return null; }
     }
