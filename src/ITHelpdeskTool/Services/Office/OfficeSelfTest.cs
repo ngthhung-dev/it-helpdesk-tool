@@ -74,6 +74,9 @@ public static class OfficeSelfTest
             var got = OfficeService.EmailFromToken("prefix junk " + jwt + " suffix");
             Check(got == "Administrator@447kcx.onmicrosoft.com", $"đọc email từ token sai: {got}");
             Check(OfficeService.EmailFromToken("không có token nào") is null, "văn bản không phải token phải trả null");
+            // Chỉ nhận tài khoản Microsoft thật; bỏ qua Gmail/Yahoo kết nối trong Outlook
+            Check(OfficeService.IsMicrosoftIdentity("abc_ADAL") && OfficeService.IsMicrosoftIdentity("abc_LiveId"), "phải nhận _ADAL / _LiveId");
+            Check(!OfficeService.IsMicrosoftIdentity("103686661374654690403_tp_google_imap_OAuth2"), "không được nhận tài khoản mail bên thứ ba");
             await Task.CompletedTask;
             return got!;
         });

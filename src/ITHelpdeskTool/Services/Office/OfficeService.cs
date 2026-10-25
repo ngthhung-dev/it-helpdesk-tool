@@ -91,7 +91,7 @@ public static class OfficeService
     /// Tài khoản Microsoft 365 đang CẤP PHÉP cho Office (đúng tài khoản ở dòng "Subscription Product for ..." trong Word),
     /// rồi mới đến tài khoản đăng nhập nếu chỉ có đúng một. Trả null khi không chắc, để không hiện nhầm email.
     /// </summary>
-    public static string? ActivationAccount() => LicensingAccount() ?? SingleIdentityAccount();
+    public static string? ActivationAccount() => LicensingAccount() ?? MicrosoftIdentityAccount();
 
     /// <summary>
     /// Đọc email từ token giấy phép vNext (%LOCALAPPDATA%\Microsoft\Office\Licenses). Đây là nguồn đáng tin:
@@ -144,8 +144,17 @@ public static class OfficeService
         return Convert.FromBase64String(s);
     }
 
-    /// <summary>Email trong registry Identity CHỈ khi có đúng một tài khoản (không mơ hồ); nhiều tài khoản thì trả null.</summary>
-    public static string? SingleIdentityAccount()
+    /// <summary>
+    /// Tên subkey Identity là tài khoản Microsoft thật: công ty / trường học (hậu tố <c>_ADAL</c>) hoặc tài khoản Microsoft
+    /// cá nhân (<c>_LiveId</c>). KHÔNG tính tài khoản mail bên thứ ba kết nối trong Outlook (Gmail/Yahoo… hậu tố kiểu
+    /// <c>_tp_google_imap_OAuth2</c>) vì chúng không cấp phép Office.
+    /// </summary>
+    internal static bool IsMicrosoftIdentity(string subkeyName) =>
+        subkeyName.EndsWith("_ADAL", StringComparison.OrdinalIgnoreCase) ||
+        subkeyName.EndsWith("_LiveId", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Email tài khoản Microsoft trong registry, CHỈ khi có đúng một (không mơ hồ); không có hoặc nhiều thì trả null.</summary>
+    public static string? MicrosoftIdentityAccount()
     {
         try
         {
@@ -154,11 +163,13 @@ public static class OfficeService
             var mails = new List<string>();
             foreach (var n in ids.GetSubKeyNames())
             {
+                if (!IsMicrosoftIdentity(n)) continue;
                 using var k = ids.OpenSubKey(n);
-                if ((k?.GetValue("EmailAddress") ?? k?.GetValue("SignInName")) is string mail && !string.IsNullOrWhiteSpace(mail))
+                if ((k?.GetValue("EmailAddress") ?? k?.GetValue("SignInName")) is string mail && !string.IsNullOrWhiteSpace(mail) && mail.Contains('@'))
                     mails.Add(mail.Trim());
             }
-            return mails.Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1 ? mails[0] : null;
+            var distinct = mails.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            return distinct.Count == 1 ? distinct[0] : null;
         }
         catch { return null; }
     }
