@@ -77,6 +77,16 @@ public static class OfficeSelfTest
             // Chỉ nhận tài khoản Microsoft thật; bỏ qua Gmail/Yahoo kết nối trong Outlook
             Check(OfficeService.IsMicrosoftIdentity("abc_ADAL") && OfficeService.IsMicrosoftIdentity("abc_LiveId"), "phải nhận _ADAL / _LiveId");
             Check(!OfficeService.IsMicrosoftIdentity("103686661374654690403_tp_google_imap_OAuth2"), "không được nhận tài khoản mail bên thứ ba");
+            // Bảng LicenseIdToEmailMapping: bỏ mã giấy phép lỗi, chọn tài khoản đang dùng
+            var map = new Dictionary<string, string>
+            {
+                ["9b1306ce-3e72-4d76-88d4-297738c23f40"] = "Administrator@3nk23b.onmicrosoft.com",
+                ["5c5765d9-c7db-402b-9ff1-cf05925221a4"] = "Administrator@447kcx.onmicrosoft.com",
+            };
+            var errored = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "9b1306ce-3e72-4d76-88d4-297738c23f40" };
+            Check(OfficeService.PickLicensingEmail(map, errored) == "Administrator@447kcx.onmicrosoft.com", "chọn tài khoản cấp phép sai");
+            Check(OfficeService.PickLicensingEmail(map, new HashSet<string>()) is null, "hai giấy phép không lỗi phải coi là mơ hồ");
+            Check(OfficeService.PickLicensingEmail(new Dictionary<string, string> { ["x"] = "only@a.com" }, new HashSet<string>()) == "only@a.com", "một giấy phép phải trả về");
             await Task.CompletedTask;
             return got!;
         });

@@ -91,7 +91,43 @@ public static class OfficeService
     /// Tài khoản Microsoft 365 đang CẤP PHÉP cho Office (đúng tài khoản ở dòng "Subscription Product for ..." trong Word),
     /// rồi mới đến tài khoản đăng nhập nếu chỉ có đúng một. Trả null khi không chắc, để không hiện nhầm email.
     /// </summary>
-    public static string? ActivationAccount() => LicensingAccount() ?? MicrosoftIdentityAccount();
+    public static string? ActivationAccount() => LicensingNextAccount() ?? LicensingAccount() ?? MicrosoftIdentityAccount();
+
+    /// <summary>
+    /// Tài khoản cấp phép đọc từ bảng Office lưu sẵn trong registry
+    /// (<c>…\Common\Licensing\LicensingNext\LicenseIdToEmailMapping</c>: mã giấy phép → email). Bỏ các mã nằm trong
+    /// <c>LicensingErrors</c> (giấy phép cũ / lỗi), nên chọn đúng tài khoản Office đang dùng — khớp dòng
+    /// "Subscription Product for …" trong Word. Đây là nguồn đáng tin nhất vì chính Office ghi ra.
+    /// </summary>
+    public static string? LicensingNextAccount()
+    {
+        try
+        {
+            const string b = @"Software\Microsoft\Office\16.0\Common\Licensing\LicensingNext";
+            using var map = Registry.CurrentUser.OpenSubKey(b + @"\LicenseIdToEmailMapping");
+            if (map is null) return null;
+            var mapping = map.GetValueNames()
+                .Select(n => (Id: n, Mail: map.GetValue(n) as string))
+                .Where(x => !string.IsNullOrWhiteSpace(x.Mail) && x.Mail!.Contains('@'))
+                .ToDictionary(x => x.Id, x => x.Mail!.Trim(), StringComparer.OrdinalIgnoreCase);
+            if (mapping.Count == 0) return null;
+            var errored = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            using (var err = Registry.CurrentUser.OpenSubKey(b + @"\LicensingErrors"))
+                if (err is not null) foreach (var n in err.GetSubKeyNames()) errored.Add(n);
+            return PickLicensingEmail(mapping, errored);
+        }
+        catch { return null; }
+    }
+
+    /// <summary>Chọn email từ bảng ánh xạ: ưu tiên mã giấy phép KHÔNG lỗi; chỉ trả khi xác định được đúng một.</summary>
+    internal static string? PickLicensingEmail(IReadOnlyDictionary<string, string> mapping, ISet<string> erroredIds)
+    {
+        var good = mapping.Where(kv => !erroredIds.Contains(kv.Key)).Select(kv => kv.Value)
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (good.Count == 1) return good[0];
+        var all = mapping.Values.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        return all.Count == 1 ? all[0] : null;
+    }
 
     /// <summary>
     /// Đọc email từ token giấy phép vNext (%LOCALAPPDATA%\Microsoft\Office\Licenses). Đây là nguồn đáng tin:
