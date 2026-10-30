@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using ITHelpdeskTool.Core;
 using ITHelpdeskTool.Services.SysConfig;
 
 namespace ITHelpdeskTool.Services.Disk;
@@ -14,24 +15,36 @@ public sealed record BitLockerVolume(
     public bool IsOs => VolumeType == "OperatingSystem";
     public bool Locked => Lock == "Locked";
     public bool On => Protection == "On";
-    public bool Encrypted => Status is "FullyEncrypted" or "EncryptionInProgress" or "DecryptionInProgress" || Protection == "On" || Locked;
-    public bool Suspended => Status == "FullyEncrypted" && Protection == "Off" && !Locked;
-    public bool InProgress => Status is "EncryptionInProgress" or "DecryptionInProgress";
+    // VolumeStatus còn có EncryptionSuspended / DecryptionSuspended / FullyEncryptedWipe*: ổ vẫn đang (một phần) mã hoá.
+    // ProtectionStatus = Off không có nghĩa là chưa mã hoá (tạm dừng bảo vệ, Device encryption chưa kích hoạt).
+    public bool Encrypted => Locked || Protection == "On" || (Status.Length > 0 && Status != "FullyDecrypted");
+    // Đã mã hoá nhưng chưa có khoá bảo vệ nào (Device encryption chờ kích hoạt): không “tiếp tục bảo vệ” được, phải thêm khoá trước.
+    public bool NotActivated => Encrypted && Protection == "Off" && !Locked && Protectors.Count == 0 && !Status.StartsWith("Decryption");
+    public bool Suspended => Encrypted && Protection == "Off" && !Locked && Protectors.Count > 0 && !Status.StartsWith("Decryption");
+    // Enable-BitLocker ổ hệ điều hành (không -SkipHardwareTest): đã có khoá TPM / mật khẩu nhưng VolumeStatus vẫn FullyDecrypted
+    // tới khi khởi động lại. Chỉ có mã khôi phục thì chưa tính (lần bật trước thất bại) — vẫn cho bấm “Bật BitLocker”.
+    public bool Pending => Status == "FullyDecrypted" && !Locked && Protectors.Any(p => p.Type != "RecoveryPassword");
+    public bool InProgress => Status is "EncryptionInProgress" or "DecryptionInProgress" or "FullyEncryptedWipeInProgress";
     public bool HasRecovery => Protectors.Any(p => p.Type == "RecoveryPassword");
+    public bool NeedsRecovery => (Encrypted || Pending) && !HasRecovery && !Locked;
 
     public string StateText =>
         Locked ? "Đang khoá" :
+        Pending ? (IsOs ? "Đã bật · chờ khởi động lại để mã hoá" : "Đã bật · chờ bắt đầu mã hoá") :
         Status switch
         {
             "FullyDecrypted" => "Chưa mã hoá",
             "EncryptionInProgress" => $"Đang mã hoá {Percent:0}%",
+            "EncryptionSuspended" => $"Tạm dừng mã hoá ở {Percent:0}%",
             "DecryptionInProgress" => $"Đang giải mã ({Percent:0}% còn mã hoá)",
-            "FullyEncrypted" when Protection == "On" => "Đã mã hoá · đang bảo vệ",
-            "FullyEncrypted" => "Đã mã hoá · tạm dừng bảo vệ",
+            "DecryptionSuspended" => $"Tạm dừng giải mã ({Percent:0}% còn mã hoá)",
+            "FullyEncrypted" or "FullyEncryptedWipeInProgress" or "FullyEncryptedWipeSuspended" when Protection == "On" => "Đã mã hoá · đang bảo vệ",
+            "FullyEncrypted" or "FullyEncryptedWipeInProgress" or "FullyEncryptedWipeSuspended" when Protectors.Count == 0 => "Đã mã hoá · chưa kích hoạt bảo vệ",
+            "FullyEncrypted" or "FullyEncryptedWipeInProgress" or "FullyEncryptedWipeSuspended" => "Đã mã hoá · tạm dừng bảo vệ",
             _ => Status,
         };
 
-    public string Tone => Locked ? "Warn" : On ? "Good" : Suspended ? "Warn" : "";
+    public string Tone => Locked ? "Warn" : On ? "Good" : Suspended || NotActivated || Pending ? "Warn" : "";
 
     public string Detail => string.Join(" · ", new[]
     {
@@ -68,8 +81,12 @@ public static class BitLockerService
 
     public static async Task<List<BitLockerVolume>> VolumesAsync()
     {
+        // Lỗi ở một ổ (ổ RAW, đầu đọc thẻ, ổ ảo...) không được làm hỏng cả danh sách: bỏ qua ổ lỗi,
+        // chỉ báo lỗi khi không đọc được ổ nào.
         const string script = """
-            @(Get-BitLockerVolume | ForEach-Object {
+            $vols = @(Get-BitLockerVolume -ErrorAction SilentlyContinue -ErrorVariable blErr)
+            if ($vols.Count -eq 0 -and $blErr) { throw $blErr[0] }
+            @($vols | ForEach-Object {
               [pscustomobject]@{ Mount=$_.MountPoint; Type="$($_.VolumeType)"; Prot="$($_.ProtectionStatus)"; Status="$($_.VolumeStatus)";
                 Pct=$_.EncryptionPercentage; Method="$($_.EncryptionMethod)"; Lock="$($_.LockStatus)"; Auto=[bool]$_.AutoUnlockEnabled; Cap=[int64]($_.CapacityGB * 1GB);
                 Keys=@($_.KeyProtector | ForEach-Object { [pscustomobject]@{ Id="$($_.KeyProtectorId)"; Type="$($_.KeyProtectorType)"; Rp="$($_.RecoveryPassword)" } }) }
@@ -93,6 +110,34 @@ public static class BitLockerService
                 S(e, "Method"), S(e, "Lock"), S(e, "Auto").Equals("True", StringComparison.OrdinalIgnoreCase), keys,
                 long.TryParse(S(e, "Cap"), out var c) ? c : 0);
         }).OrderBy(v => !v.IsOs).ThenBy(v => v.MountPoint).ToList();
+    }
+
+    /// <summary>
+    /// Trạng thái BitLocker từ WMI Win32_EncryptableVolume cho báo cáo. Phải xét cả ConversionStatus:
+    /// ProtectionStatus = 0 khi tạm dừng bảo vệ hoặc Device encryption chưa kích hoạt dù ổ đã mã hoá toàn bộ —
+    /// WMI không cho biết số khoá bảo vệ nên không tách được hai trường hợp này, ghi chung “chưa bật bảo vệ”.
+    /// </summary>
+    public static (string Text, Tone Tone) WmiState(WmiRow r)
+    {
+        var prot = r.Long("ProtectionStatus");
+        var conv = r["ConversionStatus"] is null ? -1 : r.Long("ConversionStatus");
+        if (prot == 2) return ("Đang khoá", Tone.Warn);
+        if (prot == 1) return conv switch
+        {
+            2 => ("Đang bật · đang mã hoá", Tone.Good),
+            3 => ("Đang giải mã", Tone.Warn),
+            _ => ("Đang bật", Tone.Good),
+        };
+        return conv switch
+        {
+            0 => ("Tắt", Tone.Normal),
+            1 => ("Đã mã hoá · chưa bật bảo vệ", Tone.Warn),
+            2 => ("Đang mã hoá", Tone.Warn),
+            3 => ("Đang giải mã", Tone.Warn),
+            4 => ("Tạm dừng mã hoá", Tone.Warn),
+            5 => ("Tạm dừng giải mã", Tone.Warn),
+            _ => ("Tắt", Tone.Normal),
+        };
     }
 
     private static async Task<OpResult> Ps(string script, string ok, string fail, IDictionary<string, string>? env = null)
@@ -144,7 +189,7 @@ public static class BitLockerService
                 ? "Các ổ đã mã hoá chưa có mã khôi phục — bấm “Thêm mã khôi phục” ở từng ổ trước."
                 : "Chưa có ổ nào bật BitLocker nên chưa có mã khôi phục để sao lưu.");
         var root = Path.GetPathRoot(Path.GetFullPath(path))?.TrimEnd('\\') ?? "";
-        if (volumes.Any(v => v.Encrypted && v.MountPoint.TrimEnd('\\').Equals(root, StringComparison.OrdinalIgnoreCase)))
+        if (volumes.Any(v => (v.Encrypted || v.Pending) && v.MountPoint.TrimEnd('\\').Equals(root, StringComparison.OrdinalIgnoreCase)))
             return OpResult.Fail($"Ổ {root} đang được mã hoá — lưu mã khôi phục ra USB / ổ khác / máy khác.");
 
         var sb = new StringBuilder();
