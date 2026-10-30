@@ -73,10 +73,13 @@ public static partial class ReportCollector
 
         // BitLocker ổ hệ thống
         var sysDrive = Path.GetPathRoot(Environment.SystemDirectory)?.TrimEnd('\\') ?? "C:";
-        var bl = Wmi.TryQuery($"SELECT ProtectionStatus FROM Win32_EncryptableVolume WHERE DriveLetter = '{sysDrive}'",
+        var bl = Wmi.TryQuery($"SELECT ProtectionStatus, ConversionStatus FROM Win32_EncryptableVolume WHERE DriveLetter = '{sysDrive}'",
             @"root\cimv2\Security\MicrosoftVolumeEncryption").FirstOrDefault();
         if (bl is not null)
-            d.F($"BitLocker ổ {sysDrive}", bl.Long("ProtectionStatus") == 1 ? "Đang bật" : "Tắt");
+        {
+            var (blText, blTone) = Disk.BitLockerService.WmiState(bl);
+            d.F($"BitLocker ổ {sysDrive}", blText, blTone);
+        }
 
         using (var uac = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"))
         {

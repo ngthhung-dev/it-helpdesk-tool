@@ -153,7 +153,11 @@
                                                 Command="{Binding DataContext.DisableCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                     </WrapPanel>
                                     <TextBlock x:Name="Warn" Style="{StaticResource Hint}" Foreground="{DynamicResource WarnBrush}" Visibility="Collapsed"
-                                               Text="Ổ đã mã hoá nhưng chưa có mã khôi phục — thêm và lưu lại ngay để tránh mất dữ liệu."/>
+                                               Text="Ổ đã bật BitLocker nhưng chưa có mã khôi phục — thêm và lưu lại ngay để tránh mất dữ liệu."/>
+                                    <TextBlock x:Name="PendHint" Style="{StaticResource Hint}" Visibility="Collapsed"
+                                               Text="BitLocker đã bật cho ổ này. Khởi động lại máy để Windows kiểm tra TPM rồi bắt đầu mã hoá nền — không cần bấm bật lại."/>
+                                    <TextBlock x:Name="ActHint" Style="{StaticResource Hint}" Visibility="Collapsed"
+                                               Text="Ổ đã mã hoá nhưng chưa có khoá bảo vệ (Device encryption chưa kích hoạt) — ai lấy ổ cũng đọc được. Thêm mã khôi phục, lưu lại, rồi bấm “Tiếp tục bảo vệ”."/>
                                 </StackPanel>
                             </Border>
                             <DataTemplate.Triggers>
@@ -188,6 +192,32 @@
                                     <Setter TargetName="BResume" Property="Visibility" Value="Visible"/>
                                     <Setter TargetName="BOff" Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
+                                <!-- Đã có khoá TPM / mật khẩu nhưng chưa bắt đầu mã hoá (chờ khởi động lại): không cho bật lại -->
+                                <DataTrigger Binding="{Binding V.Pending}" Value="True">
+                                    <Setter TargetName="Ico" Property="Text" Value="&#xE72E;"/>
+                                    <Setter TargetName="Ico" Property="Foreground" Value="{DynamicResource WarnBrush}"/>
+                                    <Setter TargetName="Badge" Property="Background" Value="#1AFBBF24"/>
+                                    <Setter TargetName="BadgeT" Property="Foreground" Value="{DynamicResource WarnBrush}"/>
+                                    <Setter TargetName="BEnable" Property="Visibility" Value="Collapsed"/>
+                                    <Setter TargetName="PendHint" Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding V.Pending}" Value="True"/>
+                                        <Condition Binding="{Binding V.HasRecovery}" Value="True"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter TargetName="BShow" Property="Visibility" Value="Visible"/>
+                                    <Setter TargetName="BSave" Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+                                <!-- Đã mã hoá, chưa có khoá bảo vệ: “Tiếp tục bảo vệ” chỉ hiện sau khi thêm mã khôi phục (lúc đó thành Suspended) -->
+                                <DataTrigger Binding="{Binding V.NotActivated}" Value="True">
+                                    <Setter TargetName="Ico" Property="Text" Value="&#xE72E;"/>
+                                    <Setter TargetName="Ico" Property="Foreground" Value="{DynamicResource WarnBrush}"/>
+                                    <Setter TargetName="Badge" Property="Background" Value="#1AFBBF24"/>
+                                    <Setter TargetName="BadgeT" Property="Foreground" Value="{DynamicResource WarnBrush}"/>
+                                    <Setter TargetName="BOff" Property="Visibility" Value="Visible"/>
+                                    <Setter TargetName="ActHint" Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
                                 <DataTrigger Binding="{Binding V.Locked}" Value="True">
                                     <Setter TargetName="Ico" Property="Text" Value="&#xE72E;"/>
                                     <Setter TargetName="Ico" Property="Foreground" Value="{DynamicResource WarnBrush}"/>
@@ -215,15 +245,10 @@
                                     </MultiDataTrigger.Conditions>
                                     <Setter TargetName="BAuto" Property="Visibility" Value="Visible"/>
                                 </MultiDataTrigger>
-                                <MultiDataTrigger>
-                                    <MultiDataTrigger.Conditions>
-                                        <Condition Binding="{Binding V.Encrypted}" Value="True"/>
-                                        <Condition Binding="{Binding V.HasRecovery}" Value="False"/>
-                                        <Condition Binding="{Binding V.Locked}" Value="False"/>
-                                    </MultiDataTrigger.Conditions>
+                                <DataTrigger Binding="{Binding V.NeedsRecovery}" Value="True">
                                     <Setter TargetName="BAdd" Property="Visibility" Value="Visible"/>
                                     <Setter TargetName="Warn" Property="Visibility" Value="Visible"/>
-                                </MultiDataTrigger>
+                                </DataTrigger>
                                 <MultiDataTrigger>
                                     <MultiDataTrigger.Conditions>
                                         <Condition Binding="{Binding V.HasRecovery}" Value="True"/>

@@ -164,10 +164,11 @@ public static partial class ReportCollector
         }
 
         // Phân vùng: chỉ ổ cứng trong + USB (DriveType 2/3) nên không đụng ổ mạng
-        var bitlocker = await Task.Run(() => Wmi.TryQuery("SELECT DriveLetter, ProtectionStatus FROM Win32_EncryptableVolume",
+        var bitlocker = await Task.Run(() => Wmi.TryQuery("SELECT DriveLetter, ProtectionStatus, ConversionStatus FROM Win32_EncryptableVolume",
                 @"root\cimv2\Security\MicrosoftVolumeEncryption")
             .Where(b => b.Str("DriveLetter").Length > 0)
-            .ToDictionary(b => b.Str("DriveLetter"), b => (int)b.Long("ProtectionStatus"), StringComparer.OrdinalIgnoreCase));
+            .GroupBy(b => b.Str("DriveLetter"), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => Disk.BitLockerService.WmiState(g.First()), StringComparer.OrdinalIgnoreCase));
         var vols = await Task.Run(() => Wmi.TryQuery("SELECT DeviceID, VolumeName, FileSystem, Size, FreeSpace, DriveType FROM Win32_LogicalDisk WHERE DriveType = 2 OR DriveType = 3"));
 
         var v = d.Table("Phân vùng", ["Ổ", "Nhãn", "Định dạng", "Dung lượng", "Còn trống", "BitLocker"], [0.9, 1.4, 0.7, 0.9, 1.2, 0.8]);
@@ -180,7 +181,7 @@ public static partial class ReportCollector
             var pct = free * 100.0 / size;
             var id = x.Str("DeviceID");
             var isSys = id.Equals(sysDrive, StringComparison.OrdinalIgnoreCase);
-            var bl = bitlocker.TryGetValue(id, out var ps) ? ps switch { 1 => "Đang bật", 0 => "Tắt", _ => "Không rõ" } : "—";
+            var bl = bitlocker.TryGetValue(id, out var st) ? new ReportCell(st.Text, st.Tone) : "—";
             v.Add(
                 isSys ? $"{id} (hệ thống)" : id,
                 x.Str("VolumeName") is { Length: > 0 } lbl ? lbl : (x.Long("DriveType") == 2 ? "USB" : "Local Disk"),
