@@ -197,11 +197,18 @@ public static class AppBackupService
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         return found.Select(x =>
         {
-            // Tên thư mục trong bộ sao lưu không được trùng (vd. "BHXH" ở cả ProgramData và AppData)
-            var name = System.IO.Path.GetFileName(x.Dir);
-            for (var i = 2; !names.Add(name); i++) name = $"{System.IO.Path.GetFileName(x.Dir)}-{i}";
             var note = FolderApps.First(a => a.App == x.App).Note;
-            return new BackupItem(BackupKind.Folder, x.App, name, $"Chép nguyên {x.Where} ({note}).", FolderSize(x.Dir), Path: x.Dir);
+            // HTKK: dữ liệu nằm trong DataFiles (chia theo mã số thuế), giống chức năng sao lưu của chính HTKK;
+            // phần còn lại là file chương trình, cài lại là có. Không có DataFiles (phiên bản khác) thì chép cả thư mục.
+            var data = System.IO.Path.Combine(x.Dir, "DataFiles");
+            var onlyData = x.App == "HTKK" && Directory.Exists(data);
+            var dir = onlyData ? data : x.Dir;
+            // Tên thư mục trong bộ sao lưu không được trùng (vd. "BHXH" ở cả ProgramData và AppData)
+            var name = System.IO.Path.GetFileName(dir);
+            for (var i = 2; !names.Add(name); i++) name = $"{System.IO.Path.GetFileName(dir)}-{i}";
+            var detail = onlyData ? $"Chép thư mục DataFiles của {x.Where} ({note}) — giống chức năng sao lưu của HTKK."
+                                  : $"Chép nguyên {x.Where} ({note}).";
+            return new BackupItem(BackupKind.Folder, x.App, name, detail, FolderSize(dir), Path: dir);
         }).ToList();
     }
     private static long FolderSize(string dir)
@@ -284,7 +291,8 @@ public static class AppBackupService
         sb.AppendLine("Khôi phục:");
         sb.AppendLine("- File .bak: dùng chức năng khôi phục / phục hồi dữ liệu của chính phần mềm (MISA, ECUS, FAST…),");
         sb.AppendLine("  hoặc SQL Server Management Studio. Chỉ khôi phục được vào SQL Server CÙNG PHIÊN BẢN HOẶC MỚI HƠN bản ghi bên dưới.");
-        sb.AppendLine("- Thư mục HTKK / BHXH: cài lại phần mềm rồi chép đè thư mục đã sao lưu về đúng vị trí cũ (ghi ở dưới), đóng phần mềm trước.");
+        sb.AppendLine("- HTKK: cài lại HTKK, đóng HTKK, chép thư mục DataFiles đã sao lưu đè vào thư mục cài đặt HTKK (vị trí cũ ghi ở dưới).");
+        sb.AppendLine("- Thư mục BHXH: cài lại phần mềm rồi chép đè thư mục đã sao lưu về đúng vị trí cũ (ghi ở dưới), đóng phần mềm trước.");
         sb.AppendLine("- Mở thử vài chứng từ / tờ khai cũ trước khi xoá bản sao lưu.");
         sb.AppendLine(new string('=', 78));
         foreach (var l in lines) sb.AppendLine(l);
