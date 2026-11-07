@@ -76,6 +76,7 @@ public sealed partial class ShellViewModel : ObservableObject
                 Item("disk", "Công cụ ổ đĩa", "\uEDA2", 1, () => new DiskViewModel()),
                 Item("bitlocker", "BitLocker", "\uE72E", 1, () => new BitLockerViewModel()),
                 Item("outlook", "Dữ liệu Outlook", "\uE715", 1, () => new OutlookViewModel()),
+                Item("appbackup", "Sao lưu phần mềm", "\uE8F1", 1, () => new AppBackupViewModel()),
             ]),
             new("THIẾT BỊ & TIỆN ÍCH",
             [

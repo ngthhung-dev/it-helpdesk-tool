@@ -77,6 +77,9 @@
             <DataTemplate DataType="{x:Type vm:OutlookViewModel}">
                 <v:OutlookPage/>
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:AppBackupViewModel}">
+                <v:AppBackupPage/>
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:PreviewViewModel}">
                 <v:PreviewPage/>
             </DataTemplate>
