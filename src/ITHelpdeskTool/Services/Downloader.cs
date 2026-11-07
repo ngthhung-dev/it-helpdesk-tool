@@ -112,4 +112,12 @@ public static class Downloader
     }
 
     public static Task<string> GetStringAsync(string url, CancellationToken ct = default) => Http.GetStringAsync(url, ct);
+
+    /// <summary>Link cuối cùng sau các lần chuyển hướng (vd. /releases/latest → /releases/tag/v1.2.3).</summary>
+    public static async Task<Uri?> FinalUrlAsync(string url, CancellationToken ct = default)
+    {
+        using var resp = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
+        resp.EnsureSuccessStatusCode();
+        return resp.RequestMessage?.RequestUri;
+    }
 }

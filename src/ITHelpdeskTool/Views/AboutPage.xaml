@@ -65,6 +65,26 @@
                 </StackPanel>
             </Border>
 
+            <!-- Cập nhật -->
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0" Padding="22,18">
+                <StackPanel>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Command="{Binding CheckUpdateCommand}" VerticalAlignment="Center" Margin="12,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" FontSize="13"/>
+                                <TextBlock Text="Kiểm tra cập nhật" Margin="8,0,0,0"/>
+                            </StackPanel>
+                        </Button>
+                        <StackPanel>
+                            <TextBlock Text="Cập nhật" Style="{StaticResource H2}" Margin="0,0,0,4"/>
+                            <TextBlock Text="{Binding UpdateText}" Style="{StaticResource Muted}" TextWrapping="Wrap" FontSize="13"/>
+                        </StackPanel>
+                    </DockPanel>
+                    <ProgressBar Height="6" Margin="0,12,0,0" Maximum="100" Value="{Binding UpdatePercent, Mode=OneWay}"
+                                 Visibility="{Binding UpdateDownloading, Converter={StaticResource BoolVis}}"/>
+                </StackPanel>
+            </Border>
+
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
                 <Button Command="{Binding ChangeLoginCommand}" Margin="0,0,8,0" ToolTip="Tài khoản đăng nhập để mở app"
                         Visibility="{Binding CanManageLogin, Converter={StaticResource BoolVis}}">
