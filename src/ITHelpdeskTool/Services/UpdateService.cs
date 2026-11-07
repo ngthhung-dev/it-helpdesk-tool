@@ -66,9 +66,13 @@ public static class UpdateService
             await using (var f = File.OpenRead(path)) hash = Convert.ToHexString(await SHA256.HashDataAsync(f, ct));
             if (!hash.Equals(u.Sha256, StringComparison.OrdinalIgnoreCase)) Reject(path, "mã SHA256 không khớp với bản phát hành");
         }
+        // Inno Setup đệm dấu cách vào sau các chuỗi version info ("1.0.40" + 44 dấu cách) → cắt bỏ,
+        // so phiên bản bằng phần số (ProductMajor/Minor/Build) thay vì đọc chuỗi
         var info = FileVersionInfo.GetVersionInfo(path);
-        if (info.ProductName != AppInfo.Name || !Version.TryParse(info.ProductVersion, out var fv) || fv != u.Version)
-            Reject(path, $"bộ cài không đúng ({info.ProductName} {info.ProductVersion})");
+        var product = (info.ProductName ?? "").Trim().TrimEnd('\0');
+        var fv = new Version(info.ProductMajorPart, info.ProductMinorPart, info.ProductBuildPart);
+        if (!product.Equals(AppInfo.Name, StringComparison.OrdinalIgnoreCase) || fv != u.Version)
+            Reject(path, $"bộ cài không đúng ({product} {fv.ToString(3)})");
         return path;
     }
 
