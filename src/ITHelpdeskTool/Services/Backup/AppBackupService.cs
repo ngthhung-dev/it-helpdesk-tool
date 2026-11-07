@@ -65,6 +65,7 @@ public static class AppBackupService
         if (s.Contains("ECUS", StringComparison.OrdinalIgnoreCase)) return "ECUS";
         if (s.Contains("FAST", StringComparison.OrdinalIgnoreCase)) return "FAST";
         if (s.Contains("BRAVO", StringComparison.OrdinalIgnoreCase)) return "Bravo";
+        if (System.Text.RegularExpressions.Regex.IsMatch(s, @"BHXH|(?<![A-Za-z])(EBH|IBH|TS24)(?![A-Za-z])", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) return "BHXH";
         return "SQL Server";
     }
 
@@ -131,10 +132,36 @@ public static class AppBackupService
         return items;   // script in dòng S (phiên bản, thư mục backup) trước các dòng D
     }
 
-    // ================= Tìm HTKK =================
+    // ================= Tìm phần mềm lưu dữ liệu dạng thư mục (HTKK, kê khai BHXH) =================
+    // Phần mềm kê khai BHXH (KBHXH, VNPT-BHXH, EFY-eBH, BKAV IBH, TS24…): bản nào dùng SQL Server thì đã có ở phần cơ sở dữ liệu,
+    // còn lại chép thư mục cài đặt + thư mục dữ liệu trong ProgramData / AppData có tên phần mềm.
+    private sealed record FolderApp(string App, System.Text.RegularExpressions.Regex Name, string Note);
+
+    private static readonly FolderApp[] FolderApps =
+    [
+        new("HTKK", new(@"HTKK|Hỗ trợ kê khai", System.Text.RegularExpressions.RegexOptions.IgnoreCase),
+            "tờ khai thuế đã lập theo từng mã số thuế"),
+        new("BHXH", new(@"BHXH|(?<![A-Za-z])(eBH|IBH|TS24)(?![A-Za-z])|Bảo hiểm xã hội|Bao hiem xa hoi", System.Text.RegularExpressions.RegexOptions.IgnoreCase),
+            "hồ sơ kê khai bảo hiểm xã hội"),
+    ];
+
     public static List<BackupItem> Folders()
     {
-        var dirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var found = new List<(string App, string Dir, string Where)>();
+        void Add(string app, string dir, string where)
+        {
+            dir = dir.Trim('"', ' ').TrimEnd('\\');
+            if (dir.Length < 4 || !Directory.Exists(dir)) return;
+            // Bỏ thư mục hệ thống / quá rộng và thư mục đã nằm trong một mục khác
+            if (dir.Equals(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), StringComparison.OrdinalIgnoreCase) ||
+                dir.Equals(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), StringComparison.OrdinalIgnoreCase) ||
+                dir.Equals(Environment.GetFolderPath(Environment.SpecialFolder.Windows), StringComparison.OrdinalIgnoreCase)) return;
+            if (found.Any(x => dir.Equals(x.Dir, StringComparison.OrdinalIgnoreCase) || dir.StartsWith(x.Dir + "\\", StringComparison.OrdinalIgnoreCase))) return;
+            found.RemoveAll(x => x.Dir.StartsWith(dir + "\\", StringComparison.OrdinalIgnoreCase));
+            found.Add((app, dir, where));
+        }
+
+        // 1. Danh sách phần mềm đã cài
         foreach (var (hive, view) in new[] { (RegistryHive.LocalMachine, RegistryView.Registry64), (RegistryHive.LocalMachine, RegistryView.Registry32), (RegistryHive.CurrentUser, RegistryView.Default) })
         {
             using var b = RegistryKey.OpenBaseKey(hive, view);
@@ -144,21 +171,39 @@ public static class AppBackupService
             {
                 using var k = un.OpenSubKey(n);
                 var name = k?.GetValue("DisplayName") as string ?? "";
-                if (!name.Contains("HTKK", StringComparison.OrdinalIgnoreCase) && !name.Contains("Hỗ trợ kê khai", StringComparison.OrdinalIgnoreCase)) continue;
+                var app = FolderApps.FirstOrDefault(a => a.Name.IsMatch(name));
+                if (app is null) continue;
                 var loc = (k?.GetValue("InstallLocation") as string ?? "").Trim('"', ' ');
                 if (loc.Length == 0 && k?.GetValue("DisplayIcon") is string icon) loc = System.IO.Path.GetDirectoryName(icon.Split(',')[0].Trim('"')) ?? "";
-                if (loc.Length > 0 && Directory.Exists(loc)) dirs.Add(loc.TrimEnd('\\'));
+                if (loc.Length > 0) Add(app.App, loc, $"thư mục cài đặt {name}");
             }
         }
+        // 2. Vị trí mặc định của HTKK
         foreach (var d in new[] { Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"C:\" })
+            Add("HTKK", System.IO.Path.Combine(d, "HTKK"), "thư mục cài đặt HTKK");
+        // 3. Thư mục dữ liệu (cấp 1) trong ProgramData / AppData / ổ C: có tên phần mềm
+        foreach (var root in new[] { Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"C:\" })
         {
-            var p = System.IO.Path.Combine(d, "HTKK");
-            if (Directory.Exists(p)) dirs.Add(p);
+            string[] subs;
+            try { subs = Directory.GetDirectories(root); } catch { continue; }
+            foreach (var d in subs)
+            {
+                var app = FolderApps.FirstOrDefault(a => a.Name.IsMatch(System.IO.Path.GetFileName(d)));
+                if (app is not null) Add(app.App, d, $"thư mục dữ liệu trong {root.TrimEnd('\\')}");
+            }
         }
-        return dirs.Select(d => new BackupItem(BackupKind.Folder, "HTKK", System.IO.Path.GetFileName(d),
-            "Sao lưu nguyên thư mục cài đặt HTKK (gồm tờ khai đã lập theo từng mã số thuế).", FolderSize(d), Path: d)).ToList();
-    }
 
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        return found.Select(x =>
+        {
+            // Tên thư mục trong bộ sao lưu không được trùng (vd. "BHXH" ở cả ProgramData và AppData)
+            var name = System.IO.Path.GetFileName(x.Dir);
+            for (var i = 2; !names.Add(name); i++) name = $"{System.IO.Path.GetFileName(x.Dir)}-{i}";
+            var note = FolderApps.First(a => a.App == x.App).Note;
+            return new BackupItem(BackupKind.Folder, x.App, name, $"Chép nguyên {x.Where} ({note}).", FolderSize(x.Dir), Path: x.Dir);
+        }).ToList();
+    }
     private static long FolderSize(string dir)
     {
         try { return new DirectoryInfo(dir).EnumerateFiles("*", SearchOption.AllDirectories).Sum(f => f.Length); }
@@ -226,7 +271,7 @@ public static class AppBackupService
             }
         });
         return errors == 0 ? OpResult.Success($"{item.App} ({item.Path}): đã chép {Fmt.Size(item.Size)}")
-                           : OpResult.Fail($"{item.App} ({item.Path}): {errors} file không chép được (đang bị phần mềm mở?) — đóng HTKK rồi sao lưu lại");
+                           : OpResult.Fail($"{item.App} ({item.Path}): {errors} file không chép được (đang bị phần mềm mở?) — đóng {item.App} rồi sao lưu lại");
     }
 
     /// <summary>File ghi chú đi kèm bộ sao lưu: cần biết phiên bản SQL Server để khôi phục (chỉ khôi phục được vào bản cùng hoặc mới hơn).</summary>
@@ -239,7 +284,7 @@ public static class AppBackupService
         sb.AppendLine("Khôi phục:");
         sb.AppendLine("- File .bak: dùng chức năng khôi phục / phục hồi dữ liệu của chính phần mềm (MISA, ECUS, FAST…),");
         sb.AppendLine("  hoặc SQL Server Management Studio. Chỉ khôi phục được vào SQL Server CÙNG PHIÊN BẢN HOẶC MỚI HƠN bản ghi bên dưới.");
-        sb.AppendLine("- Thư mục HTKK: cài lại HTKK rồi chép đè thư mục đã sao lưu vào thư mục cài đặt (đóng HTKK trước).");
+        sb.AppendLine("- Thư mục HTKK / BHXH: cài lại phần mềm rồi chép đè thư mục đã sao lưu về đúng vị trí cũ (ghi ở dưới), đóng phần mềm trước.");
         sb.AppendLine("- Mở thử vài chứng từ / tờ khai cũ trước khi xoá bản sao lưu.");
         sb.AppendLine(new string('=', 78));
         foreach (var l in lines) sb.AppendLine(l);

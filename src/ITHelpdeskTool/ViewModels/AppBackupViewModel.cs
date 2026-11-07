@@ -70,7 +70,7 @@ public sealed partial class AppBackupViewModel : PageViewModel
             foreach (var x in found) Items.Add(new BackupRow(x));
             var ok = found.Where(x => x.CanBackup).ToList();
             Summary = found.Count == 0
-                ? "Không tìm thấy SQL Server hay HTKK trên máy này."
+                ? "Không tìm thấy SQL Server, HTKK hay phần mềm kê khai BHXH trên máy này."
                 : $"{ok.Count} mục sao lưu được · {Fmt.Size(ok.Sum(x => x.Size))}" + (found.Any(x => !x.CanBackup) ? $" · {found.Count(x => !x.CanBackup)} mục cần xử lý" : "");
         }
         catch (Exception ex) { AddLog($"Không đọc được danh sách: {ex.Message}", false); }
