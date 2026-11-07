@@ -10,7 +10,22 @@ public sealed partial class ShellViewModel : ObservableObject
     private readonly Dictionary<string, PageViewModel> _cache = new();
 
     public IReadOnlyList<NavGroup> Groups { get; }
+    /// <summary>App đang chạy quyền Administrator của Windows (không phải vai trò tài khoản đăng nhập app).</summary>
     public bool IsAdmin { get; } = AdminHelper.IsElevated();
+
+    // Tài khoản đăng nhập app, hiện ở chân sidebar: bản online có vai trò Quản trị / Người dùng, bản trên máy chỉ có tên
+#if AUTH_ONLINE
+    public string AccountName { get; } = Services.Auth.OnlineAuth.Current?.User ?? "";
+    public bool AccountIsAdmin { get; } = Services.Auth.OnlineAuth.Current?.Admin == true;
+    public string AccountBadge => AccountName.Length == 0 ? "" : $"{AccountName} · {(AccountIsAdmin ? "Quản trị" : "Người dùng")}";
+#else
+    public string AccountName { get; } = Services.Auth.LocalAuth.UserName ?? "";
+    public bool AccountIsAdmin => false;
+    public string AccountBadge => AccountName;
+#endif
+    public string AccountTip =>
+        (AccountName.Length == 0 ? "" : $"Tài khoản đăng nhập app: {AccountBadge}\n") +
+        (IsAdmin ? "App đang chạy quyền Administrator của Windows." : "App chưa chạy quyền Administrator của Windows — nhiều chức năng sẽ không chạy được.");
     public string Version { get; } = AppInfo.Version;
     public string AppName { get; } = AppInfo.Name;
     public string Author { get; } = AppInfo.Author;

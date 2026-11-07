@@ -61,13 +61,36 @@
                                      Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                      CommandParameter="{Binding}">
                             <DockPanel>
-                                <Border DockPanel.Dock="Right" CornerRadius="6" Padding="7,2" Background="#1A34D399"
-                                        Visibility="{Binding DataContext.IsAdmin, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolVis}}">
-                                    <TextBlock Text="Admin" FontSize="11" Foreground="{DynamicResource GoodBrush}"/>
+                                <!-- Tài khoản đăng nhập app + vai trò; quyền Administrator của Windows ở tooltip -->
+                                <Border DockPanel.Dock="Right" CornerRadius="6" Padding="7,2" MaxWidth="160"
+                                        ToolTip="{Binding DataContext.AccountTip, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        Visibility="{Binding DataContext.AccountBadge, RelativeSource={RelativeSource AncestorType=Window}, Converter={x:Static core:Converters.NonEmptyVis}}">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{DynamicResource HoverBrush}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding DataContext.AccountIsAdmin, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                    <Setter Property="Background" Value="#1A34D399"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding DataContext.AccountBadge, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="11" TextTrimming="CharacterEllipsis">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.AccountIsAdmin, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource GoodBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
                                 </Border>
                                 <Border DockPanel.Dock="Right" CornerRadius="6" Padding="7,2" Background="#1AFBBF24"
                                         Visibility="{Binding DataContext.IsAdmin, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource NotBoolVis}}">
-                                    <TextBlock Text="Chưa có admin" FontSize="11" Foreground="{DynamicResource WarnBrush}"/>
+                                    <TextBlock Text="Thiếu quyền Admin" FontSize="11" Foreground="{DynamicResource WarnBrush}" ToolTip="App chưa chạy quyền Administrator của Windows — nhiều chức năng sẽ không chạy được."/>
                                 </Border>
                                 <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="15" Width="20"
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"/>
