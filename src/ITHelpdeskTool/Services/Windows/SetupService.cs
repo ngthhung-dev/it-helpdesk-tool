@@ -36,8 +36,9 @@ public static class SetupService
             var mhz = cpu?.Long("MaxClockSpeed") ?? 0;
             var x64 = Environment.Is64BitOperatingSystem;
             var cpuBasic = cores >= 2 && mhz >= 1000 && x64;
-            list.Add(new("Bộ xử lý", $"{cpu?.Str("Name")} · {cores} nhân · {mhz / 1000.0:0.0} GHz", cpuBasic ? null : false,
-                cpuBasic ? "Đạt số nhân / xung nhịp; dòng CPU cần nằm trong danh sách Microsoft hỗ trợ (Intel thế hệ 8+, AMD Ryzen 2000+)." : "Cần 64-bit, 2 nhân, 1 GHz trở lên."));
+            // Đạt số nhân / xung nhịp thì xét tiếp dòng CPU theo tên (Intel thế hệ 8+, Ryzen 2000+); dòng không đoán được giữ "chưa xác định"
+            var (cpuPass, cpuNote) = cpuBasic ? CpuSupport.Check(cpu?.Str("Name") ?? "") : ((bool?)false, "Cần 64-bit, 2 nhân, 1 GHz trở lên.");
+            list.Add(new("Bộ xử lý", $"{cpu?.Str("Name")} · {cores} nhân · {mhz / 1000.0:0.0} GHz", cpuPass, cpuPass == true ? "" : cpuNote));
 
             // RAM
             var ram = Wmi.TryQuery("SELECT TotalPhysicalMemory FROM Win32_ComputerSystem").FirstOrDefault()?.Long("TotalPhysicalMemory") ?? 0;
