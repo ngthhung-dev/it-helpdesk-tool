@@ -12,8 +12,8 @@
     },
     {
       "user": "user",
-      "salt": "x7eNA7O1PWhf9Jis2wIhmQ==",
-      "hash": "ESTqsCSkodYGCnPtnEEomYFOKOfuHlYr0PlUHGCB/q4=",
+      "salt": "tSn\u002B5ruIVNQpT/VwpKrPTg==",
+      "hash": "4g/QHgqMIIs6xoF0cvlSXqBH0CmTm8XJPBL34tq7ca4=",
       "iter": 210000,
       "enabled": true,
       "admin": false,
