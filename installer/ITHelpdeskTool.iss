@@ -61,3 +61,11 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "Mở {#AppName}"; Flags: nowait postinstall skipifsilent shellexec
+; Cập nhật từ trong app (UpdateService chạy bộ cài /SILENT ... /relaunch=1): cài xong tự mở lại app
+Filename: "{app}\{#AppExe}"; Flags: nowait skipifnotsilent shellexec; Check: Relaunch
+
+[Code]
+function Relaunch: Boolean;
+begin
+  Result := ExpandConstant('{param:relaunch|0}') = '1';
+end;

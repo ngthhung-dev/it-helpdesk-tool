@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ITHelpdeskTool.Core;
 using ITHelpdeskTool.Services;
+using ITHelpdeskTool.Views;
 
 namespace ITHelpdeskTool.ViewModels;
 
@@ -19,6 +20,50 @@ public sealed partial class AboutViewModel : PageViewModel
     public string Runtime => $".NET {Environment.Version} · {(Environment.Is64BitProcess ? "x64" : "x86")}";
 
     [ObservableProperty] private string _status = "";
+
+    // ================= Cập nhật =================
+    [ObservableProperty] private string _updateText = $"Đang dùng bản {AppInfo.Version}. Bấm để tìm bản mới trên GitHub.";
+    [ObservableProperty] private bool _updateDownloading;
+    [ObservableProperty] private double _updatePercent;
+
+    /// <summary>Tìm bản phát hành mới nhất; có bản mới thì hỏi, tải bộ cài, kiểm tra rồi cài đè và mở lại app.</summary>
+    [RelayCommand]
+    private async Task CheckUpdateAsync()
+    {
+        try
+        {
+            UpdateText = "Đang tìm bản mới…";
+            var u = await UpdateService.LatestAsync();
+            if (u is null) { UpdateText = "Chưa có bản phát hành nào kèm bộ cài."; return; }
+            var ver = u.Version.ToString(3);
+            if (u.Version <= UpdateService.Current) { UpdateText = $"Đang dùng bản mới nhất ({AppInfo.Version})."; return; }
+
+            UpdateText = $"Có bản mới {ver} (đang dùng {AppInfo.Version}).";
+            var notes = u.Notes.Length == 0 ? "" : "\n\nNội dung bản mới:\n" + (u.Notes.Length > 600 ? u.Notes[..600] + "…" : u.Notes);
+            if (!DialogWindow.Confirm($"Cập nhật lên bản {ver}?",
+                    $"Bản đang dùng: {AppInfo.Version}\nBản mới: {ver}\n\nApp sẽ tải bộ cài từ GitHub, cài đè lên bản hiện tại rồi tự mở lại. " +
+                    "Việc đang chạy trong app (cài phần mềm, tải ISO, dọn rác…) sẽ bị dừng — chờ xong rồi hãy cập nhật." + notes,
+                    "Cập nhật"))
+                return;
+
+            UpdateDownloading = true;
+            var path = await UpdateService.DownloadAsync(u, (done, total) =>
+            {
+                UpdatePercent = total > 0 ? done * 100.0 / total : 0;
+                UpdateText = $"Đang tải bản {ver}: {Fmt.Size(done)}" + (total > 0 ? $" / {Fmt.Size(total)}" : "");
+            });
+            UpdateText = "Đã tải xong, đang mở bộ cài…";
+            Log.Info($"Cập nhật: {AppInfo.Version} → {ver}, chạy {path}");
+            UpdateService.StartInstaller(path);
+            Application.Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            Log.Warn($"Cập nhật: {ex.Message}");
+            UpdateText = $"Không cập nhật được: {ex.Message}";
+        }
+        finally { UpdateDownloading = false; }
+    }
 
     [RelayCommand]
     private void SendEmail() =>
