@@ -9,6 +9,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        FitToWorkArea();
         UpdateThemeButton();
         StateChanged += (_, _) =>
         {
@@ -21,6 +22,19 @@ public partial class MainWindow : Window
             Log.Mark("Cửa sổ đã hiển thị");
             UiWatchdog.Start(Dispatcher);   // bắt đầu canh treo sau khi đã mở xong
         };
+    }
+
+    /// <summary>
+    /// Màn hình nhỏ / phóng to chữ 125–150% (vd. 1366×768, 1920×1080 ở 150%) chỉ còn ~650–730 điểm ảnh chiều cao
+    /// sau thanh taskbar → thu cửa sổ (và kích thước tối thiểu) cho vừa vùng làm việc, không tràn khỏi màn hình.
+    /// </summary>
+    private void FitToWorkArea()
+    {
+        var wa = SystemParameters.WorkArea;
+        MinWidth = Math.Min(MinWidth, wa.Width);
+        MinHeight = Math.Min(MinHeight, wa.Height);
+        Width = Math.Max(MinWidth, Math.Min(Width, wa.Width - 32));
+        Height = Math.Max(MinHeight, Math.Min(Height, wa.Height - 32));
     }
 
     private void UpdateThemeButton()
