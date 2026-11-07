@@ -62,6 +62,14 @@ public static class WindowsSelfTest
             var list = await SetupService.Windows11ReadinessAsync();
             Check(list.Count == 6, $"{list.Count} mục");
             Check(SetupService.ExplainCompat(unchecked((int)0xC1900210)).Ok && !SetupService.ExplainCompat(unchecked((int)0xC1900204)).Ok, "giải mã compat");
+            foreach (var (cpu, want) in new (string, bool?)[]
+            {
+                ("11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz", true), ("Intel(R) Core(TM) i7-1065G7 CPU @ 1.30GHz", true),
+                ("Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz", false), ("Intel(R) Core(TM) Ultra 7 155H", true),
+                ("AMD Ryzen 7 1700 Eight-Core Processor", false), ("AMD Ryzen 5 3500U with Radeon Vega Mobile Gfx", true),
+                ("AMD Ryzen AI 9 HX 370 w/ Radeon 890M", true), ("Intel(R) Celeron(R) N4020 CPU @ 1.10GHz", null),
+            })
+                Check(CpuSupport.Check(cpu).Pass == want, $"nhận đời CPU sai: {cpu}");
             return string.Join(" | ", list.Select(i => $"{i.Name}: {i.Value} ({(i.Pass is null ? "?" : i.Pass.Value ? "đạt" : "chưa đạt")})")) +
                    $" · WinRE {await SetupService.WinReStatusAsync()}";
         });
