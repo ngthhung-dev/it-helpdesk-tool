@@ -38,6 +38,10 @@ public static class UserFolderService
             "Dự án, bộ nhớ đệm, hiệu ứng tải về"),
         new("app.zalo", "Zalo", Guid.Empty, "ZaloData", "\uE8BD", () => Path.Combine(Roaming, "ZaloData"), ["Zalo", "ZaloCall"],
             "Tin nhắn, ảnh, file đã nhận của Zalo PC (Zalo chính)"),
+        // OST / NST: bản sao hộp thư Exchange / Microsoft 365, thường vài chục GB. File PST trong Documents\Outlook Files đi theo Documents.
+        // UcMapi / lync (Skype for Business) cũng mở OST nên phải đóng cùng Outlook.
+        new("app.outlook", "Outlook", Guid.Empty, "Outlook", "\uE715", () => Path.Combine(Local, "Microsoft", "Outlook"), ["OUTLOOK", "UcMapi", "lync"],
+            "File OST / NST của Outlook (bản sao hộp thư Exchange / Microsoft 365) — thường rất lớn"),
     ];
 
     [DllImport("shell32.dll")] private static extern int SHGetKnownFolderPath([MarshalAs(UnmanagedType.LPStruct)] Guid id, uint flags, IntPtr token, out IntPtr path);
@@ -87,7 +91,8 @@ public static class UserFolderService
     {
         var ps = RunningApps(f);
         foreach (var p in ps) try { p.CloseMainWindow(); } catch { }
-        await Task.Delay(2500).ConfigureAwait(false);
+        // Chờ ứng dụng tự đóng (Outlook cần vài giây để ghi xong file OST) rồi mới buộc đóng
+        for (var i = 0; i < 40 && RunningApps(f).Count > 0; i++) await Task.Delay(500).ConfigureAwait(false);
         foreach (var p in RunningApps(f)) try { p.Kill(true); } catch { }
         await Task.Delay(800).ConfigureAwait(false);
     }
