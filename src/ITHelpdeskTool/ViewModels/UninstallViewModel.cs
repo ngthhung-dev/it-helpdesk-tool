@@ -22,6 +22,16 @@ public sealed partial class LeftoverRow(Leftover item) : ObservableObject
     public string SizeText => Item.Bytes > 0 ? Fmt.Size(Item.Bytes) : "";
 }
 
+/// <summary>Phần mềm đã gỡ nhưng còn mục chưa xoá được ở lần trước.</summary>
+public sealed class PendingRow(PendingCleanup p)
+{
+    public PendingCleanup P { get; } = p;
+    public int Remaining { get; } = p.Items.Count(UninstallService.StillExists);
+    public string Detail => $"Gỡ lúc {P.When:dd/MM/yyyy HH:mm} · " + (Remaining == 0
+        ? $"{P.Items.Count} mục chưa xoá được lần trước đã biến mất (Windows đã xoá khi khởi động lại) — quét lại để kiểm tra phần khác"
+        : $"còn {Remaining}/{P.Items.Count} mục chưa xoá được");
+}
+
 public sealed partial class AppxRow(AppxApp app) : ObservableObject
 {
     public AppxApp App { get; } = app;
@@ -48,6 +58,9 @@ public sealed partial class UninstallViewModel : PageViewModel
     public ObservableCollection<ActionLogEntry> ActionLog { get; } = [];
 
     public ObservableCollection<AppRow> Apps { get; } = [];
+    public ObservableCollection<PendingRow> Pending { get; } = [];
+    /// <summary>Tên phần mềm đã gỡ (không còn trong danh sách) để tìm phần còn sót.</summary>
+    [ObservableProperty] private string _manualName = "";
 
     // Bảng điều khiển gỡ của app đang chọn
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasSelection))] private InstalledApp? _selected;
@@ -100,11 +113,51 @@ public sealed partial class UninstallViewModel : PageViewModel
             Apps.Clear();
             foreach (var a in _all) Apps.Add(new AppRow(a));
             ApplyFilter();
+            LoadPending();
             var total = _all.Sum(a => a.SizeKb) * 1024d;
             Summary = $"{_all.Count} phần mềm · khoảng {Fmt.Size(total)}";
         }
         catch (Exception ex) { AddLog($"Không đọc được danh sách: {ex.Message}", false); }
         finally { IsBusy = false; }
+    }
+
+    private void LoadPending()
+    {
+        Pending.Clear();
+        foreach (var p in UninstallService.LoadPending().OrderByDescending(p => p.When)) Pending.Add(new PendingRow(p));
+    }
+
+    /// <summary>Mở bảng gỡ cho phần mềm đã gỡ (không còn trong danh sách) và quét phần còn sót.</summary>
+    private async Task ScanPseudoAsync(InstalledApp a, string note)
+    {
+        _waitCts?.Cancel();
+        Selected = a;
+        Stage = "";
+        Leftovers.Clear();
+        LeftoverSummary = "";
+        await ScanAsync();
+        if (Leftovers.Count > 0) StageText = note;
+    }
+
+    [RelayCommand]
+    private Task ScanPendingAsync(PendingRow r) =>
+        ScanPseudoAsync(UninstallService.PseudoApp(r.P.Name, r.P.Publisher, r.P.InstallLocation),
+            $"{r.P.Name} đã gỡ — đây là phần còn sót tìm lại sau khi khởi động lại máy.");
+
+    [RelayCommand]
+    private void ForgetPending(PendingRow r)
+    {
+        UninstallService.ForgetPending(r.P.Name);
+        LoadPending();
+    }
+
+    [RelayCommand]
+    private Task ScanByNameAsync()
+    {
+        var name = ManualName.Trim();
+        if (name.Length < 3) { DialogWindow.Info("Tên quá ngắn", "Nhập tên phần mềm đã gỡ (ít nhất 3 ký tự), vd “Foxit Reader”."); return Task.CompletedTask; }
+        return ScanPseudoAsync(UninstallService.PseudoApp(name),
+            $"Tìm theo tên “{name}” — chỉ đề xuất mục khớp đúng tên; xem kỹ trước khi xoá.");
     }
 
     partial void OnFilterChanged(string value) => ApplyFilter();
@@ -188,7 +241,8 @@ public sealed partial class UninstallViewModel : PageViewModel
             Leftovers.Clear();
             foreach (var l in items.OrderBy(l => l.Kind)) Leftovers.Add(new LeftoverRow(l));
             Stage = "scanned";
-            var still = UninstallService.StillInstalled(a);
+            var still = !UninstallService.IsPseudo(a) && UninstallService.StillInstalled(a);
+            if (UninstallService.IsPseudo(a) && items.Count == 0) { UninstallService.ForgetPending(a.Name); LoadPending(); }
             // Phần mềm còn cài → không tích sẵn gì, tránh xoá nhầm thư mục của app đang dùng
             if (still && a.HasUninstaller) foreach (var l in Leftovers) l.IsChecked = false;
             StageText = still && a.HasUninstaller
