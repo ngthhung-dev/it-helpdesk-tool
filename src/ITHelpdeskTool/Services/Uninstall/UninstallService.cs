@@ -32,6 +32,9 @@ public sealed record InstalledApp(
 
 public enum LeftoverKind { Folder, File, RegistryKey, Shortcut, StartupEntry, Service, Task }
 
+/// <summary>Phần mềm đã gỡ nhưng còn mục chưa xoá được — nhớ lại để quét / dọn tiếp sau khi khởi động lại.</summary>
+public sealed record PendingCleanup(string Name, string Publisher, string InstallLocation, DateTime When, List<Leftover> Items);
+
 public sealed record Leftover(LeftoverKind Kind, string Path, string Detail, bool HighConfidence, long Bytes = 0)
 {
     public string KindText => Kind switch
@@ -504,9 +507,103 @@ public static class UninstallService
         catch { return null; }
     }
 
+    // ================= Phần sót chưa xoá được (chờ khởi động lại) =================
+    // Gỡ xong thì phần mềm biến khỏi danh sách → nhớ lại phần chưa xoá được để quét / dọn tiếp sau khi khởi động lại.
+    public static string PendingFile => Path.Combine(Path.GetDirectoryName(Log.Folder) ?? Log.Folder, "uninstall-pending.json");
+    private const string PendingKey = "#ithd-pending";
+
+    public static List<PendingCleanup> LoadPending()
+    {
+        try { return File.Exists(PendingFile) ? System.Text.Json.JsonSerializer.Deserialize<List<PendingCleanup>>(File.ReadAllText(PendingFile)) ?? [] : []; }
+        catch (Exception ex) { Log.Warn($"Không đọc được {PendingFile}: {ex.Message}"); return []; }
+    }
+
+    private static void SavePending(List<PendingCleanup> list)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(PendingFile)!);
+            if (list.Count == 0) { if (File.Exists(PendingFile)) File.Delete(PendingFile); return; }
+            File.WriteAllText(PendingFile, System.Text.Json.JsonSerializer.Serialize(list, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch (Exception ex) { Log.Warn($"Không ghi được {PendingFile}: {ex.Message}"); }
+    }
+
+    /// <summary>Ghi nhớ (failed có mục) hoặc xoá khỏi danh sách chờ (failed rỗng).</summary>
+    public static void RememberPending(InstalledApp a, IReadOnlyList<Leftover> failed)
+    {
+        var list = LoadPending();
+        list.RemoveAll(p => p.Name.Equals(a.Name, StringComparison.OrdinalIgnoreCase));
+        if (failed.Count > 0)
+        {
+            var loc = a.InstallLocation;
+            if (loc.Length <= 3)
+            {
+                var u = StartupService.ExtractExe(a.UninstallString);
+                var dir = Path.GetDirectoryName(u) ?? "";
+                if (dir.Length > 3 && !IsProtected(dir) && !Path.GetFileName(u).Equals("msiexec.exe", StringComparison.OrdinalIgnoreCase)) loc = dir;
+            }
+            list.Add(new PendingCleanup(a.Name, a.Publisher, loc, DateTime.Now, failed.ToList()));
+        }
+        SavePending(list);
+    }
+
+    public static void ForgetPending(string name)
+    {
+        var list = LoadPending();
+        if (list.RemoveAll(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) > 0) SavePending(list);
+    }
+
+    /// <summary>Phần mềm "ảo" để quét phần sót của app đã gỡ (không còn trong danh sách) — theo tên nhớ lại hoặc tên tự nhập.</summary>
+    public static InstalledApp PseudoApp(string name, string publisher = "", string installLocation = "") =>
+        new(PendingKey, AppScope.Machine64, name.Trim(), "", publisher, "", 0, "", "", installLocation, "", null);
+
+    public static bool IsPseudo(InstalledApp a) => a.KeyName == PendingKey;
+
+    /// <summary>Mục còn tồn tại trên máy (file / thư mục / registry); dịch vụ và tác vụ coi như còn.</summary>
+    public static bool StillExists(Leftover l)
+    {
+        try
+        {
+            return l.Kind switch
+            {
+                LeftoverKind.Folder or LeftoverKind.File or LeftoverKind.Shortcut => Directory.Exists(l.Path) || File.Exists(l.Path),
+                LeftoverKind.RegistryKey => SplitKey(l.Path) is var (root, sub) && root.OpenSubKey(sub) is { } k && Dispose(k),
+                _ => true,
+            };
+        }
+        catch { return true; }
+        static bool Dispose(RegistryKey k) { k.Dispose(); return true; }
+    }
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
+    private static extern bool MoveFileEx(string existing, string? newName, int flags);
+    private const int MOVEFILE_DELAY_UNTIL_REBOOT = 4;
+
+    /// <summary>
+    /// Hẹn Windows xoá file / thư mục đang bị khoá ở lần khởi động tới (PendingFileRenameOperations):
+    /// thư mục thì hẹn từng file, rồi thư mục con từ sâu ra ngoài (thư mục chỉ xoá được khi đã trống).
+    /// </summary>
+    public static bool ScheduleDeleteOnReboot(string path)
+    {
+        try
+        {
+            if (File.Exists(path)) return MoveFileEx(path, null, MOVEFILE_DELAY_UNTIL_REBOOT);
+            if (!Directory.Exists(path)) return false;
+            var opt = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint };
+            var ok = true;
+            foreach (var f in Directory.EnumerateFiles(path, "*", opt)) ok &= MoveFileEx(f, null, MOVEFILE_DELAY_UNTIL_REBOOT);
+            foreach (var d in Directory.EnumerateDirectories(path, "*", opt).OrderByDescending(d => d.Length)) ok &= MoveFileEx(d, null, MOVEFILE_DELAY_UNTIL_REBOOT);
+            return MoveFileEx(path, null, MOVEFILE_DELAY_UNTIL_REBOOT) && ok;
+        }
+        catch { return false; }
+    }
+
     // ================= Xoá phần còn sót =================
     public static async Task<OpResult> RemoveLeftoversAsync(InstalledApp a, IEnumerable<Leftover> items)
     {
+        var failed = new List<Leftover>();
+        var scheduled = 0;
         var safe = string.Concat(CleanName(a.Name).Where(c => !Path.GetInvalidFileNameChars().Contains(c)));
         var backup = Path.Combine(BackupRoot, $"{DateTime.Now:yyyyMMdd-HHmmss}_{safe}");
         Directory.CreateDirectory(backup);
@@ -561,15 +658,21 @@ public static class UninstallService
             catch (Exception e)
             {
                 fail++;
+                failed.Add(l);
                 errors.Add($"{l.KindText} {l.Path}: {e.Message}");
                 Log.Warn($"Gỡ sạch {a.Name}: không xoá được {l.Path}: {e.Message}");
+                // File / thư mục đang bị khoá (dịch vụ, tiến trình còn chạy) → hẹn xoá khi khởi động lại
+                if (l.Kind is LeftoverKind.Folder or LeftoverKind.File or LeftoverKind.Shortcut && ScheduleDeleteOnReboot(l.Path)) scheduled++;
             }
         }
         if (Directory.Exists(backup) && !Directory.EnumerateFileSystemEntries(backup).Any()) Directory.Delete(backup);
 
         var msg = $"{a.Name}: đã dọn {ok} mục còn sót" + (bytes > 0 ? $", {Fmt.Size(bytes)} vào Thùng rác" : "") +
                   (regIndex > 0 ? $"; registry đã sao lưu tại {Path.GetFileName(backup)}" : "") + ".";
-        return fail == 0 ? OpResult.Success(msg) : OpResult.Fail($"{msg} Còn {fail} mục lỗi: {string.Join("; ", errors.Take(3))} (thử khởi động lại máy rồi quét lại).");
+        RememberPending(a, failed);
+        return fail == 0 ? OpResult.Success(msg) : OpResult.Fail($"{msg} Còn {fail} mục lỗi: {string.Join("; ", errors.Take(3))}." +
+            (scheduled > 0 ? $" Đã hẹn Windows xoá {scheduled} mục đang bị khoá khi khởi động lại." : "") +
+            " Sau khi khởi động lại máy, mở lại Gỡ app sạch → mục “Còn sót từ lần gỡ trước” để quét và dọn tiếp.");
     }
 
     private static (RegistryKey Root, string Sub) SplitKey(string full)

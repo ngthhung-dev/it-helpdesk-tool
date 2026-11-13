@@ -86,6 +86,46 @@
                             <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Đọc lại" Command="{Binding LoadCommand}"/>
                             <TextBlock Text="{Binding Summary}" Style="{StaticResource Hint}" VerticalAlignment="Center"/>
                         </DockPanel>
+
+                        <!-- Phần mềm đã gỡ (không còn trong danh sách) nhưng còn sót -->
+                        <StackPanel DockPanel.Dock="Top" Margin="18,0,18,8">
+                            <Border Background="#1AFBBF24" CornerRadius="8" Padding="12,10" Margin="0,0,0,8"
+                                    Visibility="{Binding Pending.Count, Converter={x:Static core:Converters.CountVis}}">
+                                <StackPanel>
+                                    <TextBlock Text="Còn sót từ lần gỡ trước" Foreground="{DynamicResource WarnBrush}" FontWeight="SemiBold"/>
+                                    <TextBlock Style="{StaticResource Hint}" Margin="0,2,0,4"
+                                               Text="Phần mềm đã gỡ nhưng còn mục chưa xoá được (đang bị khoá). Khởi động lại máy rồi bấm “Quét lại” để dọn tiếp."/>
+                                    <ItemsControl ItemsSource="{Binding Pending}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Margin="0,6,0,0">
+                                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Button Style="{StaticResource BtnSmall}" Content="Quét lại" Margin="8,0,8,0" CommandParameter="{Binding}"
+                                                                Command="{Binding DataContext.ScanPendingCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                        <Button Style="{StaticResource LinkButton}" Content="Bỏ qua" CommandParameter="{Binding}" ToolTip="Bỏ khỏi danh sách này (không xoá gì)"
+                                                                Command="{Binding DataContext.ForgetPendingCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                    </StackPanel>
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding P.Name}" Foreground="{DynamicResource TextBrush}" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{Binding Detail}" Style="{StaticResource Hint}"/>
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Tìm phần còn sót" Margin="8,0,0,0" VerticalAlignment="Center"
+                                        Command="{Binding ScanByNameCommand}" ToolTip="Dùng cho phần mềm đã gỡ, không còn trong danh sách bên dưới"/>
+                                <TextBox Style="{StaticResource SearchBox}" MinHeight="30" Text="{Binding ManualName, UpdateSourceTrigger=PropertyChanged}"
+                                         Tag="Phần mềm đã gỡ không còn trong danh sách? Nhập tên để tìm phần còn sót…">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Return" Command="{Binding ScanByNameCommand}"/>
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                            </DockPanel>
+                        </StackPanel>
                         <ListBox ItemsSource="{Binding Apps}" Background="Transparent" BorderThickness="0" Padding="8,0,8,8"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.IsVirtualizing="True"
                                  VirtualizingPanel.VirtualizationMode="Recycling">
