@@ -5,24 +5,26 @@ using ITHelpdeskTool.Services.SysConfig;
 
 namespace ITHelpdeskTool.Services.Backup;
 
-/// <summary>Một trình duyệt có trên máy. Root là thư mục dữ liệu được sao lưu nguyên (gồm mọi profile).</summary>
+/// <summary>Một trình duyệt có trên máy. Root là thư mục dữ liệu; chỉ các profile có bookmark / mật khẩu được sao lưu.</summary>
 public sealed record Browser(string Key, string Name, string Glyph, string Family, string Root, string[] ProcNames)
 {
     public long Size { get; init; }
     public int Profiles { get; init; }
+    /// <summary>Tên thư mục profile KHÔNG sao lưu (trống — không có bookmark lẫn mật khẩu).</summary>
+    public string[] SkipProfiles { get; init; } = [];
     public bool Running => ProcNames.SelectMany(Process.GetProcessesByName).Any();
     public string Detail => string.Join(" · ", new[]
     {
         Family == "Firefox" ? "Firefox" : "Chromium",
-        Profiles > 0 ? $"{Profiles} hồ sơ" : "",
+        Profiles > 0 ? $"{Profiles} hồ sơ có dữ liệu" : "",
         Size > 0 ? Fmt.Size(Size) : "",
     }.Where(s => s.Length > 0));
 }
 
 /// <summary>
-/// Sao lưu / khôi phục nguyên profile của các trình duyệt (bookmark, mật khẩu đã lưu, cookie, tiện ích, lịch sử…)
-/// bằng cách CHÉP FILE — không giải mã gì. Mật khẩu mở lại được khi khôi phục trên CÙNG máy / tài khoản Windows
-/// (khóa DPAPI còn nguyên); hợp với việc cài lại trình duyệt. Cài lại Windows thì mật khẩu cần Export / đồng bộ của trình duyệt.
+/// Sao lưu / khôi phục bookmark và mật khẩu đã lưu của mọi profile mọi trình duyệt bằng CHÉP FILE — không giải mã.
+/// Profile không có bookmark lẫn mật khẩu thì bỏ qua. Mật khẩu mở lại được khi khôi phục trên CÙNG máy / tài khoản
+/// Windows (khóa DPAPI còn nguyên) — hợp với việc cài lại trình duyệt. Cài lại Windows thì dùng Export / đồng bộ của trình duyệt.
 /// </summary>
 public static class BrowserBackupService
 {
@@ -51,23 +53,75 @@ public static class BrowserBackupService
     ];
 
     public static async Task<List<Browser>> DetectAsync() => await Task.Run(() =>
-        Known().Where(b => Directory.Exists(b.Root))
-               .Select(b => b with { Size = Measure(b.Root), Profiles = CountProfiles(b) })
-               .Where(b => b.Size > 0)
-               .ToList());
+        Known().Where(b => Directory.Exists(b.Root)).Select(WithProfiles).Where(b => b.Profiles > 0).ToList());
 
-    private static int CountProfiles(Browser b)
+    /// <summary>Xác định profile nào có dữ liệu (bookmark / mật khẩu); profile trống đưa vào SkipProfiles.</summary>
+    private static Browser WithProfiles(Browser b)
+    {
+        var profileDirs = ProfileDirs(b);
+        var skip = new List<string>();
+        long size = 0;
+        var kept = 0;
+        foreach (var dir in profileDirs)
+        {
+            if (HasData(b.Family, dir)) { kept++; size += Measure(dir); }
+            else skip.Add(Path.GetFileName(dir));
+        }
+        // File dùng chung (Local State giữ khóa giải mã mật khẩu, profiles.ini…) — luôn kèm theo
+        foreach (var f in SharedFiles(b)) if (File.Exists(f)) size += new FileInfo(f).Length;
+        return b with { Profiles = kept, SkipProfiles = skip.ToArray(), Size = size };
+    }
+
+    private static List<string> ProfileDirs(Browser b)
     {
         try
         {
             return b.Family switch
             {
-                "Firefox" => Directory.Exists(Path.Combine(b.Root, "Profiles")) ? Directory.GetDirectories(Path.Combine(b.Root, "Profiles")).Length : 1,
-                "Opera" => 1,
-                _ => Directory.GetDirectories(b.Root).Count(d => File.Exists(Path.Combine(d, "Preferences"))),   // Default, Profile 1…
+                "Opera" => [b.Root],
+                "Firefox" => Directory.Exists(Path.Combine(b.Root, "Profiles")) ? Directory.GetDirectories(Path.Combine(b.Root, "Profiles")).ToList() : [],
+                _ => Directory.GetDirectories(b.Root)
+                        .Where(d => File.Exists(Path.Combine(d, "Preferences")) &&
+                                    Path.GetFileName(d) is not ("System Profile" or "Guest Profile")).ToList(),
             };
         }
-        catch { return 0; }
+        catch { return []; }
+    }
+
+    private static IEnumerable<string> SharedFiles(Browser b) => b.Family switch
+    {
+        "Firefox" => [Path.Combine(b.Root, "profiles.ini"), Path.Combine(b.Root, "installs.ini")],
+        "Opera" => [],
+        _ => [Path.Combine(b.Root, "Local State"), Path.Combine(b.Root, "First Run")],
+    };
+
+    /// <summary>Profile có bookmark hoặc mật khẩu đã lưu không (chỉ đọc dấu hiệu, không giải mã).</summary>
+    private static bool HasData(string family, string dir)
+    {
+        if (family == "Firefox")
+            return FileHas(Path.Combine(dir, "logins.json"), "encryptedUsername") || File.Exists(Path.Combine(dir, "places.sqlite"));
+        // Chromium: bookmark = có "url" trong file Bookmarks; mật khẩu = có blob mã hóa v10/v11/v20 trong Login Data
+        if (FileHas(Path.Combine(dir, "Bookmarks"), "\"url\"")) return true;
+        foreach (var f in new[] { "Login Data", "Login Data For Account" })
+            if (FileHasAny(Path.Combine(dir, f), "v10", "v11", "v20")) return true;
+        return false;
+    }
+
+    /// <summary>File tồn tại và chứa chuỗi (đọc chia sẻ để không vướng khi trình duyệt đang mở; lỗi đọc thì coi như CÓ để không bỏ sót).</summary>
+    private static bool FileHas(string path, string needle) => FileHasAny(path, needle);
+
+    private static bool FileHasAny(string path, params string[] needles)
+    {
+        try
+        {
+            if (!File.Exists(path)) return false;
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            var buf = new byte[Math.Min(fs.Length, 8 * 1024 * 1024)];
+            var n = fs.Read(buf, 0, buf.Length);
+            var text = Encoding.Latin1.GetString(buf, 0, n);
+            return needles.Any(s => text.Contains(s, StringComparison.Ordinal));
+        }
+        catch { return true; }   // đang bị khóa / không đọc được → kèm vào cho chắc, không bỏ sót dữ liệu
     }
 
     private static long Measure(string dir)
@@ -93,9 +147,9 @@ public static class BrowserBackupService
         await Task.Delay(800).ConfigureAwait(false);
     }
 
-    private static Task<ProcessResult> Robo(string src, string dst, Action<string> status, string name, CancellationToken ct)
+    private static Task<ProcessResult> Robo(string src, string dst, IEnumerable<string> skipDirs, Action<string> status, string name, CancellationToken ct)
     {
-        var xd = string.Join(" ", SkipDirs.Select(d => $"\"{d}\""));
+        var xd = string.Join(" ", skipDirs.Select(d => $"\"{d}\""));
         var done = 0;
         return ProcessRunner.RunAsync("robocopy.exe",
             $"\"{src}\" \"{dst}\" /E /COPY:DAT /DCOPY:DAT /XJ /XD {xd} /R:1 /W:1 /MT:16 /NP /NDL /NJH /NJS /BYTES",
@@ -106,7 +160,7 @@ public static class BrowserBackupService
     /// <summary>Thư mục sao lưu của lần chạy.</summary>
     public static string NewSetDir(string root) => Path.Combine(root, $"TrinhDuyet-{Environment.MachineName}-{DateTime.Now:yyyyMMdd-HHmm}");
 
-    /// <summary>Sao lưu nguyên dữ liệu một trình duyệt vào &lt;setDir&gt;\&lt;Key&gt; (đóng trình duyệt trước).</summary>
+    /// <summary>Sao lưu các profile có dữ liệu của một trình duyệt vào &lt;setDir&gt;\&lt;Key&gt; (đóng trình duyệt trước).</summary>
     public static async Task<OpResult> BackupAsync(Browser b, string setDir, Action<string> status, CancellationToken ct)
     {
         if (!Directory.Exists(b.Root)) return OpResult.Fail($"Không thấy dữ liệu {b.Name}.");
@@ -114,9 +168,9 @@ public static class BrowserBackupService
         var dst = Path.Combine(setDir, b.Key);
         Directory.CreateDirectory(dst);
         status($"Đang chép {b.Name}…");
-        var r = await Robo(b.Root, dst, status, b.Name, ct).ConfigureAwait(false);
+        var r = await Robo(b.Root, dst, SkipDirs.Concat(b.SkipProfiles), status, b.Name, ct).ConfigureAwait(false);
         if (r.ExitCode >= 8) return OpResult.Fail($"{b.Name}: chép lỗi (robocopy {r.ExitCode}) — đóng hẳn {b.Name} rồi thử lại.");
-        return OpResult.Success($"{b.Name}: đã sao lưu {Fmt.Size(Measure(dst))}.");
+        return OpResult.Success($"{b.Name}: đã sao lưu {b.Profiles} hồ sơ ({Fmt.Size(Measure(dst))}).");
     }
 
     /// <summary>
@@ -130,7 +184,7 @@ public static class BrowserBackupService
         if (RunningProcs(b).Count > 0) return OpResult.Fail($"{b.Name} đang mở — đóng {b.Name} trước khi khôi phục.");
         Directory.CreateDirectory(b.Root);
         status($"Đang khôi phục {b.Name}…");
-        var r = await Robo(src, b.Root, status, b.Name, ct).ConfigureAwait(false);
+        var r = await Robo(src, b.Root, [], status, b.Name, ct).ConfigureAwait(false);
         if (r.ExitCode >= 8) return OpResult.Fail($"{b.Name}: khôi phục lỗi (robocopy {r.ExitCode}).");
         return OpResult.Success($"{b.Name}: đã khôi phục. Mở {b.Name} kiểm tra bookmark và mật khẩu.");
     }
@@ -158,7 +212,7 @@ public static class BrowserBackupService
         sb.AppendLine("SAO LƯU TRÌNH DUYỆT (IT Helpdesk Tool)");
         sb.AppendLine($"Máy: {Environment.MachineName} · Người sao lưu: {Environment.UserName} · Lúc: {DateTime.Now:dd/MM/yyyy HH:mm}");
         sb.AppendLine();
-        sb.AppendLine("Gồm bookmark, mật khẩu đã lưu, cookie, tiện ích, lịch sử của mọi hồ sơ.");
+        sb.AppendLine("Gồm bookmark và mật khẩu đã lưu (cùng cookie, tiện ích, lịch sử) của các hồ sơ có dữ liệu.");
         sb.AppendLine("Khôi phục: mở lại IT Helpdesk Tool trên máy này, trang Sao lưu trình duyệt → Khôi phục, chọn thư mục này.");
         sb.AppendLine("- Cài lại TRÌNH DUYỆT (vẫn Windows cũ): bookmark và mật khẩu về đầy đủ.");
         sb.AppendLine("- Cài lại WINDOWS / máy khác: bookmark về được; mật khẩu đã lưu có thể KHÔNG mở được (khóa mã hóa của Windows đã khác)");
@@ -193,7 +247,7 @@ public static class BrowserBackupService
         return null;
     }
 
-    /// <summary>Mở trang quản lý mật khẩu (để bấm Export) của trình duyệt. Firefox mở Lockwise.</summary>
+    /// <summary>Mở trang quản lý mật khẩu (để bấm Export) của trình duyệt. Firefox mở about:logins.</summary>
     public static OpResult OpenPasswordPage(Browser b)
     {
         var exe = ExeOf(b);
