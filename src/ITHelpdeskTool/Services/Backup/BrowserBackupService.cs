@@ -62,7 +62,7 @@ public static class BrowserBackupService
     {
         ("Firefox", BackupMode.BookmarksPasswords) => ["places.sqlite", "favicons.sqlite", "logins.json", "key4.db", "key3.db"],
         ("Firefox", BackupMode.Cookies) => ["cookies.sqlite"],
-        (_, BackupMode.BookmarksPasswords) => ["Bookmarks", "Bookmarks.bak", "Login Data", "Login Data For Account"],
+        (_, BackupMode.BookmarksPasswords) => ["Bookmarks", "Bookmarks.bak", "AccountBookmarks", "EncryptedAccountBookmarks2", "Login Data", "Login Data For Account"],
         (_, BackupMode.Cookies) => ["Cookies", "Cookies-journal", @"Network\Cookies", @"Network\Cookies-journal"],
     };
 
@@ -149,7 +149,7 @@ public static class BrowserBackupService
         if (family == "Firefox")
             return File.Exists(Path.Combine(dir, "places.sqlite")) || FileHasAny(Path.Combine(dir, "logins.json"), "encryptedUsername")
                    || File.Exists(Path.Combine(dir, "cookies.sqlite"));
-        if (FileHasAny(Path.Combine(dir, "Bookmarks"), "\"url\"")) return true;
+        if (FileHasAny(Path.Combine(dir, "Bookmarks"), "\"url\"") || FileHasAny(Path.Combine(dir, "AccountBookmarks"), "\"url\"")) return true;
         foreach (var f in new[] { "Login Data", "Login Data For Account" })
             if (FileHasAny(Path.Combine(dir, f), "v10", "v11", "v20")) return true;
         return File.Exists(Path.Combine(dir, "Cookies")) || File.Exists(Path.Combine(dir, @"Network\Cookies"));
@@ -270,11 +270,15 @@ public static class BrowserBackupService
         {
             foreach (var dir in b.ProfileDirs)
             {
-                var bm = Path.Combine(dir, "Bookmarks");
-                if (!File.Exists(bm)) continue;
+                // Bookmark cục bộ (Bookmarks) + bookmark của tài khoản Google đã đăng nhập (AccountBookmarks) — gộp lại
+                var jsons = new[] { "Bookmarks", "AccountBookmarks" }
+                    .Select(n => Path.Combine(dir, n)).Where(File.Exists)
+                    .Select(p => { try { return File.ReadAllText(p); } catch { return ""; } })
+                    .Where(s => s.Length > 0).ToList();
+                if (jsons.Count == 0) continue;
                 try
                 {
-                    var html = BookmarksToHtml(File.ReadAllText(bm));
+                    var html = BookmarksToHtml(jsons);
                     if (html is null) continue;
                     Directory.CreateDirectory(destDir);
                     var name = $"{b.Key}-{ProfileLabel(b, dir)}.html".Replace(' ', '_');
@@ -288,22 +292,30 @@ public static class BrowserBackupService
                          : OpResult.Fail($"{b.Name}: không có bookmark để xuất.");
     }
 
-    private static string? BookmarksToHtml(string json)
+    private static string? BookmarksToHtml(List<string> jsons)
     {
-        using var doc = JsonDocument.Parse(json);
-        if (!doc.RootElement.TryGetProperty("roots", out var roots)) return null;
         var sb = new StringBuilder();
         sb.AppendLine("<!DOCTYPE NETSCAPE-Bookmark-file-1>");
         sb.AppendLine("<META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=UTF-8\">");
         sb.AppendLine("<TITLE>Bookmarks</TITLE><H1>Bookmarks</H1>");
         sb.AppendLine("<DL><p>");
-        foreach (var name in new[] { "bookmark_bar", "other", "synced" })
-            if (roots.TryGetProperty(name, out var node)) WriteNode(node, sb, 1);
+        var urls = 0;
+        foreach (var json in jsons)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                if (!doc.RootElement.TryGetProperty("roots", out var roots)) continue;
+                foreach (var name in new[] { "bookmark_bar", "other", "synced" })
+                    if (roots.TryGetProperty(name, out var node)) WriteNode(node, sb, 1, ref urls);
+            }
+            catch { }
+        }
         sb.AppendLine("</DL><p>");
-        return sb.ToString();
+        return urls > 0 ? sb.ToString() : null;
     }
 
-    private static void WriteNode(JsonElement node, StringBuilder sb, int depth)
+    private static void WriteNode(JsonElement node, StringBuilder sb, int depth, ref int urls)
     {
         var pad = new string(' ', depth * 4);
         var type = node.TryGetProperty("type", out var t) ? t.GetString() : "";
@@ -312,13 +324,14 @@ public static class BrowserBackupService
         {
             var url = System.Net.WebUtility.HtmlEncode(node.TryGetProperty("url", out var u) ? u.GetString() ?? "" : "");
             sb.AppendLine($"{pad}<DT><A HREF=\"{url}\">{title}</A>");
+            urls++;
         }
         else if (type == "folder")
         {
             sb.AppendLine($"{pad}<DT><H3>{title}</H3>");
             sb.AppendLine($"{pad}<DL><p>");
             if (node.TryGetProperty("children", out var ch) && ch.ValueKind == JsonValueKind.Array)
-                foreach (var c in ch.EnumerateArray()) WriteNode(c, sb, depth + 1);
+                foreach (var c in ch.EnumerateArray()) WriteNode(c, sb, depth + 1, ref urls);
             sb.AppendLine($"{pad}</DL><p>");
         }
     }
