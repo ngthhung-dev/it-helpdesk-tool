@@ -80,6 +80,9 @@
             <DataTemplate DataType="{x:Type vm:AppBackupViewModel}">
                 <v:AppBackupPage/>
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:BrowserBackupViewModel}">
+                <v:BrowserBackupPage/>
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:PreviewViewModel}">
                 <v:PreviewPage/>
             </DataTemplate>
