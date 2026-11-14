@@ -356,8 +356,11 @@ public static class BrowserBackupService
     {
         var exe = ExeOf(b);
         if (exe is null) return OpResult.Fail($"Không tìm thấy file chạy của {b.Name}.");
+        // Mở thẳng trang có nút "Export passwords": Chromium để ở password-manager/settings (không phải trang danh sách).
         var url = b.Family == "Firefox" ? "about:logins" :
-                  b.Key is "edge" ? "edge://settings/passwords" : "chrome://password-manager/passwords";
+                  b.Key is "edge" ? "edge://settings/passwords" :
+                  b.Key is "opera" or "operagx" ? "opera://settings/passwords" :
+                  "chrome://password-manager/settings";
         var args = url;
         if (b.Family == "Chromium" && profileDir.Length > 0)
             args = $"--profile-directory=\"{Path.GetFileName(profileDir)}\" {url}";

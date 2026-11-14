@@ -85,7 +85,7 @@
                                     Visibility="{Binding ExportActive, Converter={StaticResource BoolVis}}">
                                 <StackPanel>
                                     <TextBlock Text="{Binding ExportCurrent}" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                    <TextBlock Text="Trên cửa sổ trình duyệt vừa mở: bấm nút ⋮ (hoặc Export) → Export passwords → xác thực Windows → lưu file. Xong quay lại đây bấm nút dưới." Style="{StaticResource Hint}" Margin="0,4,0,0"/>
+                                    <TextBlock Text="Trên cửa sổ trình duyệt vừa mở: bấm nút “Export passwords / Xuất mật khẩu” → xác thực Windows → lưu file. Xong quay lại đây bấm nút dưới." Style="{StaticResource Hint}" Margin="0,4,0,0"/>
                                     <TextBlock Text="{Binding ExportNextLabel}" Style="{StaticResource Hint}" Margin="0,4,0,8"/>
                                     <StackPanel Orientation="Horizontal">
                                         <Button Style="{StaticResource BtnPrimary}" Content="Mở hồ sơ tiếp theo" Margin="0,0,8,0" Command="{Binding NextExportCommand}"/>
