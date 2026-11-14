@@ -31,6 +31,13 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
     [ObservableProperty] private string _busyText = "";
     public ObservableCollection<ActionLogEntry> ActionLog { get; } = [];
 
+    // Luồng xuất mật khẩu từng hồ sơ
+    [ObservableProperty] private bool _exportActive;
+    [ObservableProperty] private string _exportCurrent = "";
+    [ObservableProperty] private string _exportNextLabel = "";
+    private List<BrowserBackupService.ExportTarget> _targets = [];
+    private int _exportIdx;
+
     public override void OnNavigatedTo()
     {
         if (_loaded) return;
@@ -149,15 +156,37 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         finally { IsBusy = false; }
         if (ok > 0) ShellLauncher.Open(dest);
 
-        // Mật khẩu: mở trang Export của từng trình duyệt để người dùng tự bấm
-        foreach (var r in sel)
-        {
-            var res = BrowserBackupService.OpenPasswordPage(r.B);
-            AddLog(res.Message, res.Ok);
-        }
-        DialogWindow.Info("Đã mở trang xuất mật khẩu",
-            "Bookmark đã xuất ra HTML. Các trang quản lý mật khẩu đã mở — trên mỗi trình duyệt bấm Export để lưu file mật khẩu (trình duyệt sẽ hỏi xác thực Windows). Dùng xong nhớ xóa file.");
+        // Mật khẩu: mở trang Export lần lượt từng hồ sơ của từng trình duyệt
+        _targets = BrowserBackupService.PasswordTargets(sel.Select(r => r.B));
+        if (_targets.Count == 0) { DialogWindow.Info("Xong", "Đã xuất bookmark. Không có hồ sơ nào để xuất mật khẩu."); return; }
+        _exportIdx = -1;
+        ExportActive = true;
+        OpenNextExport();
     }
+
+    /// <summary>Mở trang xuất mật khẩu của hồ sơ kế tiếp trong danh sách.</summary>
+    [RelayCommand]
+    private void NextExport() => OpenNextExport();
+
+    private void OpenNextExport()
+    {
+        _exportIdx++;
+        if (_exportIdx >= _targets.Count)
+        {
+            ExportActive = false;
+            DialogWindow.Info("Đã xong tất cả hồ sơ", "Đã mở hết các hồ sơ để xuất mật khẩu. File mật khẩu do trình duyệt lưu — dùng xong nhớ xóa.");
+            return;
+        }
+        var t = _targets[_exportIdx];
+        var res = BrowserBackupService.OpenPasswordPage(t.B, t.ProfileDir);
+        AddLog($"{t.Label}: {res.Message}", res.Ok);
+        ExportCurrent = $"Hồ sơ {_exportIdx + 1}/{_targets.Count}: {t.Label}";
+        var next = _exportIdx + 1 < _targets.Count ? _targets[_exportIdx + 1].Label : "";
+        ExportNextLabel = next.Length > 0 ? $"Xuất xong hồ sơ này → mở tiếp: {next}" : "Đây là hồ sơ cuối — bấm để kết thúc";
+    }
+
+    [RelayCommand]
+    private void CancelExport() { ExportActive = false; _targets = []; }
 
     // ================= Khôi phục =================
     [RelayCommand]
