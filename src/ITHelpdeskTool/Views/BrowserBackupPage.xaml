@@ -35,7 +35,7 @@
                     <StackPanel>
                         <TextBlock Text="Sao lưu trình duyệt" Style="{StaticResource H1}"/>
                         <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" FontSize="13" TextWrapping="Wrap"
-                                   Text="Sao lưu và khôi phục nguyên hồ sơ trình duyệt (bookmark, mật khẩu đã lưu, cookie, tiện ích) khi cài lại trình duyệt. Chỉ chép file — không giải mã gì."/>
+                                   Text="Sao lưu bookmark, mật khẩu đã lưu và cookie của mọi hồ sơ trình duyệt. Sao lưu / cookie chỉ chép file (không giải mã) — khôi phục trên cùng máy thì mở lại được."/>
                     </StackPanel>
                 </DockPanel>
             </StackPanel>
@@ -44,54 +44,41 @@
             <StackPanel>
                     <Border Style="{StaticResource Card}" IsEnabled="{Binding IsIdle}" Margin="0,0,0,12">
                         <StackPanel>
-                            <DockPanel Margin="0,0,0,4">
-                                <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Khôi phục…" Command="{Binding RestoreCommand}" VerticalAlignment="Center"
-                                        ToolTip="Chọn thư mục sao lưu để đưa dữ liệu trình duyệt về máy"/>
-                                <StackPanel>
-                                    <TextBlock Text="Trình duyệt trên máy" Style="{StaticResource H2}"/>
-                                    <TextBlock Text="{Binding Summary}" Style="{StaticResource Hint}"/>
-                                </StackPanel>
-                            </DockPanel>
+                            <StackPanel Margin="0,0,0,4">
+                                <TextBlock Text="Trình duyệt trên máy" Style="{StaticResource H2}"/>
+                                <TextBlock Text="{Binding Summary}" Style="{StaticResource Hint}"/>
+                            </StackPanel>
                             <ItemsControl ItemsSource="{Binding Items}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border Style="{StaticResource Row}">
                                             <DockPanel>
-                                                <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsChecked}" VerticalAlignment="Top" Margin="0,2,12,0"/>
+                                                <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsChecked}" VerticalAlignment="Center" Margin="0,0,12,0"/>
                                                 <TextBlock DockPanel.Dock="Left" Text="{Binding B.Glyph}" Style="{StaticResource Icon}" FontSize="18" Foreground="{DynamicResource AccentBrush}"
-                                                           VerticalAlignment="Top" Margin="0,1,14,0"/>
-                                                <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Xuất mật khẩu…" VerticalAlignment="Top" Margin="8,0,0,0" CommandParameter="{Binding}"
-                                                        ToolTip="Dùng khi cài lại Windows: mở trang Export của trình duyệt (trình duyệt sẽ hỏi xác thực Windows)"
-                                                        Command="{Binding DataContext.ExportPasswordsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                                                <StackPanel>
+                                                           VerticalAlignment="Center" Margin="0,0,14,0"/>
+                                                <StackPanel VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding B.Name}" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
                                                     <TextBlock Text="{Binding B.Detail}" Style="{StaticResource Hint}"/>
-                                                    <TextBlock Text="{Binding Status}" FontSize="12" TextWrapping="Wrap" Visibility="{Binding Status, Converter={x:Static core:Converters.NonEmptyVis}}">
-                                                        <TextBlock.Style>
-                                                            <Style TargetType="TextBlock">
-                                                                <Setter Property="Foreground" Value="{DynamicResource GoodBrush}"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding StatusOk}" Value="False"><Setter Property="Foreground" Value="{DynamicResource BadBrush}"/></DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </TextBlock.Style>
-                                                    </TextBlock>
                                                 </StackPanel>
                                             </DockPanel>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <DockPanel Margin="0,12,0,0">
-                                <Button DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Command="{Binding BackupCommand}" VerticalAlignment="Center" Margin="16,0,0,0">
+
+                            <WrapPanel Margin="0,14,0,0">
+                                <Button Style="{StaticResource BtnPrimary}" Margin="0,0,8,8" Command="{Binding BackupBookmarksPasswordsCommand}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE74E;" Style="{StaticResource Icon}" FontSize="13"/>
-                                        <TextBlock Text="Sao lưu trình duyệt đã chọn…" Margin="8,0,0,0"/>
+                                        <TextBlock Text="Sao lưu bookmark + mật khẩu…" Margin="8,0,0,0"/>
                                     </StackPanel>
                                 </Button>
-                                <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center"
-                                           Text="Khôi phục trên cùng máy (cài lại trình duyệt): bookmark và mật khẩu về đầy đủ. Cài lại Windows / máy khác: bookmark về được, mật khẩu đã lưu có thể không mở được — khi đó dùng “Xuất mật khẩu” hoặc bật đồng bộ của trình duyệt."/>
-                            </DockPanel>
+                                <Button Content="Sao lưu cookie…" Margin="0,0,8,8" Command="{Binding BackupCookiesCommand}"/>
+                                <Button Content="Xuất bookmark + mật khẩu…" Margin="0,0,8,8" Command="{Binding ExportBookmarksPasswordsCommand}"/>
+                                <Button Content="Khôi phục…" Margin="0,0,8,8" Command="{Binding RestoreCommand}"/>
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,2,0,0"
+                                       Text="Sao lưu / cookie: chép file, khôi phục trên cùng máy giữ được mật khẩu và đăng nhập. Xuất: bookmark ra HTML, mật khẩu do trình duyệt tự Export (có xác thực Windows). Cài lại Windows thì dùng Xuất. File xuất chứa mật khẩu — dùng xong hãy xóa."/>
                         </StackPanel>
                     </Border>
 

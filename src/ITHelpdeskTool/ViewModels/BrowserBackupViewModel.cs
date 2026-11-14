@@ -15,8 +15,6 @@ public sealed partial class BrowserRow(Browser b) : ObservableObject
 {
     [ObservableProperty] private Browser _b = b;
     [ObservableProperty] private bool _isChecked = true;
-    [ObservableProperty] private string _status = "";
-    [ObservableProperty] private bool _statusOk = true;
     public string SizeText => B.Size > 0 ? Fmt.Size(B.Size) : "";
 }
 
@@ -64,12 +62,14 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         finally { IsBusy = false; }
     }
 
+    private List<BrowserRow> Checked() => Items.Where(r => r.IsChecked).ToList();
+
     private async Task<bool> CloseIfRunning(IEnumerable<BrowserRow> rows)
     {
         var running = rows.Where(r => BrowserBackupService.RunningProcs(r.B).Count > 0).ToList();
         if (running.Count == 0) return true;
         var names = string.Join(", ", running.Select(r => r.B.Name));
-        if (!DialogWindow.Confirm($"Đóng {names}?", $"{names} đang mở nên chưa chép được dữ liệu. Đóng {names} ngay (nhớ lưu việc đang làm)?", "Đóng và tiếp tục"))
+        if (!DialogWindow.Confirm($"Đóng {names}?", $"{names} đang mở nên chưa thao tác được. Đóng {names} ngay (nhớ lưu việc đang làm)?", "Đóng và tiếp tục"))
             return false;
         IsBusy = true;
         BusyText = $"Đang đóng {names}…";
@@ -78,21 +78,26 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         return true;
     }
 
-    [RelayCommand]
-    private async Task BackupAsync()
+    // ================= Sao lưu (chép file) =================
+    [RelayCommand] private Task BackupBookmarksPasswordsAsync() => BackupAsync(BackupMode.BookmarksPasswords,
+        "Sao lưu bookmark + mật khẩu", "SaoLuu-BM-MK",
+        "Sao lưu bookmark và mật khẩu đã lưu của mọi hồ sơ. Khôi phục trên cùng máy thì mật khẩu mở lại được. Bản sao lưu có chứa dữ liệu đăng nhập — giữ ở nơi an toàn.");
+
+    [RelayCommand] private Task BackupCookiesAsync() => BackupAsync(BackupMode.Cookies,
+        "Sao lưu cookie", "SaoLuu-Cookie",
+        "Sao lưu toàn bộ cookie (phiên đăng nhập các web) của mọi hồ sơ. Khôi phục trên cùng máy thì giữ được đăng nhập các web.");
+
+    private async Task BackupAsync(BackupMode mode, string title, string prefix, string note)
     {
-        var sel = Items.Where(r => r.IsChecked).ToList();
+        var sel = Checked();
         if (sel.Count == 0) { DialogWindow.Info("Chưa chọn trình duyệt", "Tích chọn trình duyệt muốn sao lưu."); return; }
-        if (!DialogWindow.Confirm("Sao lưu trình duyệt?",
-                "Bản sao lưu gồm bookmark, mật khẩu đã lưu, cookie, tiện ích… của mọi hồ sơ. Vì có chứa dữ liệu đăng nhập, hãy lưu ra USB / ổ riêng và giữ an toàn.\n\n" +
-                "Các trình duyệt được chọn sẽ được đóng trong lúc sao lưu.", "Sao lưu"))
-            return;
-        var dlg = new OpenFolderDialog { Title = $"Nơi lưu bản sao (khoảng {Fmt.Size(sel.Sum(r => r.B.Size))}) — nên chọn USB / ổ khác" };
+        if (!DialogWindow.Confirm($"{title}?", note + "\n\nCác trình duyệt được chọn sẽ được đóng trong lúc sao lưu.", title)) return;
+        var dlg = new OpenFolderDialog { Title = $"Nơi lưu ({title}) — nên chọn USB / ổ khác" };
         if (dlg.ShowDialog() != true) return;
         if (!await CloseIfRunning(sel)) return;
 
         IsBusy = true;
-        var set = BrowserBackupService.NewSetDir(dlg.FolderName);
+        var set = BrowserBackupService.NewSetDir(dlg.FolderName, prefix);
         var lines = new List<string>();
         int ok = 0, fail = 0;
         var disp = System.Windows.Application.Current.Dispatcher;
@@ -101,33 +106,71 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
             Directory.CreateDirectory(set);
             foreach (var r in sel)
             {
-                r.Status = "Đang sao lưu…"; r.StatusOk = true;
-                var res = await BrowserBackupService.BackupAsync(r.B, set, s => disp.BeginInvoke(() => BusyText = s), CancellationToken.None);
-                r.Status = res.Ok ? "Đã sao lưu" : $"Lỗi: {res.Message}"; r.StatusOk = res.Ok;
-                lines.Add($"[{r.B.Name}] {(res.Ok ? "OK" : "LỖI")} — {res.Message}");
+                var res = await BrowserBackupService.BackupAsync(r.B, mode, set, s => disp.BeginInvoke(() => BusyText = s), CancellationToken.None);
+                lines.Add($"[{r.B.Name}] {res.Message}");
                 AddLog(res.Message, res.Ok);
                 if (res.Ok) ok++; else fail++;
             }
-            BrowserBackupService.WriteManifest(set, lines);
+            BrowserBackupService.WriteManifest(set, title.ToUpperInvariant() + " (IT Helpdesk Tool)", lines);
         }
         catch (Exception ex) { AddLog(ex.Message, false); fail++; }
         finally { IsBusy = false; }
 
-        if (fail > 0) DialogWindow.Info("Sao lưu chưa trọn vẹn", $"Đã sao lưu {ok}/{sel.Count} trình duyệt vào {set}. {fail} mục lỗi — xem nhật ký.", error: true);
         if (ok > 0) ShellLauncher.Open(set);
+        if (fail > 0) DialogWindow.Info("Chưa trọn vẹn", $"Đã xong {ok}/{sel.Count} trình duyệt. {fail} mục không có dữ liệu hoặc lỗi — xem nhật ký.", error: true);
     }
 
+    // ================= Xuất bookmark (HTML) + mật khẩu (trang Export của trình duyệt) =================
+    [RelayCommand]
+    private async Task ExportBookmarksPasswordsAsync()
+    {
+        var sel = Checked();
+        if (sel.Count == 0) { DialogWindow.Info("Chưa chọn trình duyệt", "Tích chọn trình duyệt muốn xuất."); return; }
+        if (!DialogWindow.Confirm("Xuất bookmark + mật khẩu?",
+                "App xuất bookmark ra file HTML. Mật khẩu thì app mở trang Export của từng trình duyệt — bạn bấm Export trên đó, trình duyệt sẽ hỏi xác thực Windows rồi lưu file.\n\n" +
+                "Lưu ý: file xuất ra là dữ liệu đăng nhập, dùng xong hãy xóa.", "Xuất"))
+            return;
+        var dlg = new OpenFolderDialog { Title = "Nơi lưu file bookmark HTML" };
+        if (dlg.ShowDialog() != true) return;
+        var dest = BrowserBackupService.NewSetDir(dlg.FolderName, "XuatTrinhDuyet");
+
+        IsBusy = true;
+        BusyText = "Đang xuất bookmark…";
+        int ok = 0;
+        try
+        {
+            foreach (var r in sel)
+            {
+                var res = await BrowserBackupService.ExportBookmarksAsync(r.B, dest);
+                AddLog(res.Message, res.Ok);
+                if (res.Ok) ok++;
+            }
+        }
+        finally { IsBusy = false; }
+        if (ok > 0) ShellLauncher.Open(dest);
+
+        // Mật khẩu: mở trang Export của từng trình duyệt để người dùng tự bấm
+        foreach (var r in sel)
+        {
+            var res = BrowserBackupService.OpenPasswordPage(r.B);
+            AddLog(res.Message, res.Ok);
+        }
+        DialogWindow.Info("Đã mở trang xuất mật khẩu",
+            "Bookmark đã xuất ra HTML. Các trang quản lý mật khẩu đã mở — trên mỗi trình duyệt bấm Export để lưu file mật khẩu (trình duyệt sẽ hỏi xác thực Windows). Dùng xong nhớ xóa file.");
+    }
+
+    // ================= Khôi phục =================
     [RelayCommand]
     private async Task RestoreAsync()
     {
-        var dlg = new OpenFolderDialog { Title = "Chọn thư mục sao lưu trình duyệt (TrinhDuyet-…)" };
+        var dlg = new OpenFolderDialog { Title = "Chọn thư mục sao lưu (SaoLuu-BM-MK… / SaoLuu-Cookie…)" };
         if (dlg.ShowDialog() != true) return;
         var inBackup = BrowserBackupService.InBackup(dlg.FolderName);
         if (inBackup.Count == 0) { DialogWindow.Info("Không có dữ liệu", "Thư mục này không chứa bản sao lưu trình duyệt nào."); return; }
         if (!DialogWindow.Confirm($"Khôi phục {inBackup.Count} trình duyệt?",
                 string.Join(", ", inBackup.Select(b => b.Name)) +
-                "\n\nDữ liệu hiện tại của các trình duyệt này sẽ bị ghi đè. Trình duyệt sẽ được đóng trong lúc khôi phục.\n" +
-                "Lưu ý: nếu đây là máy / Windows khác với lúc sao lưu, bookmark về được nhưng mật khẩu đã lưu có thể không mở được.",
+                "\n\nCác file đã lưu sẽ được chép đè về trình duyệt. Trình duyệt sẽ được đóng trong lúc khôi phục.\n" +
+                "Lưu ý: nếu đây là máy / Windows khác lúc sao lưu, bookmark về được nhưng mật khẩu và cookie có thể không mở được.",
                 "Khôi phục", danger: true))
             return;
         var rows = inBackup.Select(b => new BrowserRow(b)).ToList();
@@ -147,16 +190,7 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         }
         finally { IsBusy = false; }
         DialogWindow.Info(fail == 0 ? "Đã khôi phục" : "Khôi phục chưa trọn vẹn",
-            $"Đã khôi phục {ok}/{inBackup.Count} trình duyệt. Mở trình duyệt để kiểm tra bookmark và mật khẩu.", error: fail > 0);
+            $"Đã khôi phục {ok}/{inBackup.Count} trình duyệt. Mở trình duyệt để kiểm tra.", error: fail > 0);
         await RefreshAsync();
-    }
-
-    /// <summary>Cho trường hợp cài lại Windows: mở trang Export mật khẩu của trình duyệt (trình duyệt tự bắt xác thực Windows).</summary>
-    [RelayCommand]
-    private void ExportPasswords(BrowserRow r)
-    {
-        var res = BrowserBackupService.OpenPasswordPage(r.B);
-        AddLog(res.Message, res.Ok);
-        if (!res.Ok) DialogWindow.Info("Không mở được", res.Message, error: true);
     }
 }
