@@ -261,6 +261,24 @@ public static class BrowserBackupService
 
     // ================= Xuất bookmark ra HTML =================
     /// <summary>Xuất bookmark các profile của trình duyệt ra file HTML (Chromium/Opera). Firefox không đọc được bằng chép file → trả lỗi nhẹ.</summary>
+    private static string Sanitize(string s)
+    {
+        s = string.Concat(s.Where(c => !Path.GetInvalidFileNameChars().Contains(c))).Replace('·', '-').Trim();
+        return s.Length > 0 ? s : "profile";
+    }
+
+    /// <summary>Tên thư mục con cho một trình duyệt trong bộ xuất (vd. "Cốc Cốc").</summary>
+    public static string SafeBrowserFolder(Browser b) => Sanitize(b.Name);
+
+    /// <summary>Tên file xuất theo profile: "Default - tapdoandaiviet.com.vn" (tên thư mục + tên hiển thị).</summary>
+    public static string SafeProfileFile(Browser b, string profileDir)
+    {
+        if (profileDir.Length == 0) return Sanitize(b.Name);
+        var leaf = Path.GetFileName(profileDir);
+        var name = ProfileName(b, profileDir);
+        return Sanitize(name.Equals(leaf, StringComparison.OrdinalIgnoreCase) || name.Length == 0 ? leaf : $"{leaf} - {name}");
+    }
+
     public static async Task<OpResult> ExportBookmarksAsync(Browser b, string destDir)
     {
         if (b.Family == "Firefox")
@@ -280,9 +298,9 @@ public static class BrowserBackupService
                 {
                     var html = BookmarksToHtml(jsons);
                     if (html is null) continue;
-                    Directory.CreateDirectory(destDir);
-                    var name = $"{b.Key}-{ProfileLabel(b, dir)}.html".Replace(' ', '_');
-                    File.WriteAllText(Path.Combine(destDir, name), html, new UTF8Encoding(false));
+                    var folder = Path.Combine(destDir, SafeBrowserFolder(b));
+                    Directory.CreateDirectory(folder);
+                    File.WriteAllText(Path.Combine(folder, SafeProfileFile(b, dir) + ".html"), html, new UTF8Encoding(false));
                     files++;
                 }
                 catch { }

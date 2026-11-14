@@ -49,7 +49,9 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
     [ObservableProperty] private bool _exportActive;
     [ObservableProperty] private string _exportCurrent = "";
     [ObservableProperty] private string _exportNextLabel = "";
+    [ObservableProperty] private string _exportSaveHint = "";
     private List<BrowserBackupService.ExportTarget> _targets = [];
+    private string _exportDest = "";
     private int _exportIdx;
 
     public override void OnNavigatedTo()
@@ -154,6 +156,7 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         var dlg = new OpenFolderDialog { Title = "Nơi lưu file bookmark HTML" };
         if (dlg.ShowDialog() != true) return;
         var dest = BrowserBackupService.NewSetDir(dlg.FolderName, "XuatTrinhDuyet");
+        _exportDest = dest;
 
         IsBusy = true;
         BusyText = "Đang xuất bookmark…";
@@ -197,6 +200,14 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         var res = BrowserBackupService.OpenPasswordPage(t.B, t.ProfileDir);
         AddLog($"{t.Label}: {res.Message}", res.Ok);
         ExportCurrent = $"Hồ sơ {_exportIdx + 1}/{_targets.Count}: {t.Label}  ·  đã chép đường dẫn: {url}";
+        // Gợi ý nơi lưu file mật khẩu theo đúng thư mục / tên như file bookmark
+        try
+        {
+            var folder = System.IO.Path.Combine(_exportDest, BrowserBackupService.SafeBrowserFolder(t.B));
+            System.IO.Directory.CreateDirectory(folder);
+            ExportSaveHint = $"Khi lưu file mật khẩu, chọn thư mục: {folder}  ·  đặt tên: {BrowserBackupService.SafeProfileFile(t.B, t.ProfileDir)}.csv";
+        }
+        catch { ExportSaveHint = ""; }
         var next = _exportIdx + 1 < _targets.Count ? _targets[_exportIdx + 1].Label : "";
         ExportNextLabel = next.Length > 0 ? $"Xuất xong hồ sơ này → mở tiếp: {next}" : "Đây là hồ sơ cuối — bấm để kết thúc";
     }
