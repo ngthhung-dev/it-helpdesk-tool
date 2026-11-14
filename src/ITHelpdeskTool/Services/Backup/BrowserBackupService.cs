@@ -9,9 +9,11 @@ namespace ITHelpdeskTool.Services.Backup;
 public enum BackupMode { BookmarksPasswords, Cookies }
 
 /// <summary>Một hồ sơ: tên hiển thị và số mật khẩu đã lưu (chỉ đếm, không giải mã).</summary>
-public sealed record ProfileInfo(string Name, int Passwords)
+public sealed record ProfileInfo(string Dir, string Name, int Passwords)
 {
-    public string Text => $"{Name} — {Passwords} mật khẩu";
+    /// <summary>Tên hiển thị của profile (vd. "AI MKT (GeminiPro)"); không có thì lấy tên thư mục.</summary>
+    public string Display => Name.Length == 0 || Name.Equals(Dir, StringComparison.OrdinalIgnoreCase) ? Dir : Name;
+    public string Text => $"{Display} — {Passwords} mật khẩu";
 }
 
 /// <summary>Một trình duyệt có trên máy. Root là thư mục dữ liệu; chỉ các profile có dữ liệu được xử lý.</summary>
@@ -85,7 +87,7 @@ public static class BrowserBackupService
             foreach (var mode in new[] { BackupMode.BookmarksPasswords, BackupMode.Cookies })
                 foreach (var f in ProfileFiles(b.Family, mode))
                     if (File.Exists(Path.Combine(d, f))) size += new FileInfo(Path.Combine(d, f)).Length;
-        var infos = kept.Select(d => new ProfileInfo(ProfileName(b, d), PasswordCount(b.Family, d))).ToArray();
+        var infos = kept.Select(d => new ProfileInfo(Path.GetFileName(d), ProfileName(b, d), PasswordCount(b.Family, d))).ToArray();
         return b with { Profiles = kept.Count, ProfileDirs = kept.ToArray(), ProfileInfos = infos, Size = size };
     }
 
@@ -261,6 +263,24 @@ public static class BrowserBackupService
 
     // ================= Xuất bookmark ra HTML =================
     /// <summary>Xuất bookmark các profile của trình duyệt ra file HTML (Chromium/Opera). Firefox không đọc được bằng chép file → trả lỗi nhẹ.</summary>
+    private static string Sanitize(string s)
+    {
+        s = string.Concat(s.Where(c => !Path.GetInvalidFileNameChars().Contains(c))).Replace('·', '-').Trim();
+        return s.Length > 0 ? s : "profile";
+    }
+
+    /// <summary>Tên thư mục con cho một trình duyệt trong bộ xuất (vd. "Cốc Cốc").</summary>
+    public static string SafeBrowserFolder(Browser b) => Sanitize(b.Name);
+
+    /// <summary>Tên file xuất theo tên hiển thị của profile (vd. "AI MKT (GeminiPro)").</summary>
+    public static string SafeProfileFile(Browser b, string profileDir)
+    {
+        if (profileDir.Length == 0) return Sanitize(b.Name);
+        var leaf = Path.GetFileName(profileDir);
+        var name = ProfileName(b, profileDir);
+        return Sanitize(name.Length == 0 || name.Equals(leaf, StringComparison.OrdinalIgnoreCase) ? leaf : name);
+    }
+
     public static async Task<OpResult> ExportBookmarksAsync(Browser b, string destDir)
     {
         if (b.Family == "Firefox")
@@ -268,6 +288,7 @@ public static class BrowserBackupService
         var files = 0;
         await Task.Run(() =>
         {
+            var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var dir in b.ProfileDirs)
             {
                 // Bookmark cục bộ (Bookmarks) + bookmark của tài khoản Google đã đăng nhập (AccountBookmarks) — gộp lại
@@ -280,9 +301,13 @@ public static class BrowserBackupService
                 {
                     var html = BookmarksToHtml(jsons);
                     if (html is null) continue;
-                    Directory.CreateDirectory(destDir);
-                    var name = $"{b.Key}-{ProfileLabel(b, dir)}.html".Replace(' ', '_');
-                    File.WriteAllText(Path.Combine(destDir, name), html, new UTF8Encoding(false));
+                    var folder = Path.Combine(destDir, SafeBrowserFolder(b));
+                    Directory.CreateDirectory(folder);
+                    // Tránh trùng tên file (hai profile cùng tên hiển thị)
+                    var baseName = SafeProfileFile(b, dir);
+                    var name = baseName;
+                    for (var i = 2; !used.Add(name); i++) name = $"{baseName} ({i})";
+                    File.WriteAllText(Path.Combine(folder, name + ".html"), html, new UTF8Encoding(false));
                     files++;
                 }
                 catch { }
@@ -376,8 +401,23 @@ public static class BrowserBackupService
     }
 
     /// <summary>Tên dễ đọc của một profile Chromium (profile.name trong Preferences) — không có thì lấy tên thư mục.</summary>
+    /// <summary>Tên hiển thị của profile (vd. "AI MKT (GeminiPro)", "tapdoandaiviet.com.vn") — đọc từ Local State › profile.info_cache, không phải Preferences.</summary>
     private static string ProfileName(Browser b, string dir)
     {
+        var leaf = Path.GetFileName(dir);
+        if (b.Family == "Firefox") return leaf;
+        try
+        {
+            var ls = Path.Combine(b.Root, "Local State");
+            if (File.Exists(ls))
+            {
+                using var doc = JsonDocument.Parse(File.ReadAllText(ls));
+                if (doc.RootElement.TryGetProperty("profile", out var p) && p.TryGetProperty("info_cache", out var ic) && ic.TryGetProperty(leaf, out var pf))
+                    foreach (var key in new[] { "name", "gaia_name" })
+                        if (pf.TryGetProperty(key, out var nm) && nm.GetString() is { Length: > 0 } s) return s;
+            }
+        }
+        catch { }
         try
         {
             var pref = Path.Combine(dir, "Preferences");
@@ -389,7 +429,7 @@ public static class BrowserBackupService
             }
         }
         catch { }
-        return Path.GetFileName(dir);
+        return leaf;
     }
 
     /// <summary>Một bước xuất mật khẩu: một profile cụ thể của một trình duyệt.</summary>
