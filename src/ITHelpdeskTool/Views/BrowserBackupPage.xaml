@@ -89,7 +89,7 @@
                                                                 <DataTemplate>
                                                                     <TextBlock Style="{StaticResource Hint}" Margin="0,1,0,0">
                                                                         <Run Text="•" Foreground="{DynamicResource FaintBrush}"/>
-                                                                        <Run Text="{Binding Name, Mode=OneWay}" Foreground="{DynamicResource MutedBrush}"/>
+                                                                        <Run Text="{Binding Display, Mode=OneWay}" Foreground="{DynamicResource MutedBrush}"/>
                                                                         <Run Text="—"/>
                                                                         <Run Text="{Binding Passwords, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/>
                                                                         <Run Text="mật khẩu"/>

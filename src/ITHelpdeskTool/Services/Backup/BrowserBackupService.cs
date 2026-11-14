@@ -9,9 +9,11 @@ namespace ITHelpdeskTool.Services.Backup;
 public enum BackupMode { BookmarksPasswords, Cookies }
 
 /// <summary>Một hồ sơ: tên hiển thị và số mật khẩu đã lưu (chỉ đếm, không giải mã).</summary>
-public sealed record ProfileInfo(string Name, int Passwords)
+public sealed record ProfileInfo(string Dir, string Name, int Passwords)
 {
-    public string Text => $"{Name} — {Passwords} mật khẩu";
+    /// <summary>Tên thư mục (Default, Profile 1…) + tên hiển thị, nếu khác nhau.</summary>
+    public string Display => Name.Equals(Dir, StringComparison.OrdinalIgnoreCase) || Name.Length == 0 ? Dir : $"{Dir} · {Name}";
+    public string Text => $"{Display} — {Passwords} mật khẩu";
 }
 
 /// <summary>Một trình duyệt có trên máy. Root là thư mục dữ liệu; chỉ các profile có dữ liệu được xử lý.</summary>
@@ -85,7 +87,7 @@ public static class BrowserBackupService
             foreach (var mode in new[] { BackupMode.BookmarksPasswords, BackupMode.Cookies })
                 foreach (var f in ProfileFiles(b.Family, mode))
                     if (File.Exists(Path.Combine(d, f))) size += new FileInfo(Path.Combine(d, f)).Length;
-        var infos = kept.Select(d => new ProfileInfo(ProfileName(b, d), PasswordCount(b.Family, d))).ToArray();
+        var infos = kept.Select(d => new ProfileInfo(Path.GetFileName(d), ProfileName(b, d), PasswordCount(b.Family, d))).ToArray();
         return b with { Profiles = kept.Count, ProfileDirs = kept.ToArray(), ProfileInfos = infos, Size = size };
     }
 
