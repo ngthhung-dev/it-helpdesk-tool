@@ -79,6 +79,20 @@
                             </WrapPanel>
                             <TextBlock Style="{StaticResource Hint}" Margin="0,2,0,0"
                                        Text="Sao lưu / cookie: chép file, khôi phục trên cùng máy giữ được mật khẩu và đăng nhập. Xuất: bookmark ra HTML, mật khẩu do trình duyệt tự Export (có xác thực Windows). Cài lại Windows thì dùng Xuất. File xuất chứa mật khẩu — dùng xong hãy xóa."/>
+
+                            <!-- Luồng xuất mật khẩu từng hồ sơ -->
+                            <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="8" Padding="14,12" Margin="0,12,0,0"
+                                    Visibility="{Binding ExportActive, Converter={StaticResource BoolVis}}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding ExportCurrent}" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                    <TextBlock Text="Trên cửa sổ trình duyệt vừa mở: bấm nút ⋮ (hoặc Export) → Export passwords → xác thực Windows → lưu file. Xong quay lại đây bấm nút dưới." Style="{StaticResource Hint}" Margin="0,4,0,0"/>
+                                    <TextBlock Text="{Binding ExportNextLabel}" Style="{StaticResource Hint}" Margin="0,4,0,8"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Style="{StaticResource BtnPrimary}" Content="Mở hồ sơ tiếp theo" Margin="0,0,8,0" Command="{Binding NextExportCommand}"/>
+                                        <Button Content="Dừng" Command="{Binding CancelExportCommand}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </Border>
 

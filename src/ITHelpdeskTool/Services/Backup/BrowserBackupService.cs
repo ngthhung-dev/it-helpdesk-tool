@@ -313,14 +313,55 @@ public static class BrowserBackupService
         return null;
     }
 
-    /// <summary>Mở trang quản lý mật khẩu của trình duyệt để người dùng bấm Export (trình duyệt tự giải mã, app không đụng).</summary>
-    public static OpResult OpenPasswordPage(Browser b)
+    /// <summary>Tên dễ đọc của một profile Chromium (profile.name trong Preferences) — không có thì lấy tên thư mục.</summary>
+    private static string ProfileName(Browser b, string dir)
+    {
+        try
+        {
+            var pref = Path.Combine(dir, "Preferences");
+            if (File.Exists(pref))
+            {
+                using var doc = JsonDocument.Parse(File.ReadAllText(pref));
+                if (doc.RootElement.TryGetProperty("profile", out var p) && p.TryGetProperty("name", out var nm) && nm.GetString() is { Length: > 0 } s)
+                    return s;
+            }
+        }
+        catch { }
+        return Path.GetFileName(dir);
+    }
+
+    /// <summary>Một bước xuất mật khẩu: một profile cụ thể của một trình duyệt.</summary>
+    public sealed record ExportTarget(Browser B, string ProfileDir, string Label);
+
+    /// <summary>Danh sách các bước xuất mật khẩu, theo thứ tự: từng profile của từng trình duyệt.</summary>
+    public static List<ExportTarget> PasswordTargets(IEnumerable<Browser> browsers)
+    {
+        var list = new List<ExportTarget>();
+        foreach (var b in browsers)
+        {
+            if (b.Family is "Firefox" or "Opera" || b.ProfileDirs.Length <= 1)
+                list.Add(new ExportTarget(b, b.ProfileDirs.FirstOrDefault() ?? "", b.Name));
+            else
+                foreach (var d in b.ProfileDirs)
+                    list.Add(new ExportTarget(b, d, $"{b.Name} · {ProfileName(b, d)}"));
+        }
+        return list;
+    }
+
+    /// <summary>
+    /// Mở trang quản lý mật khẩu của ĐÚNG một profile để người dùng bấm Export (trình duyệt tự giải mã, app không đụng tới mật khẩu).
+    /// Chromium chọn profile bằng --profile-directory; Firefox / Opera mở trang mật khẩu của profile đang dùng.
+    /// </summary>
+    public static OpResult OpenPasswordPage(Browser b, string profileDir = "")
     {
         var exe = ExeOf(b);
         if (exe is null) return OpResult.Fail($"Không tìm thấy file chạy của {b.Name}.");
         var url = b.Family == "Firefox" ? "about:logins" :
                   b.Key is "edge" ? "edge://settings/passwords" : "chrome://password-manager/passwords";
-        try { Process.Start(new ProcessStartInfo(exe, url) { UseShellExecute = false }); return OpResult.Success($"Đã mở trang mật khẩu {b.Name} — bấm Export để xuất (trình duyệt sẽ hỏi xác thực Windows)."); }
+        var args = url;
+        if (b.Family == "Chromium" && profileDir.Length > 0)
+            args = $"--profile-directory=\"{Path.GetFileName(profileDir)}\" {url}";
+        try { Process.Start(new ProcessStartInfo(exe, args) { UseShellExecute = false }); return OpResult.Success($"Đã mở trang mật khẩu — bấm Export (trình duyệt sẽ hỏi xác thực Windows)."); }
         catch (Exception ex) { return OpResult.Fail($"Không mở được: {ex.Message}"); }
     }
 }
