@@ -16,6 +16,20 @@ public sealed partial class BrowserRow(Browser b) : ObservableObject
     [ObservableProperty] private Browser _b = b;
     [ObservableProperty] private bool _isChecked = true;
     public string SizeText => B.Size > 0 ? Fmt.Size(B.Size) : "";
+
+    /// <summary>Chỉ các hồ sơ có mật khẩu, nhiều nhất lên đầu (để liệt kê gọn).</summary>
+    public IReadOnlyList<ProfileInfo> PwProfiles { get; } =
+        b.ProfileInfos.Where(p => p.Passwords > 0).OrderByDescending(p => p.Passwords).ToList();
+    public bool HasPwProfiles => PwProfiles.Count > 0;
+    public bool CanExpand => B.ProfileInfos.Length > 0;
+    public string EmptyText
+    {
+        get
+        {
+            var empty = B.ProfileInfos.Count(p => p.Passwords == 0);
+            return empty > 0 ? $"và {empty} hồ sơ khác không có mật khẩu" : "";
+        }
+    }
 }
 
 public sealed partial class BrowserBackupViewModel : PageViewModel

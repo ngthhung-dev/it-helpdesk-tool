@@ -11,6 +11,7 @@
 
     <UserControl.Resources>
         <core:BoolToVisibility x:Key="BoolVis"/>
+        <core:BoolToVisibility x:Key="NotBoolVis" Invert="True"/>
         <Style x:Key="Hint" TargetType="TextBlock" BasedOn="{StaticResource Muted}">
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
@@ -74,23 +75,34 @@
                                                 <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsChecked}" VerticalAlignment="Center" Margin="0,0,12,0"/>
                                                 <TextBlock DockPanel.Dock="Left" Text="{Binding B.Glyph}" Style="{StaticResource Icon}" FontSize="18" Foreground="{DynamicResource AccentBrush}"
                                                            VerticalAlignment="Center" Margin="0,0,14,0"/>
-                                                <StackPanel VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding B.Name}" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
-                                                    <TextBlock Text="{Binding B.Detail}" Style="{StaticResource Hint}"/>
-                                                    <ItemsControl ItemsSource="{Binding B.ProfileInfos}" Margin="0,4,0,0">
-                                                        <ItemsControl.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <TextBlock Style="{StaticResource Hint}" Margin="0,1,0,0">
-                                                                    <Run Text="•" Foreground="{DynamicResource FaintBrush}"/>
-                                                                    <Run Text="{Binding Name, Mode=OneWay}" Foreground="{DynamicResource MutedBrush}"/>
-                                                                    <Run Text="—"/>
-                                                                    <Run Text="{Binding Passwords, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/>
-                                                                    <Run Text="mật khẩu"/>
-                                                                </TextBlock>
-                                                            </DataTemplate>
-                                                        </ItemsControl.ItemTemplate>
-                                                    </ItemsControl>
-                                                </StackPanel>
+                                                <Expander IsExpanded="False" Background="Transparent" BorderThickness="0" Padding="0"
+                                                          IsEnabled="{Binding CanExpand}">
+                                                    <Expander.Header>
+                                                        <StackPanel VerticalAlignment="Center" Margin="4,0,0,0">
+                                                            <TextBlock Text="{Binding B.Name}" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{Binding B.Detail}" Style="{StaticResource Hint}"/>
+                                                        </StackPanel>
+                                                    </Expander.Header>
+                                                    <StackPanel Margin="26,6,0,2">
+                                                        <ItemsControl ItemsSource="{Binding PwProfiles}">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <TextBlock Style="{StaticResource Hint}" Margin="0,1,0,0">
+                                                                        <Run Text="•" Foreground="{DynamicResource FaintBrush}"/>
+                                                                        <Run Text="{Binding Name, Mode=OneWay}" Foreground="{DynamicResource MutedBrush}"/>
+                                                                        <Run Text="—"/>
+                                                                        <Run Text="{Binding Passwords, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/>
+                                                                        <Run Text="mật khẩu"/>
+                                                                    </TextBlock>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                        <TextBlock Text="Không có hồ sơ nào lưu mật khẩu." Style="{StaticResource Hint}"
+                                                                   Visibility="{Binding HasPwProfiles, Converter={StaticResource NotBoolVis}}"/>
+                                                        <TextBlock Text="{Binding EmptyText}" Style="{StaticResource Hint}" Foreground="{DynamicResource FaintBrush}" Margin="0,2,0,0"
+                                                                   Visibility="{Binding EmptyText, Converter={x:Static core:Converters.NonEmptyVis}}"/>
+                                                    </StackPanel>
+                                                </Expander>
                                             </DockPanel>
                                         </Border>
                                     </DataTemplate>
