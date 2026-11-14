@@ -192,9 +192,11 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
             return;
         }
         var t = _targets[_exportIdx];
+        var url = BrowserBackupService.PasswordUrl(t.B);
+        try { System.Windows.Clipboard.SetText(url); } catch { }   // chép đường dẫn để dán nếu trình duyệt không tự mở đúng tab
         var res = BrowserBackupService.OpenPasswordPage(t.B, t.ProfileDir);
         AddLog($"{t.Label}: {res.Message}", res.Ok);
-        ExportCurrent = $"Hồ sơ {_exportIdx + 1}/{_targets.Count}: {t.Label}";
+        ExportCurrent = $"Hồ sơ {_exportIdx + 1}/{_targets.Count}: {t.Label}  ·  đã chép đường dẫn: {url}";
         var next = _exportIdx + 1 < _targets.Count ? _targets[_exportIdx + 1].Label : "";
         ExportNextLabel = next.Length > 0 ? $"Xuất xong hồ sơ này → mở tiếp: {next}" : "Đây là hồ sơ cuối — bấm để kết thúc";
     }

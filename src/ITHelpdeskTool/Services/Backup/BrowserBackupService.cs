@@ -414,17 +414,22 @@ public static class BrowserBackupService
     /// Mở trang quản lý mật khẩu của ĐÚNG một profile để người dùng bấm Export (trình duyệt tự giải mã, app không đụng tới mật khẩu).
     /// Chromium chọn profile bằng --profile-directory; Firefox / Opera mở trang mật khẩu của profile đang dùng.
     /// </summary>
+    /// <summary>Đường dẫn trang có nút Export của trình duyệt.</summary>
+    public static string PasswordUrl(Browser b) =>
+        b.Family == "Firefox" ? "about:logins" :
+        b.Key is "edge" ? "edge://settings/passwords" :
+        b.Key is "brave" ? "brave://settings/passwords" :
+        b.Key is "opera" or "operagx" ? "opera://settings/passwords" :
+        b.Key is "vivaldi" ? "vivaldi://settings/passwords" :
+        "chrome://password-manager/settings";
+
     public static OpResult OpenPasswordPage(Browser b, string profileDir = "")
     {
         var exe = ExeOf(b);
         if (exe is null) return OpResult.Fail($"Không tìm thấy file chạy của {b.Name}.");
-        // Mở thẳng trang có nút "Export passwords". Mỗi dòng Chromium dùng scheme riêng nên không mở chung chrome:// được.
-        var url = b.Family == "Firefox" ? "about:logins" :
-                  b.Key is "edge" ? "edge://settings/passwords" :
-                  b.Key is "brave" ? "brave://settings/passwords" :
-                  b.Key is "opera" or "operagx" ? "opera://settings/passwords" :
-                  b.Key is "vivaldi" ? "vivaldi://settings/passwords" :
-                  "chrome://password-manager/settings";
+        // Trình duyệt chặn mở trang nội bộ (chrome://, brave://…) từ dòng lệnh khi đang chạy → có thể không nhảy đúng tab.
+        // Vẫn mở đúng profile; đường dẫn được chép sẵn vào clipboard để dán vào thanh địa chỉ nếu chưa tới đúng trang.
+        var url = PasswordUrl(b);
         var args = url;
         if (b.Family == "Chromium" && profileDir.Length > 0)
             args = $"--profile-directory=\"{Path.GetFileName(profileDir)}\" {url}";
