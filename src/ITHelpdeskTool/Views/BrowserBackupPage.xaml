@@ -59,6 +59,19 @@
                                                 <StackPanel VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding B.Name}" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
                                                     <TextBlock Text="{Binding B.Detail}" Style="{StaticResource Hint}"/>
+                                                    <ItemsControl ItemsSource="{Binding B.ProfileInfos}" Margin="0,4,0,0">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock Style="{StaticResource Hint}" Margin="0,1,0,0">
+                                                                    <Run Text="•" Foreground="{DynamicResource FaintBrush}"/>
+                                                                    <Run Text="{Binding Name, Mode=OneWay}" Foreground="{DynamicResource MutedBrush}"/>
+                                                                    <Run Text="—"/>
+                                                                    <Run Text="{Binding Passwords, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/>
+                                                                    <Run Text="mật khẩu"/>
+                                                                </TextBlock>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
                                                 </StackPanel>
                                             </DockPanel>
                                         </Border>
