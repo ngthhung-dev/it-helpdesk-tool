@@ -110,12 +110,7 @@
                             </ItemsControl>
 
                             <WrapPanel Margin="0,14,0,0">
-                                <Button Style="{StaticResource BtnPrimary}" Margin="0,0,0,8" Command="{Binding BackupBookmarksPasswordsCommand}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE74E;" Style="{StaticResource Icon}" FontSize="13"/>
-                                        <TextBlock Text="Sao lưu bookmark + mật khẩu…" Margin="8,0,0,0"/>
-                                    </StackPanel>
-                                </Button>
+                                <Button Content="Sao lưu bookmark + mật khẩu…" Margin="0,0,0,8" Command="{Binding BackupBookmarksPasswordsCommand}"/>
                                 <TextBlock Style="{StaticResource HintIcon}" Margin="4,0,14,0"
                                            ToolTip="Chép file bookmark và mật khẩu đã lưu của mọi hồ sơ ra USB / ổ khác. Khôi phục trên CÙNG máy thì mật khẩu mở lại được. Cài lại Windows thì mật khẩu có thể không mở được — khi đó dùng Xuất."/>
 
