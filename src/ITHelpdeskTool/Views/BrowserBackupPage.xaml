@@ -21,6 +21,24 @@
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
             <Setter Property="Padding" Value="0,10"/>
         </Style>
+        <Style TargetType="ToolTip">
+            <Setter Property="MaxWidth" Value="360"/>
+            <Setter Property="ContentTemplate">
+                <Setter.Value>
+                    <DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap"/></DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="HintIcon" TargetType="TextBlock" BasedOn="{StaticResource Icon}">
+            <Setter Property="Text" Value="&#xE946;"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="4,0,14,0"/>
+            <Setter Property="Cursor" Value="Help"/>
+            <Setter Property="ToolTipService.InitialShowDelay" Value="200"/>
+            <Setter Property="ToolTipService.ShowDuration" Value="30000"/>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -80,18 +98,27 @@
                             </ItemsControl>
 
                             <WrapPanel Margin="0,14,0,0">
-                                <Button Style="{StaticResource BtnPrimary}" Margin="0,0,8,8" Command="{Binding BackupBookmarksPasswordsCommand}">
+                                <Button Style="{StaticResource BtnPrimary}" Margin="0,0,0,8" Command="{Binding BackupBookmarksPasswordsCommand}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE74E;" Style="{StaticResource Icon}" FontSize="13"/>
                                         <TextBlock Text="Sao lưu bookmark + mật khẩu…" Margin="8,0,0,0"/>
                                     </StackPanel>
                                 </Button>
-                                <Button Content="Sao lưu cookie…" Margin="0,0,8,8" Command="{Binding BackupCookiesCommand}"/>
-                                <Button Content="Xuất bookmark + mật khẩu…" Margin="0,0,8,8" Command="{Binding ExportBookmarksPasswordsCommand}"/>
-                                <Button Content="Khôi phục…" Margin="0,0,8,8" Command="{Binding RestoreCommand}"/>
+                                <TextBlock Style="{StaticResource HintIcon}" Margin="4,0,14,0"
+                                           ToolTip="Chép file bookmark và mật khẩu đã lưu của mọi hồ sơ ra USB / ổ khác. Khôi phục trên CÙNG máy thì mật khẩu mở lại được. Cài lại Windows thì mật khẩu có thể không mở được — khi đó dùng Xuất."/>
+
+                                <Button Content="Xuất bookmark + mật khẩu…" Margin="0,0,0,8" Command="{Binding ExportBookmarksPasswordsCommand}"/>
+                                <TextBlock Style="{StaticResource HintIcon}"
+                                           ToolTip="Bookmark xuất ra file HTML. Mật khẩu: mở trang Export của từng hồ sơ để trình duyệt tự xuất (có xác thực Windows). Dùng khi cài lại Windows. File xuất chứa mật khẩu — dùng xong hãy xóa."/>
+
+                                <Button Content="Sao lưu cookie…" Margin="0,0,0,8" Command="{Binding BackupCookiesCommand}"/>
+                                <TextBlock Style="{StaticResource HintIcon}"
+                                           ToolTip="Chép toàn bộ cookie (phiên đăng nhập các web) của mọi hồ sơ. Khôi phục trên CÙNG máy thì giữ được đăng nhập các web, khỏi đăng nhập lại."/>
+
+                                <Button Content="Khôi phục…" Margin="0,0,0,8" Command="{Binding RestoreCommand}"/>
+                                <TextBlock Style="{StaticResource HintIcon}"
+                                           ToolTip="Chọn thư mục đã sao lưu (SaoLuu-BM-MK… / SaoLuu-Cookie…) để chép dữ liệu về lại trình duyệt. Đóng trình duyệt trong lúc khôi phục."/>
                             </WrapPanel>
-                            <TextBlock Style="{StaticResource Hint}" Margin="0,2,0,0"
-                                       Text="Sao lưu / cookie: chép file, khôi phục trên cùng máy giữ được mật khẩu và đăng nhập. Xuất: bookmark ra HTML, mật khẩu do trình duyệt tự Export (có xác thực Windows). Cài lại Windows thì dùng Xuất. File xuất chứa mật khẩu — dùng xong hãy xóa."/>
 
                             <!-- Luồng xuất mật khẩu từng hồ sơ -->
                             <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="8" Padding="14,12" Margin="0,12,0,0"
