@@ -66,10 +66,10 @@ public static class BrowserBackupService
     // Tên file dữ liệu theo từng nhóm (ở gốc mỗi profile). Chromium đời mới để Cookies trong thư mục con Network.
     private static string[] ProfileFiles(string family, BackupMode mode) => (family, mode) switch
     {
-        ("Firefox", BackupMode.BookmarksPasswords) => ["places.sqlite", "favicons.sqlite", "logins.json", "key4.db", "key3.db"],
         ("Firefox", BackupMode.Cookies) => ["cookies.sqlite"],
-        (_, BackupMode.BookmarksPasswords) => ["Bookmarks", "Bookmarks.bak", "AccountBookmarks", "EncryptedAccountBookmarks2", "Login Data", "Login Data For Account"],
+        ("Firefox", _) => ["places.sqlite", "favicons.sqlite", "logins.json", "key4.db", "key3.db"],
         (_, BackupMode.Cookies) => ["Cookies", "Cookies-journal", @"Network\Cookies", @"Network\Cookies-journal"],
+        _ => ["Bookmarks", "Bookmarks.bak", "AccountBookmarks", "EncryptedAccountBookmarks2", "Login Data", "Login Data For Account"],
     };
 
     // File dùng chung của cả trình duyệt (gồm khóa giải mã mật khẩu / cookie) — luôn kèm theo khi sao lưu.
