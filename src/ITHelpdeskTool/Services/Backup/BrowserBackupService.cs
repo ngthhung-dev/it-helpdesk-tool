@@ -9,11 +9,12 @@ namespace ITHelpdeskTool.Services.Backup;
 public enum BackupMode { BookmarksPasswords, Cookies }
 
 /// <summary>Một hồ sơ: tên hiển thị và số mật khẩu đã lưu (chỉ đếm, không giải mã).</summary>
-public sealed record ProfileInfo(string Dir, string Name, int Passwords)
+public sealed record ProfileInfo(string Dir, string Name, int Bookmarks, int Passwords)
 {
     /// <summary>Tên hiển thị của profile (vd. "AI MKT (GeminiPro)"); không có thì lấy tên thư mục.</summary>
     public string Display => Name.Length == 0 || Name.Equals(Dir, StringComparison.OrdinalIgnoreCase) ? Dir : Name;
-    public string Text => $"{Display} — {Passwords} mật khẩu";
+    public bool HasData => Bookmarks > 0 || Passwords > 0;
+    public string Text => $"{Display} — {Bookmarks} bookmark · {Passwords} mật khẩu";
 }
 
 /// <summary>Một trình duyệt có trên máy. Root là thư mục dữ liệu; chỉ các profile có dữ liệu được xử lý.</summary>
@@ -26,12 +27,15 @@ public sealed record Browser(string Key, string Name, string Glyph, string Famil
     /// <summary>Tên + số mật khẩu của từng hồ sơ.</summary>
     public ProfileInfo[] ProfileInfos { get; init; } = [];
     public int Passwords => ProfileInfos.Sum(p => p.Passwords);
+    public int WithBookmarks => ProfileInfos.Count(p => p.Bookmarks > 0);
+    public int WithPasswords => ProfileInfos.Count(p => p.Passwords > 0);
     public bool Running => ProcNames.SelectMany(Process.GetProcessesByName).Any();
     public string Detail => string.Join(" · ", new[]
     {
         Family == "Firefox" ? "Firefox" : "Chromium",
         Profiles > 0 ? $"{Profiles} hồ sơ" : "",
-        Passwords > 0 ? $"{Passwords} mật khẩu" : "",
+        $"{WithBookmarks} có bookmark",
+        $"{WithPasswords} có mật khẩu",
         Size > 0 ? Fmt.Size(Size) : "",
     }.Where(s => s.Length > 0));
 }
@@ -87,11 +91,33 @@ public static class BrowserBackupService
             foreach (var mode in new[] { BackupMode.BookmarksPasswords, BackupMode.Cookies })
                 foreach (var f in ProfileFiles(b.Family, mode))
                     if (File.Exists(Path.Combine(d, f))) size += new FileInfo(Path.Combine(d, f)).Length;
-        var infos = kept.Select(d => new ProfileInfo(Path.GetFileName(d), ProfileName(b, d), PasswordCount(b.Family, d))).ToArray();
+        var infos = kept.Select(d => new ProfileInfo(Path.GetFileName(d), ProfileName(b, d), BookmarkCount(b.Family, d), PasswordCount(b.Family, d))).ToArray();
         return b with { Profiles = kept.Count, ProfileDirs = kept.ToArray(), ProfileInfos = infos, Size = size };
     }
 
     /// <summary>Số mật khẩu đã lưu của một profile — ĐẾM, không giải mã. Chromium: đếm blob mã hóa (v10/v11/v20) trong Login Data; Firefox: đếm mục trong logins.json.</summary>
+    /// <summary>Số bookmark của profile — đếm node "type":"url" trong Bookmarks + AccountBookmarks (Chromium). Firefox để trong places.sqlite, không đếm được bằng chép file → trả 0.</summary>
+    private static int BookmarkCount(string family, string dir)
+    {
+        if (family == "Firefox") return 0;
+        return CountNeedle(Path.Combine(dir, "Bookmarks"), "\"type\": \"url\"") + CountNeedle(Path.Combine(dir, "AccountBookmarks"), "\"type\": \"url\"");
+    }
+
+    private static int CountNeedle(string path, string needle)
+    {
+        try
+        {
+            if (!File.Exists(path)) return 0;
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            using var sr = new StreamReader(fs);
+            var text = sr.ReadToEnd();
+            var count = 0;
+            for (var i = text.IndexOf(needle, StringComparison.Ordinal); i >= 0; i = text.IndexOf(needle, i + needle.Length, StringComparison.Ordinal)) count++;
+            return count;
+        }
+        catch { return 0; }
+    }
+
     private static int PasswordCount(string family, string dir)
     {
         if (family == "Firefox")

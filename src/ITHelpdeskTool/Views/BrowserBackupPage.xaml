@@ -96,16 +96,14 @@
                                                                         <Run Text="•" Foreground="{DynamicResource FaintBrush}"/>
                                                                         <Run Text="{Binding Display, Mode=OneWay}" Foreground="{DynamicResource MutedBrush}"/>
                                                                         <Run Text="—"/>
+                                                                        <Run Text="{Binding Bookmarks, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/>
+                                                                        <Run Text="bookmark ·"/>
                                                                         <Run Text="{Binding Passwords, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/>
                                                                         <Run Text="mật khẩu"/>
                                                                     </TextBlock>
                                                                 </DataTemplate>
                                                             </ItemsControl.ItemTemplate>
                                                         </ItemsControl>
-                                                        <TextBlock Text="Không có hồ sơ nào lưu mật khẩu." Style="{StaticResource Hint}"
-                                                                   Visibility="{Binding HasPwProfiles, Converter={StaticResource NotBoolVis}}"/>
-                                                        <TextBlock Text="{Binding EmptyText}" Style="{StaticResource Hint}" Foreground="{DynamicResource FaintBrush}" Margin="0,2,0,0"
-                                                                   Visibility="{Binding EmptyText, Converter={x:Static core:Converters.NonEmptyVis}}"/>
                                                     </StackPanel>
                                                 </Expander>
                                             </DockPanel>
