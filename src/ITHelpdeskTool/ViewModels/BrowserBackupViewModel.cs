@@ -59,6 +59,7 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
     private string[] _stepProcNames = [];
     private DateTime _stepStart;
     private int _movedCount;
+    private readonly HashSet<string> _doneKeys = new();
     private int _exportIdx;
 
     /// <summary>Thư mục mặc định cho hộp thoại lưu: Downloads của người dùng.</summary>
@@ -206,14 +207,27 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         if (_targets.Count == 0) { DialogWindow.Info("Xong", "Đã xuất bookmark. Không có hồ sơ nào để xuất mật khẩu."); return; }
         _exportIdx = -1;
         _movedCount = 0;
+        _doneKeys.Clear();
         ExportLastResult = "";
         ExportActive = true;
         AdvanceExport();
     }
 
+    private static string Key(BrowserBackupService.ExportTarget t) => $"{t.B.Key}|{t.ProfileDir}";
+
     /// <summary>Chuyển hồ sơ hiện tại xong (tự dọn file CSV vừa tải, đóng cửa sổ profile), rồi mở hồ sơ kế tiếp.</summary>
     [RelayCommand]
     private void NextExport() => AdvanceExport();
+
+    /// <summary>Mở lại trang mật khẩu của hồ sơ hiện tại (khi cửa sổ không mở / lỡ đóng) — không chuyển sang hồ sơ khác.</summary>
+    [RelayCommand]
+    private void ReopenExport()
+    {
+        if (_exportIdx < 0 || _exportIdx >= _targets.Count) return;
+        var t = _targets[_exportIdx];
+        var res = BrowserBackupService.OpenPasswordPage(t.B, t.ProfileDir);
+        AddLog($"{t.Label}: mở lại trang mật khẩu — {res.Message}", res.Ok);
+    }
 
     private void AdvanceExport()
     {
@@ -225,9 +239,22 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         _exportIdx++;
         if (_exportIdx >= _targets.Count)
         {
+            var missing = _targets.Where(t => !_doneKeys.Contains(Key(t))).ToList();
             ExportActive = false;
-            DialogWindow.Info("Đã xong", $"Đã xử lý {_targets.Count} hồ sơ, chuyển {_movedCount} file mật khẩu vào thư mục xuất. File chứa mật khẩu — dùng xong nhớ xóa.");
             if (_exportDest.Length > 0) ShellLauncher.Open(_exportDest);
+            // Hồ sơ nào chưa có file mật khẩu (lỗi / chưa xuất) → hỏi làm lại
+            if (missing.Count > 0 && DialogWindow.Confirm("Còn hồ sơ chưa xuất",
+                    $"Đã chuyển {_movedCount}/{_targets.Count} file. Còn {missing.Count} hồ sơ chưa có file mật khẩu:\n" +
+                    string.Join("\n", missing.Take(10).Select(t => "• " + t.Label)) + (missing.Count > 10 ? "\n…" : "") +
+                    "\n\nMở lại các hồ sơ đó để xuất tiếp?", "Làm lại"))
+            {
+                _targets = missing;
+                _exportIdx = -1;
+                ExportActive = true;
+                AdvanceExport();
+                return;
+            }
+            DialogWindow.Info("Đã xong", $"Đã chuyển {_movedCount} file mật khẩu vào thư mục xuất. File chứa mật khẩu — dùng xong nhớ xóa.");
             return;
         }
         var t = _targets[_exportIdx];
@@ -274,6 +301,7 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(_currentSavePath)!);
             System.IO.File.Move(csv.FullName, _currentSavePath, overwrite: true);
             _movedCount++;
+            if (_exportIdx >= 0 && _exportIdx < _targets.Count) _doneKeys.Add(Key(_targets[_exportIdx]));
             AddLog($"Đã chuyển {csv.Name} → {_currentSavePath}", true);
             ExportLastResult = $"✓ Hồ sơ trước: đã chuyển vào {System.IO.Path.GetFileName(_currentSavePath)}";
         }
