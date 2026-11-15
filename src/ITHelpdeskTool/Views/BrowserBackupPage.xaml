@@ -153,6 +153,8 @@
                                     <TextBlock Text="{Binding ExportNextLabel}" Style="{StaticResource Hint}" Margin="0,6,0,8"/>
                                     <StackPanel Orientation="Horizontal">
                                         <Button Style="{StaticResource BtnPrimary}" Content="Đã xuất xong → lưu &amp; mở hồ sơ tiếp" Margin="0,0,8,0" Command="{Binding NextExportCommand}"/>
+                                        <Button Content="Mở lại hồ sơ này" Margin="0,0,8,0" Command="{Binding ReopenExportCommand}"
+                                                ToolTip="Mở lại trang mật khẩu của hồ sơ này nếu cửa sổ không mở / lỡ đóng"/>
                                         <Button Content="Dừng" Command="{Binding CancelExportCommand}"/>
                                     </StackPanel>
                                 </StackPanel>
