@@ -51,6 +51,7 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
     [ObservableProperty] private string _exportNextLabel = "";
     [ObservableProperty] private string _exportSaveHint = "";
     [ObservableProperty] private string _exportPageUrl = "";
+    [ObservableProperty] private string _exportLastResult = "";
     private List<BrowserBackupService.ExportTarget> _targets = [];
     private string _exportDest = "";
     private string _currentSavePath = "";
@@ -203,6 +204,7 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         if (_targets.Count == 0) { DialogWindow.Info("Xong", "Đã xuất bookmark. Không có hồ sơ nào để xuất mật khẩu."); return; }
         _exportIdx = -1;
         _movedCount = 0;
+        ExportLastResult = "";
         ExportActive = true;
         AdvanceExport();
     }
@@ -260,13 +262,14 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
                 .Select(f => new System.IO.FileInfo(f))
                 .Where(f => f.LastWriteTime >= _stepStart.AddSeconds(-3) && !f.FullName.Equals(_currentSavePath, StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(f => f.LastWriteTime).FirstOrDefault();
-            if (csv is null) { AddLog($"Hồ sơ {_exportIdx + 1}: chưa thấy file mật khẩu mới (chưa xuất?)", false); return; }
+            if (csv is null) { AddLog($"Hồ sơ {_exportIdx + 1}: chưa thấy file mật khẩu mới (chưa xuất?)", false); ExportLastResult = "⚠ Hồ sơ trước: chưa thấy file mật khẩu trong Downloads."; return; }
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(_currentSavePath)!);
             System.IO.File.Move(csv.FullName, _currentSavePath, overwrite: true);
             _movedCount++;
             AddLog($"Đã chuyển {csv.Name} → {_currentSavePath}", true);
+            ExportLastResult = $"✓ Hồ sơ trước: đã chuyển vào {System.IO.Path.GetFileName(_currentSavePath)}";
         }
-        catch (Exception ex) { AddLog($"Không chuyển được file mật khẩu: {ex.Message}", false); }
+        catch (Exception ex) { AddLog($"Không chuyển được file mật khẩu: {ex.Message}", false); ExportLastResult = $"⚠ Lỗi chuyển file: {ex.Message}"; }
     }
 
     [RelayCommand]
