@@ -441,11 +441,15 @@ public static class BrowserBackupService
         var list = new List<ExportTarget>();
         foreach (var b in browsers)
         {
+            // Chỉ xuất hồ sơ CÓ mật khẩu đã lưu — bỏ qua hồ sơ 0 mật khẩu
+            int PwOf(string dir) => b.ProfileInfos.FirstOrDefault(p => p.Dir.Equals(Path.GetFileName(dir), StringComparison.OrdinalIgnoreCase))?.Passwords ?? 0;
             if (b.Family is "Firefox" or "Opera" || b.ProfileDirs.Length <= 1)
-                list.Add(new ExportTarget(b, b.ProfileDirs.FirstOrDefault() ?? "", b.Name));
+            {
+                if (b.Passwords > 0) list.Add(new ExportTarget(b, b.ProfileDirs.FirstOrDefault() ?? "", b.Name));
+            }
             else
                 foreach (var d in b.ProfileDirs)
-                    list.Add(new ExportTarget(b, d, $"{b.Name} · {ProfileName(b, d)}"));
+                    if (PwOf(d) > 0) list.Add(new ExportTarget(b, d, $"{b.Name} · {ProfileName(b, d)}"));
         }
         return list;
     }
@@ -467,13 +471,62 @@ public static class BrowserBackupService
     {
         var exe = ExeOf(b);
         if (exe is null) return OpResult.Fail($"Không tìm thấy file chạy của {b.Name}.");
-        // Trình duyệt chặn mở trang nội bộ (chrome://, brave://…) từ dòng lệnh khi đang chạy → có thể không nhảy đúng tab.
-        // Vẫn mở đúng profile; đường dẫn được chép sẵn vào clipboard để dán vào thanh địa chỉ nếu chưa tới đúng trang.
         var url = PasswordUrl(b);
-        var args = url;
-        if (b.Family == "Chromium" && profileDir.Length > 0)
-            args = $"--profile-directory=\"{Path.GetFileName(profileDir)}\" {url}";
+        var args = BuildArgs(b, profileDir, url);
         try { Process.Start(new ProcessStartInfo(exe, args) { UseShellExecute = false }); return OpResult.Success($"Đã mở trang mật khẩu — bấm Export (trình duyệt sẽ hỏi xác thực Windows)."); }
         catch (Exception ex) { return OpResult.Fail($"Không mở được: {ex.Message}"); }
+    }
+
+    private static string BuildArgs(Browser b, string profileDir, string url)
+    {
+        // --new-window để mở CỬA SỔ RIÊNG cho profile (nhận diện và đóng được sau khi xuất xong)
+        var a = "--new-window " + url;
+        if (b.Family == "Chromium" && profileDir.Length > 0)
+            a = $"--profile-directory=\"{Path.GetFileName(profileDir)}\" {a}";
+        return a;
+    }
+
+    // ================= Mở & đóng đúng cửa sổ của profile =================
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsProc cb, IntPtr p);
+    private delegate bool EnumWindowsProc(IntPtr h, IntPtr p);
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr h);
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
+    private const uint WM_CLOSE = 0x0010;
+
+    private static HashSet<nint> TopWindows(string[] procNames)
+    {
+        var pids = procNames.SelectMany(Process.GetProcessesByName).Select(p => { try { return (uint)p.Id; } catch { return 0u; } }).ToHashSet();
+        var set = new HashSet<nint>();
+        if (pids.Count == 0) return set;
+        EnumWindows((h, _) => { if (IsWindowVisible(h)) { GetWindowThreadProcessId(h, out var pid); if (pids.Contains(pid)) set.Add(h); } return true; }, IntPtr.Zero);
+        return set;
+    }
+
+    /// <summary>Mở trang mật khẩu của profile trong cửa sổ RIÊNG; trả về các cửa sổ mới (để đóng sau khi xuất xong).</summary>
+    public static async Task<(OpResult Result, List<nint> Windows)> OpenPasswordWindowAsync(Browser b, string profileDir)
+    {
+        var exe = ExeOf(b);
+        if (exe is null) return (OpResult.Fail($"Không tìm thấy file chạy của {b.Name}."), []);
+        var before = TopWindows(b.ProcNames);
+        try { Process.Start(new ProcessStartInfo(exe, BuildArgs(b, profileDir, PasswordUrl(b))) { UseShellExecute = false }); }
+        catch (Exception ex) { return (OpResult.Fail($"Không mở được: {ex.Message}"), []); }
+        // Chờ cửa sổ mới xuất hiện (tối đa ~6s)
+        for (var i = 0; i < 20; i++)
+        {
+            await Task.Delay(300).ConfigureAwait(false);
+            var neu = TopWindows(b.ProcNames).Except(before).ToList();
+            if (neu.Count > 0) return (OpResult.Success("Đã mở cửa sổ trang mật khẩu."), neu);
+        }
+        return (OpResult.Success("Đã mở trang mật khẩu (không nhận diện được cửa sổ để tự đóng)."), []);
+    }
+
+    public static void CloseWindows(IEnumerable<nint> windows)
+    {
+        foreach (var h in windows) try { PostMessage(h, WM_CLOSE, IntPtr.Zero, IntPtr.Zero); } catch { }
     }
 }

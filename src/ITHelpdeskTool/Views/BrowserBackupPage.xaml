@@ -85,9 +85,14 @@
                                                     </Expander.Header>
                                                     <StackPanel Margin="26,6,0,2">
                                                         <ItemsControl ItemsSource="{Binding PwProfiles}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <UniformGrid Columns="2"/>
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
                                                             <ItemsControl.ItemTemplate>
                                                                 <DataTemplate>
-                                                                    <TextBlock Style="{StaticResource Hint}" Margin="0,1,0,0">
+                                                                    <TextBlock Style="{StaticResource Hint}" Margin="0,1,16,0" TextTrimming="CharacterEllipsis">
                                                                         <Run Text="•" Foreground="{DynamicResource FaintBrush}"/>
                                                                         <Run Text="{Binding Display, Mode=OneWay}" Foreground="{DynamicResource MutedBrush}"/>
                                                                         <Run Text="—"/>
