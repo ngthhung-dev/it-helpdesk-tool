@@ -55,6 +55,7 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
     private List<BrowserBackupService.ExportTarget> _targets = [];
     private string _exportDest = "";
     private string _currentSavePath = "";
+    private List<nint> _currentWindows = [];
     private DateTime _stepStart;
     private int _movedCount;
     private int _exportIdx;
@@ -206,16 +207,21 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         _movedCount = 0;
         ExportLastResult = "";
         ExportActive = true;
-        AdvanceExport();
+        await AdvanceExport();
     }
 
-    /// <summary>Chuyển hồ sơ hiện tại xong (tự dọn file CSV vừa tải), rồi mở hồ sơ kế tiếp.</summary>
+    /// <summary>Chuyển hồ sơ hiện tại xong (tự dọn file CSV vừa tải, đóng cửa sổ profile), rồi mở hồ sơ kế tiếp.</summary>
     [RelayCommand]
-    private void NextExport() => AdvanceExport();
+    private Task NextExport() => AdvanceExport();
 
-    private void AdvanceExport()
+    private async Task AdvanceExport()
     {
-        if (_exportIdx >= 0) FinalizeCurrent();   // dọn file CSV của hồ sơ vừa xuất
+        if (_exportIdx >= 0)
+        {
+            FinalizeCurrent();                                   // dọn file CSV của hồ sơ vừa xuất
+            BrowserBackupService.CloseWindows(_currentWindows);  // đóng cửa sổ profile vừa xuất
+            _currentWindows = [];
+        }
         _exportIdx++;
         if (_exportIdx >= _targets.Count)
         {
@@ -227,11 +233,12 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         var t = _targets[_exportIdx];
         var url = BrowserBackupService.PasswordUrl(t.B);
         try { System.Windows.Clipboard.SetText(url); } catch { }   // URL trang xuất, để dán nếu trình duyệt chưa tự mở đúng trang
-        var res = BrowserBackupService.OpenPasswordPage(t.B, t.ProfileDir);
-        AddLog($"{t.Label}: {res.Message}", res.Ok);
         _stepStart = DateTime.Now;
         ExportCurrent = $"Hồ sơ {_exportIdx + 1}/{_targets.Count}: {t.Label}";
         ExportPageUrl = url;
+        var (res, windows) = await BrowserBackupService.OpenPasswordWindowAsync(t.B, t.ProfileDir);
+        _currentWindows = windows;
+        AddLog($"{t.Label}: {res.Message}", res.Ok);
         try
         {
             var folder = System.IO.Path.Combine(_exportDest, BrowserBackupService.SafeBrowserFolder(t.B));
@@ -273,7 +280,12 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private void CancelExport() { if (_exportIdx >= 0) FinalizeCurrent(); ExportActive = false; _targets = []; }
+    private void CancelExport()
+    {
+        if (_exportIdx >= 0) { FinalizeCurrent(); BrowserBackupService.CloseWindows(_currentWindows); _currentWindows = []; }
+        ExportActive = false;
+        _targets = [];
+    }
 
     // ================= Khôi phục =================
     [RelayCommand]
