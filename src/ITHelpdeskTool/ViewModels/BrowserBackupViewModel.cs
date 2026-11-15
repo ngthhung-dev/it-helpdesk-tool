@@ -51,6 +51,8 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
     [ObservableProperty] private string _exportNextLabel = "";
     [ObservableProperty] private string _exportSaveHint = "";
     [ObservableProperty] private string _exportPageUrl = "";
+    [ObservableProperty] private string _exportLastResult = "";
+    private Dictionary<string, long> _csvBefore = new(StringComparer.OrdinalIgnoreCase);
     private List<BrowserBackupService.ExportTarget> _targets = [];
     private string _exportDest = "";
     private string _currentSavePath = "";
@@ -192,6 +194,7 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         if (_targets.Count == 0) { DialogWindow.Info("Xong", "Đã xuất bookmark. Không có hồ sơ nào để xuất mật khẩu."); return; }
         _exportIdx = -1;
         _movedCount = 0;
+        ExportLastResult = "";
         ExportActive = true;
         AdvanceExport();
     }
@@ -217,6 +220,7 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         var res = BrowserBackupService.OpenPasswordPage(t.B, t.ProfileDir);
         AddLog($"{t.Label}: {res.Message}", res.Ok);
         _stepStart = DateTime.Now;
+        _csvBefore = SnapshotCsv();   // chụp danh sách CSV hiện có để nhận đúng file MỚI của hồ sơ này
         ExportCurrent = $"Hồ sơ {_exportIdx + 1}/{_targets.Count}: {t.Label}";
         ExportPageUrl = url;
         try
@@ -231,31 +235,43 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         ExportNextLabel = next.Length > 0 ? $"Xong hồ sơ này → bấm để lưu & mở tiếp: {next}" : "Hồ sơ cuối — bấm để lưu & kết thúc";
     }
 
-    /// <summary>Tìm file CSV vừa tải (trong Downloads / thư mục xuất) sau khi mở hồ sơ hiện tại, chuyển vào đúng chỗ, đặt tên theo profile.</summary>
+    private static string[] ScanDirs() => new[]
+    {
+        DefaultSaveDir,
+        Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+    }.Where(d => d.Length > 0 && System.IO.Directory.Exists(d)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+
+    /// <summary>Danh sách CSV hiện có (đường dẫn → thời điểm sửa) để so ra file MỚI sau khi xuất.</summary>
+    private Dictionary<string, long> SnapshotCsv()
+    {
+        var map = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+        foreach (var d in ScanDirs())
+            try { foreach (var f in System.IO.Directory.GetFiles(d, "*.csv")) map[f] = new System.IO.FileInfo(f).LastWriteTime.Ticks; }
+            catch { }
+        return map;
+    }
+
+    /// <summary>Nhận file CSV MỚI (hoặc vừa bị ghi đè) của hồ sơ hiện tại rồi chuyển vào đúng chỗ, đặt tên theo profile.</summary>
     private void FinalizeCurrent()
     {
         if (_currentSavePath.Length == 0) return;
         try
         {
-            // Tìm file CSV ở các thư mục người dùng hay lưu: Downloads, Desktop, Documents, và thư mục xuất
-            var dirs = new[]
-            {
-                DefaultSaveDir,
-                Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
-                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                _exportDest,
-            }.Where(d => d.Length > 0 && System.IO.Directory.Exists(d)).Distinct(StringComparer.OrdinalIgnoreCase);
-            var csv = dirs.SelectMany(d => { try { return System.IO.Directory.GetFiles(d, "*.csv"); } catch { return []; } })
+            // File mới = chưa có lúc mở hồ sơ, HOẶC cùng tên nhưng vừa được ghi đè (thời điểm sửa đổi khác)
+            var csv = ScanDirs().SelectMany(d => { try { return System.IO.Directory.GetFiles(d, "*.csv"); } catch { return []; } })
                 .Select(f => new System.IO.FileInfo(f))
-                .Where(f => f.LastWriteTime >= _stepStart.AddSeconds(-3) && !f.FullName.Equals(_currentSavePath, StringComparison.OrdinalIgnoreCase))
+                .Where(f => !f.FullName.Equals(_currentSavePath, StringComparison.OrdinalIgnoreCase)
+                            && (!_csvBefore.TryGetValue(f.FullName, out var before) || before != f.LastWriteTime.Ticks))
                 .OrderByDescending(f => f.LastWriteTime).FirstOrDefault();
-            if (csv is null) { AddLog($"Hồ sơ {_exportIdx + 1}: chưa thấy file mật khẩu mới (chưa xuất?)", false); return; }
+            if (csv is null) { AddLog($"Hồ sơ {_exportIdx + 1}: chưa thấy file mật khẩu mới (chưa xuất?)", false); ExportLastResult = "⚠ Hồ sơ trước: chưa thấy file mật khẩu — kiểm tra lại."; return; }
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(_currentSavePath)!);
             System.IO.File.Move(csv.FullName, _currentSavePath, overwrite: true);
             _movedCount++;
             AddLog($"Đã chuyển {csv.Name} → {_currentSavePath}", true);
+            ExportLastResult = $"✓ Đã chuyển file hồ sơ trước vào {System.IO.Path.GetFileName(_currentSavePath)}";
         }
-        catch (Exception ex) { AddLog($"Không chuyển được file mật khẩu: {ex.Message}", false); }
+        catch (Exception ex) { AddLog($"Không chuyển được file mật khẩu: {ex.Message}", false); ExportLastResult = $"⚠ Lỗi chuyển file: {ex.Message}"; }
     }
 
     [RelayCommand]
