@@ -152,6 +152,26 @@ public static class OutlookService
         return OpResult.Success($"Đã đổi {f.Name} thành {Path.GetFileName(bak)}. Mở Outlook — hộp thư sẽ được tải lại từ máy chủ (lâu với hộp thư lớn). Xoá file .bak khi mọi thứ ổn.");
     }
 
+    /// <summary>Đổi tên file dữ liệu OST/PST (đóng Outlook trước). Giữ nguyên đuôi file; không ghi đè file đã có.</summary>
+    public static async Task<OpResult> RenameAsync(OutlookDataFile f, string newName)
+    {
+        newName = (newName ?? "").Trim();
+        if (newName.Length == 0) return OpResult.Fail("Chưa nhập tên mới.");
+        var ext = Path.GetExtension(f.Path);                                  // .ost / .pst
+        if (!newName.EndsWith(ext, StringComparison.OrdinalIgnoreCase)) newName += ext;
+        if (newName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return OpResult.Fail("Tên có ký tự không hợp lệ.");
+        var dest = Path.Combine(f.Folder, newName);
+        if (dest.Equals(f.Path, StringComparison.OrdinalIgnoreCase)) return OpResult.Fail("Tên mới trùng tên cũ.");
+        if (File.Exists(dest)) return OpResult.Fail($"Đã có file {newName} trong thư mục — chọn tên khác.");
+        if (IsRunning() && !await CloseAsync()) return OpResult.Fail("Không đóng được Outlook (đang mở, khoá file).");
+        try { File.Move(f.Path, dest); }
+        catch (Exception ex) { return OpResult.Fail($"Không đổi tên được: {ex.Message}"); }
+        var note = f.IsOst
+            ? "OST: mở Outlook sẽ tự tạo lại file và tải hộp thư từ máy chủ (lâu với hộp thư lớn)."
+            : "PST: lần mở Outlook tới sẽ hỏi tìm file dữ liệu — trỏ tới file vừa đổi tên, hoặc vào Mail Setup › Data Files.";
+        return OpResult.Success($"Đã đổi {f.Name} → {newName}. {note}");
+    }
+
     public static OpResult OpenScanPst()
     {
         var exe = ScanPstExe();

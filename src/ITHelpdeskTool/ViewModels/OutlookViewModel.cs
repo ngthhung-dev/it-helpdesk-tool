@@ -128,6 +128,15 @@ public sealed partial class OutlookViewModel : PageViewModel
             "Thư nháp / thư chưa gửi chỉ có trên máy (chưa đồng bộ) sẽ không còn trong hộp thư mới.", "Dựng lại", danger: true)
             ? Run("Đang dựng lại OST…", () => OutlookService.RebuildOstAsync(r.F)) : Task.CompletedTask;
 
+    [RelayCommand]
+    private Task RenameAsync(DataFileRow r)
+    {
+        var cur = System.IO.Path.GetFileNameWithoutExtension(r.F.Name);
+        var name = DialogWindow.AskText($"Đổi tên {r.F.Name}", $"Tên mới cho file dữ liệu (giữ nguyên đuôi {System.IO.Path.GetExtension(r.F.Path)}; Outlook sẽ được đóng trước khi đổi):", cur);
+        if (string.IsNullOrWhiteSpace(name)) return Task.CompletedTask;
+        return Run($"Đang đổi tên {r.F.Name}…", () => OutlookService.RenameAsync(r.F, name));
+    }
+
     [RelayCommand] private void OpenFolder(DataFileRow r) => ShellLauncher.Open("explorer.exe", $"/select,\"{r.F.Path}\"");
     [RelayCommand] private void ScanPst() { var r = OutlookService.OpenScanPst(); AddLog(r.Message, r.Ok); if (!r.Ok) DialogWindow.Info("Không mở được", r.Message, error: true); }
     [RelayCommand] private void MailSetup() { var r = OutlookService.OpenMailControlPanel(); AddLog(r.Message, r.Ok); if (!r.Ok) DialogWindow.Info("Không mở được", r.Message, error: true); }

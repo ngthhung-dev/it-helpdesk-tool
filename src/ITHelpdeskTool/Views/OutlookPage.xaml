@@ -66,6 +66,9 @@
                                                     <Button Style="{StaticResource BtnSmall}" Content="Dựng lại" Margin="0,0,6,0" CommandParameter="{Binding}" Visibility="{Binding F.IsOst, Converter={StaticResource BoolVis}}"
                                                             ToolTip="Đổi tên file OST cũ để Outlook tải lại từ máy chủ"
                                                             Command="{Binding DataContext.RebuildOstCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                    <Button Style="{StaticResource BtnSmall}" Content="Đổi tên" Margin="0,0,6,0" CommandParameter="{Binding}"
+                                                            ToolTip="Đổi tên file dữ liệu OST/PST (đóng Outlook trước)"
+                                                            Command="{Binding DataContext.RenameCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                                     <Button Style="{StaticResource BtnSmall}" Content="Mở thư mục" CommandParameter="{Binding}"
                                                             Command="{Binding DataContext.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                                 </StackPanel>
