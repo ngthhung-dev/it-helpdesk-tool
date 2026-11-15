@@ -227,10 +227,14 @@ public static class OutlookService
         return null;
     }
 
+    // Outlook lưu đường dẫn file ở một trong các giá trị này tuỳ loại tài khoản
+    private static readonly string[] PathValueNames = ["001f6700", "001f6610", "001f6620"];
+    private static bool KeyHasPath(RegistryKey k, string path) =>
+        PathValueNames.Any(n => k.GetValue(n) is byte[] b && System.Text.Encoding.Unicode.GetString(b).TrimEnd('\0').Equals(path, StringComparison.OrdinalIgnoreCase));
+
     private static string? FindDisplayName(RegistryKey key, string filePath)
     {
-        if (key.GetValue("001f6700") is byte[] pb && System.Text.Encoding.Unicode.GetString(pb).TrimEnd('\0').Equals(filePath, StringComparison.OrdinalIgnoreCase)
-            && key.GetValue("001f3001") is byte[] nb)
+        if (KeyHasPath(key, filePath) && key.GetValue("001f3001") is byte[] nb)
         {
             var s = System.Text.Encoding.Unicode.GetString(nb).TrimEnd('\0');
             if (s.Length > 0) return s;
@@ -265,7 +269,7 @@ public static class OutlookService
     private static int SetDisplayNameInKey(RegistryKey key, string filePath, string display)
     {
         var count = 0;
-        if (key.GetValue("001f6700") is byte[] pb && System.Text.Encoding.Unicode.GetString(pb).TrimEnd('\0').Equals(filePath, StringComparison.OrdinalIgnoreCase))
+        if (KeyHasPath(key, filePath))
         {
             try { key.SetValue("001f3001", System.Text.Encoding.Unicode.GetBytes(display + "\0"), RegistryValueKind.Binary); count++; } catch { }
         }
