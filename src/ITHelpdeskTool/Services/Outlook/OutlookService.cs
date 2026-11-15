@@ -212,6 +212,35 @@ public static class OutlookService
         return count;
     }
 
+    /// <summary>Tên hiển thị hiện tại của kho dữ liệu trỏ tới file này (001f3001); null nếu không tìm thấy.</summary>
+    public static string? CurrentDisplayName(OutlookDataFile f)
+    {
+        foreach (var ver in new[] { "16.0", "15.0" })
+        {
+            using var profiles = Registry.CurrentUser.OpenSubKey($@"Software\Microsoft\Office\{ver}\Outlook\Profiles");
+            if (profiles is null) continue;
+            foreach (var profName in profiles.GetSubKeyNames())
+                using (var prof = profiles.OpenSubKey(profName))
+                    if (prof is not null && FindDisplayName(prof, f.Path) is { } name)
+                        return name;
+        }
+        return null;
+    }
+
+    private static string? FindDisplayName(RegistryKey key, string filePath)
+    {
+        if (key.GetValue("001f6700") is byte[] pb && System.Text.Encoding.Unicode.GetString(pb).TrimEnd('\0').Equals(filePath, StringComparison.OrdinalIgnoreCase)
+            && key.GetValue("001f3001") is byte[] nb)
+        {
+            var s = System.Text.Encoding.Unicode.GetString(nb).TrimEnd('\0');
+            if (s.Length > 0) return s;
+        }
+        foreach (var sub in key.GetSubKeyNames())
+            using (var k = key.OpenSubKey(sub))
+                if (k is not null && FindDisplayName(k, filePath) is { } name) return name;
+        return null;
+    }
+
     /// <summary>Đổi TÊN HIỂN THỊ của kho dữ liệu (tên gốc hộp thư ở khung bên trái Outlook) — giá trị 001f3001 của store trỏ tới file này.</summary>
     public static async Task<OpResult> RenameDisplayAsync(OutlookDataFile f, string newName)
     {

@@ -140,8 +140,11 @@ public sealed partial class OutlookViewModel : PageViewModel
     [RelayCommand]
     private Task RenameDisplayAsync(DataFileRow r)
     {
-        var name = DialogWindow.AskText($"Đổi tên hiển thị", "Tên hiển thị ở khung bên trái Outlook (tên kho dữ liệu, không phải tên file; Outlook sẽ được đóng trước):", "");
-        if (string.IsNullOrWhiteSpace(name)) return Task.CompletedTask;
+        var cur = OutlookService.CurrentDisplayName(r.F) ?? "";
+        var msg = (cur.Length > 0 ? $"Tên hiện tại: {cur}\n\n" : "") +
+                  "Tên hiển thị ở khung bên trái Outlook (tên kho dữ liệu, không phải tên file; Outlook sẽ được đóng trước):";
+        var name = DialogWindow.AskText("Đổi tên hiển thị", msg, cur);
+        if (string.IsNullOrWhiteSpace(name) || name == cur) return Task.CompletedTask;
         return Run("Đang đổi tên hiển thị…", () => OutlookService.RenameDisplayAsync(r.F, name));
     }
 
