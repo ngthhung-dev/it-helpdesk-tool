@@ -137,6 +137,14 @@ public sealed partial class OutlookViewModel : PageViewModel
         return Run($"Đang đổi tên {r.F.Name}…", () => OutlookService.RenameAsync(r.F, name));
     }
 
+    [RelayCommand]
+    private Task RenameDisplayAsync(DataFileRow r)
+    {
+        var name = DialogWindow.AskText($"Đổi tên hiển thị", "Tên hiển thị ở khung bên trái Outlook (tên kho dữ liệu, không phải tên file; Outlook sẽ được đóng trước):", "");
+        if (string.IsNullOrWhiteSpace(name)) return Task.CompletedTask;
+        return Run("Đang đổi tên hiển thị…", () => OutlookService.RenameDisplayAsync(r.F, name));
+    }
+
     [RelayCommand] private void OpenFolder(DataFileRow r) => ShellLauncher.Open("explorer.exe", $"/select,\"{r.F.Path}\"");
     [RelayCommand] private void ScanPst() { var r = OutlookService.OpenScanPst(); AddLog(r.Message, r.Ok); if (!r.Ok) DialogWindow.Info("Không mở được", r.Message, error: true); }
     [RelayCommand] private void MailSetup() { var r = OutlookService.OpenMailControlPanel(); AddLog(r.Message, r.Ok); if (!r.Ok) DialogWindow.Info("Không mở được", r.Message, error: true); }
