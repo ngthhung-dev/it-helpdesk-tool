@@ -441,11 +441,15 @@ public static class BrowserBackupService
         var list = new List<ExportTarget>();
         foreach (var b in browsers)
         {
+            // Chỉ xuất hồ sơ CÓ mật khẩu đã lưu — bỏ qua hồ sơ 0 mật khẩu
+            int PwOf(string dir) => b.ProfileInfos.FirstOrDefault(p => p.Dir.Equals(Path.GetFileName(dir), StringComparison.OrdinalIgnoreCase))?.Passwords ?? 0;
             if (b.Family is "Firefox" or "Opera" || b.ProfileDirs.Length <= 1)
-                list.Add(new ExportTarget(b, b.ProfileDirs.FirstOrDefault() ?? "", b.Name));
+            {
+                if (b.Passwords > 0) list.Add(new ExportTarget(b, b.ProfileDirs.FirstOrDefault() ?? "", b.Name));
+            }
             else
                 foreach (var d in b.ProfileDirs)
-                    list.Add(new ExportTarget(b, d, $"{b.Name} · {ProfileName(b, d)}"));
+                    if (PwOf(d) > 0) list.Add(new ExportTarget(b, d, $"{b.Name} · {ProfileName(b, d)}"));
         }
         return list;
     }
