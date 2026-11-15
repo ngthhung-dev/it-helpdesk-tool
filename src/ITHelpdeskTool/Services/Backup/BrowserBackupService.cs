@@ -507,26 +507,13 @@ public static class BrowserBackupService
         return set;
     }
 
-    /// <summary>Mở trang mật khẩu của profile trong cửa sổ RIÊNG; trả về các cửa sổ mới (để đóng sau khi xuất xong).</summary>
-    public static async Task<(OpResult Result, List<nint> Windows)> OpenPasswordWindowAsync(Browser b, string profileDir)
-    {
-        var exe = ExeOf(b);
-        if (exe is null) return (OpResult.Fail($"Không tìm thấy file chạy của {b.Name}."), []);
-        var before = TopWindows(b.ProcNames);
-        try { Process.Start(new ProcessStartInfo(exe, BuildArgs(b, profileDir, PasswordUrl(b))) { UseShellExecute = false }); }
-        catch (Exception ex) { return (OpResult.Fail($"Không mở được: {ex.Message}"), []); }
-        // Chờ cửa sổ mới xuất hiện (tối đa ~6s)
-        for (var i = 0; i < 20; i++)
-        {
-            await Task.Delay(300).ConfigureAwait(false);
-            var neu = TopWindows(b.ProcNames).Except(before).ToList();
-            if (neu.Count > 0) return (OpResult.Success("Đã mở cửa sổ trang mật khẩu."), neu);
-        }
-        return (OpResult.Success("Đã mở trang mật khẩu (không nhận diện được cửa sổ để tự đóng)."), []);
-    }
+    /// <summary>Danh sách cửa sổ hiện có của trình duyệt (để chụp trước/sau mà tính cửa sổ mới).</summary>
+    public static List<nint> BrowserWindows(string[] procNames) => TopWindows(procNames).ToList();
 
-    public static void CloseWindows(IEnumerable<nint> windows)
+    /// <summary>Đóng các cửa sổ mới (so với lúc mở) của trình duyệt — cửa sổ trang mật khẩu vừa mở cho profile.</summary>
+    public static void CloseNewWindows(string[] procNames, IEnumerable<nint> before)
     {
-        foreach (var h in windows) try { PostMessage(h, WM_CLOSE, IntPtr.Zero, IntPtr.Zero); } catch { }
+        var skip = before.ToHashSet();
+        foreach (var h in TopWindows(procNames)) if (!skip.Contains(h)) try { PostMessage(h, WM_CLOSE, IntPtr.Zero, IntPtr.Zero); } catch { }
     }
 }
