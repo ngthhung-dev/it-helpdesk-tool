@@ -1,3 +1,4 @@
+using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using ITHelpdeskTool.Services.SysConfig;
@@ -6,17 +7,26 @@ using Microsoft.Win32;
 namespace ITHelpdeskTool.Services.Printing;
 
 public sealed record PrinterInfo(
-    string Name, string Driver, string Port, string Status, bool IsDefault, bool Shared, string ShareName, int Jobs, string Type, string Location)
+    string Name, string Driver, string Port, string Status, bool IsDefault, bool Shared, string ShareName, int Jobs, string Type, string Location,
+    bool WorkOffline = false, string HostAddress = "")
 {
+    /// <summary>Kết quả kiểm tra kết nối thực tế tới máy in mạng/chia sẻ: true = tới được, false = không tới được, null = không kiểm tra (máy in cục bộ/ảo).</summary>
+    public bool? Reachable { get; init; }
+
     public bool IsVirtual => Port.StartsWith("PORTPROMPT", StringComparison.OrdinalIgnoreCase) || Port is "nul:" or "SHRFAX:" || Driver.Contains("PDF") || Driver.Contains("XPS") || Driver.Contains("OneNote") || Driver.Contains("Fax");
     public bool IsNetwork => Type == "Connection" || Port.StartsWith("\\\\");
-    public string StatusText => Status switch
+
+    /// <summary>Trạng thái dùng để hiển thị: ưu tiên cờ "Dùng offline" của Windows và kết quả kiểm tra kết nối, rồi mới tới trạng thái spooler báo.</summary>
+    public string EffectiveStatus =>
+        WorkOffline || Reachable == false ? "Offline" : Status;
+
+    public string StatusText => EffectiveStatus switch
     {
         "Normal" or "" => "Sẵn sàng", "Paused" => "Tạm dừng", "Error" => "Lỗi", "PaperJam" => "Kẹt giấy", "PaperOut" => "Hết giấy",
         "Offline" => "Ngoại tuyến", "TonerLow" => "Sắp hết mực", "NoToner" => "Hết mực", "DoorOpen" => "Mở nắp", "PaperProblem" => "Lỗi giấy",
-        "Printing" => "Đang in", "Busy" => "Đang bận", "ServerUnknown" => "Không thấy máy chủ", _ => Status,
+        "Printing" => "Đang in", "Busy" => "Đang bận", "ServerUnknown" => "Không thấy máy chủ", _ => EffectiveStatus,
     };
-    public string Tone => Status is "Normal" or "" or "Printing" or "Busy" ? "Good" : Status is "Paused" or "TonerLow" ? "Warn" : "Bad";
+    public string Tone => EffectiveStatus is "Normal" or "" or "Printing" or "Busy" ? "Good" : EffectiveStatus is "Paused" or "TonerLow" ? "Warn" : "Bad";
     public string Detail => string.Join(" · ", new[]
     {
         Driver, Port, Shared ? $"chia sẻ: {ShareName}" : "", Jobs > 0 ? $"{Jobs} lệnh in đang chờ" : "", Location,
@@ -54,18 +64,69 @@ public static class PrinterService
     {
         const string script = """
             $def = (Get-CimInstance Win32_Printer -Filter 'Default=True' -ErrorAction SilentlyContinue).Name
+            $off = @{}
+            Get-CimInstance Win32_Printer -ErrorAction SilentlyContinue | ForEach-Object { $off[$_.Name] = [bool]$_.WorkOffline }
+            $hosts = @{}
+            Get-PrinterPort -ErrorAction SilentlyContinue | ForEach-Object { if ($_.PrinterHostAddress) { $hosts[$_.Name] = "$($_.PrinterHostAddress)" } }
             @(Get-Printer | ForEach-Object {
               $n = $_.Name
               [pscustomobject]@{ Name=$n; Driver=$_.DriverName; Port=$_.PortName; Status="$($_.PrinterStatus)"; Default=($n -eq $def);
                 Shared=[bool]$_.Shared; Share="$($_.ShareName)"; Type="$($_.Type)"; Location="$($_.Location)";
+                Offline=[bool]$off[$n]; HostAddr="$($hosts[$_.PortName])";
                 Jobs=@(Get-PrintJob -PrinterName $n -ErrorAction SilentlyContinue).Count }
             }) | ConvertTo-Json -Compress
             """;
         var r = await ProcessRunner.PowerShellAsync(script);
         if (!r.Success) throw new InvalidOperationException(Translate(OpResult.FirstLine(r.Text)));
-        return Arr(r.Output).Select(e => new PrinterInfo(S(e, "Name"), S(e, "Driver"), S(e, "Port"), S(e, "Status"), S(e, "Default") == "True",
-                S(e, "Shared") == "True", S(e, "Share"), int.TryParse(S(e, "Jobs"), out var j) ? j : 0, S(e, "Type"), S(e, "Location")))
+        var list = Arr(r.Output).Select(e => new PrinterInfo(S(e, "Name"), S(e, "Driver"), S(e, "Port"), S(e, "Status"), S(e, "Default") == "True",
+                S(e, "Shared") == "True", S(e, "Share"), int.TryParse(S(e, "Jobs"), out var j) ? j : 0, S(e, "Type"), S(e, "Location"),
+                S(e, "Offline") == "True", S(e, "HostAddr")))
             .OrderByDescending(p => p.IsDefault).ThenBy(p => p.IsVirtual).ThenBy(p => p.Name).ToList();
+
+        // Kiểm tra kết nối thực tế tới máy in mạng / chia sẻ (spooler báo "Normal" cả khi máy in đã tắt).
+        var probed = await Task.WhenAll(list.Select(async p =>
+        {
+            if (p.IsVirtual || p.WorkOffline) return p;              // ảo / đã offline sẵn thì khỏi kiểm tra
+            var host = HostOf(p);
+            if (host.Length == 0) return p;                          // cục bộ (USB…) không có host để kiểm tra
+            return p with { Reachable = await ReachableAsync(host) };
+        }));
+        return probed.ToList();
+    }
+
+    /// <summary>Host của máy in mạng/chia sẻ (IP hoặc tên máy chủ); "" nếu là máy in cục bộ.</summary>
+    private static string HostOf(PrinterInfo p)
+    {
+        foreach (var s in new[] { p.Name, p.Port })
+            if (s.StartsWith(@"\\"))
+            {
+                var parts = s.TrimStart('\\').Split('\\', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length > 0) return parts[0];
+            }
+        if (p.HostAddress.Length > 0) return p.HostAddress;
+        var m = Regex.Match(p.Port, @"(\d{1,3}\.){3}\d{1,3}");
+        return m.Success ? m.Value : "";
+    }
+
+    /// <summary>Thử kết nối TCP tới host: máy in mạng (9100/515/631) hoặc máy chủ chia sẻ (445/139). Tới được bất kỳ cổng nào = online.</summary>
+    private static async Task<bool> ReachableAsync(string host)
+    {
+        int[] ports = [9100, 515, 631, 445, 139, 80, 443];
+        var tasks = ports.Select(port => TryTcpAsync(host, port, 800)).ToArray();
+        var results = await Task.WhenAll(tasks);
+        return results.Any(ok => ok);
+    }
+
+    private static async Task<bool> TryTcpAsync(string host, int port, int timeoutMs)
+    {
+        try
+        {
+            using var client = new TcpClient();
+            var connect = client.ConnectAsync(host, port);
+            var done = await Task.WhenAny(connect, Task.Delay(timeoutMs));
+            return done == connect && !connect.IsFaulted && client.Connected;
+        }
+        catch { return false; }
     }
 
     public static async Task<List<string>> DriversAsync()
