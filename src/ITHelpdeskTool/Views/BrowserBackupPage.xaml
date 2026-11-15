@@ -73,8 +73,14 @@
                                         <Border Style="{StaticResource Row}">
                                             <DockPanel>
                                                 <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsChecked}" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                                <TextBlock DockPanel.Dock="Left" Text="{Binding B.Glyph}" Style="{StaticResource Icon}" FontSize="18" Foreground="{DynamicResource AccentBrush}"
-                                                           VerticalAlignment="Center" Margin="0,0,14,0"/>
+                                                <Grid DockPanel.Dock="Left" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,14,0">
+                                                    <!-- Globe dự phòng (hiện khi không lấy được icon thật của trình duyệt) -->
+                                                    <TextBlock Text="&#xE774;" Style="{StaticResource Icon}" FontSize="18" Foreground="{DynamicResource AccentBrush}"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <!-- Icon thật lấy từ file .exe đã cài; đè lên globe khi có -->
+                                                    <Image Source="{Binding Icon}" Width="20" Height="20"
+                                                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                </Grid>
                                                 <Expander IsExpanded="False" Background="Transparent" BorderThickness="0" Padding="0"
                                                           IsEnabled="{Binding CanExpand}">
                                                     <Expander.Header>

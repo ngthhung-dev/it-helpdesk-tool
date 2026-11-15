@@ -17,6 +17,9 @@ public sealed partial class BrowserRow(Browser b) : ObservableObject
     [ObservableProperty] private bool _isChecked = true;
     public string SizeText => B.Size > 0 ? Fmt.Size(B.Size) : "";
 
+    /// <summary>Icon thật của trình duyệt lấy từ file .exe đã cài; null thì UI dùng icon mặc định.</summary>
+    public System.Windows.Media.ImageSource? Icon => BrowserIcon.For(B.Key);
+
     /// <summary>Đầy đủ hồ sơ, sắp theo mật khẩu rồi bookmark nhiều nhất lên đầu.</summary>
     public IReadOnlyList<ProfileInfo> PwProfiles { get; } =
         b.ProfileInfos.OrderByDescending(p => p.Passwords).ThenByDescending(p => p.Bookmarks).ThenBy(p => p.Display).ToList();
