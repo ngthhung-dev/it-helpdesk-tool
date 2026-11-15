@@ -50,6 +50,7 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
     [ObservableProperty] private string _exportCurrent = "";
     [ObservableProperty] private string _exportNextLabel = "";
     [ObservableProperty] private string _exportSaveHint = "";
+    [ObservableProperty] private string _exportPageUrl = "";
     private List<BrowserBackupService.ExportTarget> _targets = [];
     private string _exportDest = "";
     private int _exportIdx;
@@ -206,16 +207,18 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         }
         var t = _targets[_exportIdx];
         var url = BrowserBackupService.PasswordUrl(t.B);
-        try { System.Windows.Clipboard.SetText(url); } catch { }   // chép đường dẫn để dán nếu trình duyệt không tự mở đúng tab
         var res = BrowserBackupService.OpenPasswordPage(t.B, t.ProfileDir);
         AddLog($"{t.Label}: {res.Message}", res.Ok);
-        ExportCurrent = $"Hồ sơ {_exportIdx + 1}/{_targets.Count}: {t.Label}  ·  đã chép đường dẫn: {url}";
-        // Gợi ý nơi lưu file mật khẩu theo đúng thư mục / tên như file bookmark
+        ExportCurrent = $"Hồ sơ {_exportIdx + 1}/{_targets.Count}: {t.Label}";
+        ExportPageUrl = url;
+        // Chép sẵn ĐƯỜNG DẪN FILE MẬT KHẨU (cùng thư mục với bookmark) để dán vào ô File name của hộp thoại Lưu → file nằm đúng chỗ.
         try
         {
             var folder = System.IO.Path.Combine(_exportDest, BrowserBackupService.SafeBrowserFolder(t.B));
             System.IO.Directory.CreateDirectory(folder);
-            ExportSaveHint = $"Khi lưu file mật khẩu, chọn thư mục: {folder}  ·  đặt tên: {BrowserBackupService.SafeProfileFile(t.B, t.ProfileDir)}.csv";
+            var fullPath = System.IO.Path.Combine(folder, BrowserBackupService.SafeProfileFile(t.B, t.ProfileDir) + ".csv");
+            try { System.Windows.Clipboard.SetText(fullPath); } catch { }
+            ExportSaveHint = $"Đã chép sẵn nơi lưu. Khi bấm Export → hộp thoại Lưu hiện ra, dán (Ctrl+V) vào ô File name rồi Save — file mật khẩu sẽ nằm cùng thư mục bookmark:\n{fullPath}";
         }
         catch { ExportSaveHint = ""; }
         var next = _exportIdx + 1 < _targets.Count ? _targets[_exportIdx + 1].Label : "";
