@@ -54,6 +54,16 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
     private string _exportDest = "";
     private int _exportIdx;
 
+    /// <summary>Thư mục mặc định cho hộp thoại lưu: Downloads của người dùng.</summary>
+    private static string DefaultSaveDir
+    {
+        get
+        {
+            var dl = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            return System.IO.Directory.Exists(dl) ? dl : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        }
+    }
+
     public override void OnNavigatedTo()
     {
         if (_loaded) return;
@@ -115,7 +125,7 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         var sel = Checked();
         if (sel.Count == 0) { DialogWindow.Info("Chưa chọn trình duyệt", "Tích chọn trình duyệt muốn sao lưu."); return; }
         if (!DialogWindow.Confirm($"{title}?", note + "\n\nCác trình duyệt được chọn sẽ được đóng trong lúc sao lưu.", title)) return;
-        var dlg = new OpenFolderDialog { Title = $"Nơi lưu ({title}) — nên chọn USB / ổ khác" };
+        var dlg = new OpenFolderDialog { Title = $"Nơi lưu ({title}) — nên chọn USB / ổ khác", InitialDirectory = DefaultSaveDir };
         if (dlg.ShowDialog() != true) return;
         if (!await CloseIfRunning(sel)) return;
 
@@ -153,7 +163,7 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
                 "App xuất bookmark ra file HTML. Mật khẩu thì app mở trang Export của từng trình duyệt — bạn bấm Export trên đó, trình duyệt sẽ hỏi xác thực Windows rồi lưu file.\n\n" +
                 "Lưu ý: file xuất ra là dữ liệu đăng nhập, dùng xong hãy xóa.", "Xuất"))
             return;
-        var dlg = new OpenFolderDialog { Title = "Nơi lưu file bookmark HTML" };
+        var dlg = new OpenFolderDialog { Title = "Nơi lưu file bookmark HTML", InitialDirectory = DefaultSaveDir };
         if (dlg.ShowDialog() != true) return;
         var dest = BrowserBackupService.NewSetDir(dlg.FolderName, "XuatTrinhDuyet");
         _exportDest = dest;
@@ -219,7 +229,7 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
     [RelayCommand]
     private async Task RestoreAsync()
     {
-        var dlg = new OpenFolderDialog { Title = "Chọn thư mục sao lưu (SaoLuu-BM-MK… / SaoLuu-Cookie…)" };
+        var dlg = new OpenFolderDialog { Title = "Chọn thư mục sao lưu (SaoLuu-BM-MK… / SaoLuu-Cookie…)", InitialDirectory = DefaultSaveDir };
         if (dlg.ShowDialog() != true) return;
         var inBackup = BrowserBackupService.InBackup(dlg.FolderName);
         if (inBackup.Count == 0) { DialogWindow.Info("Không có dữ liệu", "Thư mục này không chứa bản sao lưu trình duyệt nào."); return; }
