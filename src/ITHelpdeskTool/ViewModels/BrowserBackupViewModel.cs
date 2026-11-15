@@ -226,7 +226,7 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
             _currentSavePath = System.IO.Path.Combine(folder, BrowserBackupService.SafeProfileFile(t.B, t.ProfileDir) + ".csv");
         }
         catch { _currentSavePath = ""; }
-        ExportSaveHint = $"Lưu vào: {_currentSavePath}";
+        ExportSaveHint = _currentSavePath.Length > 0 ? $"App sẽ tự chuyển file vào: {_currentSavePath}" : "";
         var next = _exportIdx + 1 < _targets.Count ? _targets[_exportIdx + 1].Label : "";
         ExportNextLabel = next.Length > 0 ? $"Xong hồ sơ này → bấm để lưu & mở tiếp: {next}" : "Hồ sơ cuối — bấm để lưu & kết thúc";
     }

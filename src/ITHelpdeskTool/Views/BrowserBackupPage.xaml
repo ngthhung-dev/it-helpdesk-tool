@@ -141,6 +141,8 @@
                                         <Run Text="Bước 2 —" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"/>
                                         <Run Text="bấm “Export passwords” → xác thực Windows → Save (để nguyên nơi lưu mặc định, không cần đổi). Xong bấm nút dưới — app tự chuyển file vào thư mục xuất và đặt tên theo profile."/>
                                     </TextBlock>
+                                    <TextBlock Text="{Binding ExportSaveHint}" Style="{StaticResource Hint}" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                               Visibility="{Binding ExportSaveHint, Converter={x:Static core:Converters.NonEmptyVis}}"/>
                                     <TextBlock Text="{Binding ExportNextLabel}" Style="{StaticResource Hint}" Margin="0,6,0,8"/>
                                     <StackPanel Orientation="Horizontal">
                                         <Button Style="{StaticResource BtnPrimary}" Content="Đã xuất xong → lưu &amp; mở hồ sơ tiếp" Margin="0,0,8,0" Command="{Binding NextExportCommand}"/>
