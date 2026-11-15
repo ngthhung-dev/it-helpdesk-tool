@@ -237,8 +237,15 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         if (_currentSavePath.Length == 0) return;
         try
         {
-            var dirs = new[] { DefaultSaveDir, _exportDest }.Where(d => d.Length > 0 && System.IO.Directory.Exists(d)).Distinct();
-            var csv = dirs.SelectMany(d => System.IO.Directory.GetFiles(d, "*.csv"))
+            // Tìm file CSV ở các thư mục người dùng hay lưu: Downloads, Desktop, Documents, và thư mục xuất
+            var dirs = new[]
+            {
+                DefaultSaveDir,
+                Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                _exportDest,
+            }.Where(d => d.Length > 0 && System.IO.Directory.Exists(d)).Distinct(StringComparer.OrdinalIgnoreCase);
+            var csv = dirs.SelectMany(d => { try { return System.IO.Directory.GetFiles(d, "*.csv"); } catch { return []; } })
                 .Select(f => new System.IO.FileInfo(f))
                 .Where(f => f.LastWriteTime >= _stepStart.AddSeconds(-3) && !f.FullName.Equals(_currentSavePath, StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(f => f.LastWriteTime).FirstOrDefault();
