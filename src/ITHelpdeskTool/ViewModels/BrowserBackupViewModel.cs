@@ -53,6 +53,7 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
     [ObservableProperty] private string _exportPageUrl = "";
     private List<BrowserBackupService.ExportTarget> _targets = [];
     private string _exportDest = "";
+    private string _currentSavePath = "";
     private int _exportIdx;
 
     /// <summary>Thư mục mặc định cho hộp thoại lưu: Downloads của người dùng.</summary>
@@ -207,22 +208,34 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         }
         var t = _targets[_exportIdx];
         var url = BrowserBackupService.PasswordUrl(t.B);
+        // BƯỚC 1 (mở trang): clipboard = URL trang xuất, để dán vào thanh địa chỉ nếu trình duyệt chưa tự mở.
+        try { System.Windows.Clipboard.SetText(url); } catch { }
         var res = BrowserBackupService.OpenPasswordPage(t.B, t.ProfileDir);
         AddLog($"{t.Label}: {res.Message}", res.Ok);
         ExportCurrent = $"Hồ sơ {_exportIdx + 1}/{_targets.Count}: {t.Label}";
         ExportPageUrl = url;
-        // Chép sẵn ĐƯỜNG DẪN FILE MẬT KHẨU (cùng thư mục với bookmark) để dán vào ô File name của hộp thoại Lưu → file nằm đúng chỗ.
+        // Tính sẵn đường dẫn file (cùng thư mục bookmark) cho BƯỚC 2
         try
         {
             var folder = System.IO.Path.Combine(_exportDest, BrowserBackupService.SafeBrowserFolder(t.B));
             System.IO.Directory.CreateDirectory(folder);
-            var fullPath = System.IO.Path.Combine(folder, BrowserBackupService.SafeProfileFile(t.B, t.ProfileDir) + ".csv");
-            try { System.Windows.Clipboard.SetText(fullPath); } catch { }
-            ExportSaveHint = $"Đã chép sẵn nơi lưu. Khi bấm Export → hộp thoại Lưu hiện ra, dán (Ctrl+V) vào ô File name rồi Save — file mật khẩu sẽ nằm cùng thư mục bookmark:\n{fullPath}";
+            _currentSavePath = System.IO.Path.Combine(folder, BrowserBackupService.SafeProfileFile(t.B, t.ProfileDir) + ".csv");
         }
-        catch { ExportSaveHint = ""; }
+        catch { _currentSavePath = ""; }
+        ExportSaveHint = _currentSavePath.Length > 0
+            ? $"Đã chép sẵn URL trang xuất. Nơi lưu file: {_currentSavePath}"
+            : "";
         var next = _exportIdx + 1 < _targets.Count ? _targets[_exportIdx + 1].Label : "";
         ExportNextLabel = next.Length > 0 ? $"Xuất xong hồ sơ này → mở tiếp: {next}" : "Đây là hồ sơ cuối — bấm để kết thúc";
+    }
+
+    /// <summary>BƯỚC 2 (trước khi Save): chép đường dẫn file để dán vào ô File name của hộp thoại Lưu.</summary>
+    [RelayCommand]
+    private void CopySavePath()
+    {
+        if (_currentSavePath.Length == 0) return;
+        try { System.Windows.Clipboard.SetText(_currentSavePath); AddLog($"Đã chép đường dẫn lưu: {_currentSavePath}", true); }
+        catch { }
     }
 
     [RelayCommand]
