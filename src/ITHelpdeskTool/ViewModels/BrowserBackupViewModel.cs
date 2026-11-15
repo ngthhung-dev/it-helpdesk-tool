@@ -54,6 +54,8 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
     private List<BrowserBackupService.ExportTarget> _targets = [];
     private string _exportDest = "";
     private string _currentSavePath = "";
+    private DateTime _stepStart;
+    private int _movedCount;
     private int _exportIdx;
 
     /// <summary>Thư mục mặc định cho hộp thoại lưu: Downloads của người dùng.</summary>
@@ -185,36 +187,38 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         finally { IsBusy = false; }
         if (ok > 0) ShellLauncher.Open(dest);
 
-        // Mật khẩu: mở trang Export lần lượt từng hồ sơ của từng trình duyệt
+        // Mật khẩu: mở trang Export lần lượt từng hồ sơ; app tự chuyển file CSV vừa tải vào đúng thư mục bookmark
         _targets = BrowserBackupService.PasswordTargets(sel.Select(r => r.B));
         if (_targets.Count == 0) { DialogWindow.Info("Xong", "Đã xuất bookmark. Không có hồ sơ nào để xuất mật khẩu."); return; }
         _exportIdx = -1;
+        _movedCount = 0;
         ExportActive = true;
-        OpenNextExport();
+        AdvanceExport();
     }
 
-    /// <summary>Mở trang xuất mật khẩu của hồ sơ kế tiếp trong danh sách.</summary>
+    /// <summary>Chuyển hồ sơ hiện tại xong (tự dọn file CSV vừa tải), rồi mở hồ sơ kế tiếp.</summary>
     [RelayCommand]
-    private void NextExport() => OpenNextExport();
+    private void NextExport() => AdvanceExport();
 
-    private void OpenNextExport()
+    private void AdvanceExport()
     {
+        if (_exportIdx >= 0) FinalizeCurrent();   // dọn file CSV của hồ sơ vừa xuất
         _exportIdx++;
         if (_exportIdx >= _targets.Count)
         {
             ExportActive = false;
-            DialogWindow.Info("Đã xong tất cả hồ sơ", "Đã mở hết các hồ sơ để xuất mật khẩu. File mật khẩu do trình duyệt lưu — dùng xong nhớ xóa.");
+            DialogWindow.Info("Đã xong", $"Đã xử lý {_targets.Count} hồ sơ, chuyển {_movedCount} file mật khẩu vào thư mục xuất. File chứa mật khẩu — dùng xong nhớ xóa.");
+            if (_exportDest.Length > 0) ShellLauncher.Open(_exportDest);
             return;
         }
         var t = _targets[_exportIdx];
         var url = BrowserBackupService.PasswordUrl(t.B);
-        // BƯỚC 1 (mở trang): clipboard = URL trang xuất, để dán vào thanh địa chỉ nếu trình duyệt chưa tự mở.
-        try { System.Windows.Clipboard.SetText(url); } catch { }
+        try { System.Windows.Clipboard.SetText(url); } catch { }   // URL trang xuất, để dán nếu trình duyệt chưa tự mở đúng trang
         var res = BrowserBackupService.OpenPasswordPage(t.B, t.ProfileDir);
         AddLog($"{t.Label}: {res.Message}", res.Ok);
+        _stepStart = DateTime.Now;
         ExportCurrent = $"Hồ sơ {_exportIdx + 1}/{_targets.Count}: {t.Label}";
         ExportPageUrl = url;
-        // Tính sẵn đường dẫn file (cùng thư mục bookmark) cho BƯỚC 2
         try
         {
             var folder = System.IO.Path.Combine(_exportDest, BrowserBackupService.SafeBrowserFolder(t.B));
@@ -222,24 +226,33 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
             _currentSavePath = System.IO.Path.Combine(folder, BrowserBackupService.SafeProfileFile(t.B, t.ProfileDir) + ".csv");
         }
         catch { _currentSavePath = ""; }
-        ExportSaveHint = _currentSavePath.Length > 0
-            ? $"Đã chép sẵn URL trang xuất. Nơi lưu file: {_currentSavePath}"
-            : "";
+        ExportSaveHint = _currentSavePath.Length > 0 ? $"App sẽ tự chuyển file vào: {_currentSavePath}" : "";
         var next = _exportIdx + 1 < _targets.Count ? _targets[_exportIdx + 1].Label : "";
-        ExportNextLabel = next.Length > 0 ? $"Xuất xong hồ sơ này → mở tiếp: {next}" : "Đây là hồ sơ cuối — bấm để kết thúc";
+        ExportNextLabel = next.Length > 0 ? $"Xong hồ sơ này → bấm để lưu & mở tiếp: {next}" : "Hồ sơ cuối — bấm để lưu & kết thúc";
     }
 
-    /// <summary>BƯỚC 2 (trước khi Save): chép đường dẫn file để dán vào ô File name của hộp thoại Lưu.</summary>
-    [RelayCommand]
-    private void CopySavePath()
+    /// <summary>Tìm file CSV vừa tải (trong Downloads / thư mục xuất) sau khi mở hồ sơ hiện tại, chuyển vào đúng chỗ, đặt tên theo profile.</summary>
+    private void FinalizeCurrent()
     {
         if (_currentSavePath.Length == 0) return;
-        try { System.Windows.Clipboard.SetText(_currentSavePath); AddLog($"Đã chép đường dẫn lưu: {_currentSavePath}", true); }
-        catch { }
+        try
+        {
+            var dirs = new[] { DefaultSaveDir, _exportDest }.Where(d => d.Length > 0 && System.IO.Directory.Exists(d)).Distinct();
+            var csv = dirs.SelectMany(d => System.IO.Directory.GetFiles(d, "*.csv"))
+                .Select(f => new System.IO.FileInfo(f))
+                .Where(f => f.LastWriteTime >= _stepStart.AddSeconds(-3) && !f.FullName.Equals(_currentSavePath, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(f => f.LastWriteTime).FirstOrDefault();
+            if (csv is null) { AddLog($"Hồ sơ {_exportIdx + 1}: chưa thấy file mật khẩu mới (chưa xuất?)", false); return; }
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(_currentSavePath)!);
+            System.IO.File.Move(csv.FullName, _currentSavePath, overwrite: true);
+            _movedCount++;
+            AddLog($"Đã chuyển {csv.Name} → {_currentSavePath}", true);
+        }
+        catch (Exception ex) { AddLog($"Không chuyển được file mật khẩu: {ex.Message}", false); }
     }
 
     [RelayCommand]
-    private void CancelExport() { ExportActive = false; _targets = []; }
+    private void CancelExport() { if (_exportIdx >= 0) FinalizeCurrent(); ExportActive = false; _targets = []; }
 
     // ================= Khôi phục =================
     [RelayCommand]
