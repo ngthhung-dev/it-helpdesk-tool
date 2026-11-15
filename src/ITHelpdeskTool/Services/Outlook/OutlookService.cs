@@ -166,10 +166,50 @@ public static class OutlookService
         if (IsRunning() && !await CloseAsync()) return OpResult.Fail("Không đóng được Outlook (đang mở, khoá file).");
         try { File.Move(f.Path, dest); }
         catch (Exception ex) { return OpResult.Fail($"Không đổi tên được: {ex.Message}"); }
-        var note = f.IsOst
-            ? "OST: mở Outlook sẽ tự tạo lại file và tải hộp thư từ máy chủ (lâu với hộp thư lớn)."
-            : "PST: lần mở Outlook tới sẽ hỏi tìm file dữ liệu — trỏ tới file vừa đổi tên, hoặc vào Mail Setup › Data Files.";
+        // Cập nhật đường dẫn trong hồ sơ Outlook để Outlook tự nhận file tên mới (không hỏi lại / không tạo lại)
+        var updated = UpdateProfilePaths(f.Path, dest);
+        var note = updated > 0
+            ? $"Đã cập nhật đường dẫn trong {updated} mục hồ sơ Outlook — mở Outlook sẽ dùng file tên mới."
+            : f.IsOst
+                ? "Không thấy đường dẫn này trong hồ sơ Outlook — mở Outlook sẽ tạo lại OST mới (tải hộp thư từ máy chủ)."
+                : "Không thấy đường dẫn này trong hồ sơ Outlook — lần mở Outlook tới có thể hỏi tìm file (trỏ tới file vừa đổi tên).";
         return OpResult.Success($"Đã đổi {f.Name} → {newName}. {note}");
+    }
+
+    /// <summary>
+    /// Đổi đường dẫn file dữ liệu trong hồ sơ Outlook (registry) từ cũ sang mới, để Outlook nhận file tên mới.
+    /// Chỉ sửa đúng các giá trị REG_BINARY mà nội dung (chuỗi UTF-16) KHỚP Y HỆT đường dẫn cũ. Trả về số mục đã đổi.
+    /// </summary>
+    private static int UpdateProfilePaths(string oldPath, string newPath)
+    {
+        var count = 0;
+        foreach (var ver in new[] { "16.0", "15.0" })
+        {
+            using var profiles = Registry.CurrentUser.OpenSubKey($@"Software\Microsoft\Office\{ver}\Outlook\Profiles", writable: true);
+            if (profiles is null) continue;
+            foreach (var profName in profiles.GetSubKeyNames())
+                using (var prof = profiles.OpenSubKey(profName, writable: true))
+                    if (prof is not null) count += ReplaceInKey(prof, oldPath, newPath);
+        }
+        return count;
+    }
+
+    private static int ReplaceInKey(RegistryKey key, string oldPath, string newPath)
+    {
+        var count = 0;
+        foreach (var name in key.GetValueNames())
+        {
+            if (key.GetValueKind(name) != RegistryValueKind.Binary) continue;
+            if (key.GetValue(name) is not byte[] data || data.Length < 4) continue;
+            var text = System.Text.Encoding.Unicode.GetString(data).TrimEnd('\0');
+            if (!text.Equals(oldPath, StringComparison.OrdinalIgnoreCase)) continue;
+            var bytes = System.Text.Encoding.Unicode.GetBytes(newPath + "\0");   // chuỗi UTF-16 + null kết thúc
+            try { key.SetValue(name, bytes, RegistryValueKind.Binary); count++; } catch { }
+        }
+        foreach (var sub in key.GetSubKeyNames())
+            using (var k = key.OpenSubKey(sub, writable: true))
+                if (k is not null) count += ReplaceInKey(k, oldPath, newPath);
+        return count;
     }
 
     public static OpResult OpenScanPst()
