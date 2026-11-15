@@ -428,10 +428,33 @@ public static class BrowserBackupService
 
     /// <summary>Tên dễ đọc của một profile Chromium (profile.name trong Preferences) — không có thì lấy tên thư mục.</summary>
     /// <summary>Tên hiển thị của profile (vd. "AI MKT (GeminiPro)", "tapdoandaiviet.com.vn") — đọc từ Local State › profile.info_cache, không phải Preferences.</summary>
+    /// <summary>Tên profile Firefox từ profiles.ini (vd. "default-release") thay cho tên thư mục ngẫu nhiên "ye9z92vj.default-release".</summary>
+    private static string? FirefoxProfileName(string root, string leaf)
+    {
+        try
+        {
+            var ini = Path.Combine(root, "profiles.ini");
+            if (!File.Exists(ini)) return null;
+            string? name = null;
+            foreach (var raw in File.ReadLines(ini))
+            {
+                var line = raw.Trim();
+                if (line.StartsWith('[')) { name = null; continue; }
+                if (line.StartsWith("Name=", StringComparison.OrdinalIgnoreCase)) name = line[5..].Trim();
+                else if (line.StartsWith("Path=", StringComparison.OrdinalIgnoreCase)
+                         && Path.GetFileName(line[5..].Trim().Replace('/', '\\')).Equals(leaf, StringComparison.OrdinalIgnoreCase)
+                         && !string.IsNullOrEmpty(name))
+                    return name;
+            }
+        }
+        catch { }
+        return null;
+    }
+
     private static string ProfileName(Browser b, string dir)
     {
         var leaf = Path.GetFileName(dir);
-        if (b.Family == "Firefox") return leaf;
+        if (b.Family == "Firefox") return FirefoxProfileName(b.Root, leaf) ?? leaf;
         try
         {
             var ls = Path.Combine(b.Root, "Local State");
