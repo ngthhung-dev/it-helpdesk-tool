@@ -59,10 +59,21 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
     private int _exportIdx;
 
     /// <summary>Thư mục mặc định cho hộp thoại lưu: Downloads của người dùng.</summary>
+    /// <summary>Thư mục Downloads THẬT — đọc từ known folder (có thể đã dời sang ổ khác, vd E:\Downloads), không mặc định C:\Users\…\Downloads.</summary>
     private static string DefaultSaveDir
     {
         get
         {
+            try
+            {
+                using var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders");
+                if (k?.GetValue("{374DE290-123F-4565-9164-39C4925E467B}") is string v && v.Length > 0)
+                {
+                    v = Environment.ExpandEnvironmentVariables(v);
+                    if (System.IO.Directory.Exists(v)) return v;
+                }
+            }
+            catch { }
             var dl = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
             return System.IO.Directory.Exists(dl) ? dl : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         }
