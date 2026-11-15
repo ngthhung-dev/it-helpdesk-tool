@@ -212,6 +212,40 @@ public static class OutlookService
         return count;
     }
 
+    /// <summary>Đổi TÊN HIỂN THỊ của kho dữ liệu (tên gốc hộp thư ở khung bên trái Outlook) — giá trị 001f3001 của store trỏ tới file này.</summary>
+    public static async Task<OpResult> RenameDisplayAsync(OutlookDataFile f, string newName)
+    {
+        newName = (newName ?? "").Trim();
+        if (newName.Length == 0) return OpResult.Fail("Chưa nhập tên hiển thị.");
+        if (IsRunning() && !await CloseAsync()) return OpResult.Fail("Không đóng được Outlook (đang mở).");
+        var n = 0;
+        foreach (var ver in new[] { "16.0", "15.0" })
+        {
+            using var profiles = Registry.CurrentUser.OpenSubKey($@"Software\Microsoft\Office\{ver}\Outlook\Profiles", writable: true);
+            if (profiles is null) continue;
+            foreach (var profName in profiles.GetSubKeyNames())
+                using (var prof = profiles.OpenSubKey(profName, writable: true))
+                    if (prof is not null) n += SetDisplayNameInKey(prof, f.Path, newName);
+        }
+        return n > 0
+            ? OpResult.Success($"Đã đổi tên hiển thị thành “{newName}” ({n} mục). Mở Outlook để thấy tên mới ở khung bên trái.")
+            : OpResult.Fail("Không tìm thấy kho dữ liệu khớp file này trong hồ sơ Outlook.");
+    }
+
+    /// <summary>Trong một key store (có 001f6700 = đường dẫn file này), đặt 001f3001 = tên hiển thị mới. Đệ quy.</summary>
+    private static int SetDisplayNameInKey(RegistryKey key, string filePath, string display)
+    {
+        var count = 0;
+        if (key.GetValue("001f6700") is byte[] pb && System.Text.Encoding.Unicode.GetString(pb).TrimEnd('\0').Equals(filePath, StringComparison.OrdinalIgnoreCase))
+        {
+            try { key.SetValue("001f3001", System.Text.Encoding.Unicode.GetBytes(display + "\0"), RegistryValueKind.Binary); count++; } catch { }
+        }
+        foreach (var sub in key.GetSubKeyNames())
+            using (var k = key.OpenSubKey(sub, writable: true))
+                if (k is not null) count += SetDisplayNameInKey(k, filePath, display);
+        return count;
+    }
+
     public static OpResult OpenScanPst()
     {
         var exe = ScanPstExe();
