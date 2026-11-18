@@ -146,7 +146,7 @@ public static class PrinterService
     // ================= Thao tác =================
     public static Task<OpResult> SetDefaultAsync(PrinterInfo p) =>
         Ps($$"""
-            Set-ItemProperty 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Windows' -Name LegacyDefaultPrinterMode -Value 1 -Type DWord
+            Set-ItemProperty '{{ActiveUser.PsRoot}}\Software\Microsoft\Windows NT\CurrentVersion\Windows' -Name LegacyDefaultPrinterMode -Value 1 -Type DWord
             $pr = Get-CimInstance Win32_Printer -Filter "Name='{{p.Name.Replace("\\", "\\\\").Replace("'", "\\'")}}'"
             $r = Invoke-CimMethod -InputObject $pr -MethodName SetDefaultPrinter
             if ($r.ReturnValue -ne 0) { throw "mã $($r.ReturnValue)" }

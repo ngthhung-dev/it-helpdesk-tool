@@ -21,7 +21,7 @@ public sealed record CleanResult(long Freed, int Deleted, int Skipped);
 public static class CleanupService
 {
     private static string Win => Environment.GetFolderPath(Environment.SpecialFolder.Windows);
-    private static string Local => Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+    private static string Local => ActiveUser.Folder(Environment.SpecialFolder.LocalApplicationData);
     private static string ProgData => Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
     private static string SysDrive => Path.GetPathRoot(Environment.SystemDirectory) ?? @"C:\";
 
@@ -55,7 +55,7 @@ public static class CleanupService
     public static IReadOnlyList<CleanupDef> Items { get; } =
     [
         new("temp.user", "File tạm của người dùng", "Thư mục %TEMP% — chỉ xoá file cũ hơn 1 ngày để không ảnh hưởng chương trình đang chạy.",
-            () => [new(System.IO.Path.GetTempPath(), MinAgeHours: 24)]),
+            () => [new(ActiveUser.TempPath, MinAgeHours: 24)]),
         new("temp.windows", "File tạm của Windows", @"C:\Windows\Temp — file cũ hơn 1 ngày.",
             () => [new(System.IO.Path.Combine(Win, "Temp"), MinAgeHours: 24)]),
         new("wu", "Bộ nhớ đệm Windows Update", "Bản cập nhật đã tải về và đã cài xong. Dọn cũng hay dùng khi Windows Update bị kẹt.",

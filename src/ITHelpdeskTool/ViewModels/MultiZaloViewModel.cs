@@ -38,7 +38,7 @@ public sealed partial class MultiZaloViewModel : PageViewModel
     public ObservableCollection<ActionLogEntry> ActionLog { get; } = [];
 
     // ===== Chụp màn hình khi mở nhiều Zalo =====
-    private const string KbKey = @"HKEY_CURRENT_USER\Control Panel\Keyboard";
+    private static string KbKey => $@"{ActiveUser.RegRoot}\Control Panel\Keyboard";
     [ObservableProperty] private bool _prtScnOn;
 
     private void ReadPrtScn()

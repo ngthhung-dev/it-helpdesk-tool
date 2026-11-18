@@ -200,12 +200,33 @@ public sealed partial class StoreViewModel : PageViewModel
                 catch (Exception ex) { Log.Warn($"winget export: {ex.Message}"); }
             }
             var reg = await regTask;
+            var appx = await Task.Run(StoreInstaller.ReadAppxNames);
             foreach (var r in Apps)
             {
                 if (r.App.Kind == StoreKind.Winget)
                 {
-                    r.IsInstalled = _installed.TryGetValue(r.App.Id, out var v);
-                    r.InstalledVersion = v ?? "";
+                    // 1) winget nhận ra gói (đúng Id hoặc biến thể .EXE/.MSI/ngôn ngữ)
+                    if (StoreInstaller.FindWingetId(r.App, _installed) is { } wid)
+                    {
+                        r.IsInstalled = true;
+                        r.InstalledVersion = _installed[wid];
+                    }
+                    // 2) cài dạng gói Store/MSIX, 3) có trong Programs and Features (cài tay, winget lỗi nguồn…)
+                    else if (r.App.Appx.Length > 0 && appx.Contains(r.App.Appx))
+                    {
+                        r.IsInstalled = true;
+                        r.InstalledVersion = "";
+                    }
+                    else if (StoreInstaller.FindByName(r.App, reg) is { } hit)
+                    {
+                        r.IsInstalled = true;
+                        r.InstalledVersion = hit.Version;
+                    }
+                    else
+                    {
+                        r.IsInstalled = false;
+                        r.InstalledVersion = "";
+                    }
                 }
                 else r.IsInstalled = StoreInstaller.IsInstalledLocally(r.App, reg);
             }

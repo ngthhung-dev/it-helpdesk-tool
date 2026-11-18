@@ -65,7 +65,7 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
         {
             try
             {
-                using var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders");
+                using var k = ActiveUser.Registry.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders");
                 if (k?.GetValue("{374DE290-123F-4565-9164-39C4925E467B}") is string v && v.Length > 0)
                 {
                     v = Environment.ExpandEnvironmentVariables(v);
@@ -73,8 +73,8 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
                 }
             }
             catch { }
-            var dl = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
-            return System.IO.Directory.Exists(dl) ? dl : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var dl = ActiveUser.Downloads;
+            return System.IO.Directory.Exists(dl) ? dl : ActiveUser.Folder(Environment.SpecialFolder.UserProfile);
         }
     }
 
@@ -284,8 +284,8 @@ public sealed partial class BrowserBackupViewModel : PageViewModel
             var dirs = new[]
             {
                 DefaultSaveDir,
-                Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
-                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                ActiveUser.Folder(Environment.SpecialFolder.DesktopDirectory),
+                ActiveUser.Folder(Environment.SpecialFolder.MyDocuments),
                 _exportDest,
             }.Where(d => d.Length > 0 && System.IO.Directory.Exists(d)).Distinct(StringComparer.OrdinalIgnoreCase);
             var csv = dirs.SelectMany(d => { try { return System.IO.Directory.GetFiles(d, "*.csv"); } catch { return []; } })

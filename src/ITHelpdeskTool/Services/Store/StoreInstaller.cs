@@ -24,6 +24,43 @@ public static class StoreInstaller
         _ => false,
     };
 
+    /// <summary>
+    /// Mục winget có trong danh sách winget export không. Ngoài Id đúng, chấp nhận biến thể winget tự đặt khi
+    /// đối chiếu bản cài tay (Zoom.Zoom.EXE, Google.Chrome.EXE, Mozilla.Firefox.vi…), trừ khi biến thể đó là mục khác trong kho.
+    /// </summary>
+    public static string? FindWingetId(StoreApp a, IReadOnlyDictionary<string, string> installed)
+    {
+        if (installed.ContainsKey(a.Id)) return a.Id;
+        foreach (var k in installed.Keys)
+            if (k.Length > a.Id.Length + 1 && k.StartsWith(a.Id + ".", StringComparison.OrdinalIgnoreCase)
+                && Regex.IsMatch(k[(a.Id.Length + 1)..], @"^(EXE|MSI|MSIX|Machine|User|[a-z]{2}(-[a-z]{2,4})?)$", RegexOptions.IgnoreCase)
+                && StoreCatalog.Find(k) is null)
+                return k;
+        return null;
+    }
+
+    /// <summary>Dò theo tên trong Programs and Features (dự phòng khi winget không nhận ra gói).</summary>
+    public static InstalledApp? FindByName(StoreApp a, IReadOnlyList<InstalledApp> registryApps)
+    {
+        if (a.DetectPattern is not { } p) return null;
+        try { return registryApps.FirstOrDefault(r => Regex.IsMatch(r.Name, p, RegexOptions.IgnoreCase)); }
+        catch (ArgumentException) { return null; }
+    }
+
+    /// <summary>Tên các gói ứng dụng (MSIX / Microsoft Store) đã cài cho tài khoản này, vd "5319275A.WhatsAppDesktop".</summary>
+    public static HashSet<string> ReadAppxNames()
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            using var k = ActiveUser.Registry.OpenSubKey(
+                @"Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\Repository\Packages");
+            foreach (var n in k?.GetSubKeyNames() ?? []) set.Add(n.Split('_')[0]);
+        }
+        catch (Exception ex) { Log.Warn($"Đọc danh sách gói ứng dụng: {ex.Message}"); }
+        return set;
+    }
+
     private static string? FindExe(string dir, string exe)
     {
         if (!Directory.Exists(dir) || exe.Length == 0) return null;

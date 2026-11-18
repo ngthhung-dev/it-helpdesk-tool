@@ -30,7 +30,7 @@ public static class WindowsDownloads
     {
         get
         {
-            var d = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            var d = ActiveUser.Downloads;
             Directory.CreateDirectory(d);
             return d;
         }

@@ -60,7 +60,7 @@ public static class BrowserIcon
 
     private static string PF => Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
     private static string PFx86 => Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
-    private static string Local => Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+    private static string Local => ActiveUser.Folder(Environment.SpecialFolder.LocalApplicationData);
 
     private static string ExeName(string key) => key switch
     {
@@ -87,7 +87,7 @@ public static class BrowserIcon
 
     private static string? AppPaths(string exeName)
     {
-        foreach (var root in new[] { Registry.CurrentUser, Registry.LocalMachine })
+        foreach (var root in new[] { ActiveUser.Registry, Registry.LocalMachine })
         {
             try
             {

@@ -159,7 +159,7 @@ public sealed partial class OutlookViewModel : PageViewModel
     [RelayCommand]
     private void BackupSignatures()
     {
-        var dlg = new SaveFileDialog { Filter = "Zip (*.zip)|*.zip", FileName = $"Outlook-Signatures-{Environment.UserName}-{DateTime.Now:yyyyMMdd}.zip" };
+        var dlg = new SaveFileDialog { Filter = "Zip (*.zip)|*.zip", FileName = $"Outlook-Signatures-{ActiveUser.Name}-{DateTime.Now:yyyyMMdd}.zip" };
         if (dlg.ShowDialog() != true) return;
         var r = OutlookService.BackupSignatures(dlg.FileName);
         AddLog(r.Message, r.Ok);

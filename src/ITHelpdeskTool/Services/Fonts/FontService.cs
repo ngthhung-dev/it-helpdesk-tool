@@ -43,7 +43,7 @@ public static class FontService
     public const string FontsKey = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts";
     public static readonly string[] Extensions = [".ttf", ".otf", ".ttc", ".otc", ".fon", ".fnt"];
     public static string MachineDir => Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
-    public static string UserDir => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Windows\Fonts");
+    public static string UserDir => System.IO.Path.Combine(ActiveUser.Folder(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Windows\Fonts");
 
     /// <summary>Đủ các nguyên âm có dấu tiếng Việt (Unicode dựng sẵn).</summary>
     private const string VnChars = "ăâđêôơưĂÂĐÊÔƠƯàảãáạằẳẵắặầẩẫấậèẻẽéẹềểễếệìỉĩíịòỏõóọồổỗốộờởỡớợùủũúụừửữứựỳỷỹýỵ";
@@ -128,7 +128,7 @@ public static class FontService
             }
         }
         Scan(Registry.LocalMachine, FontScope.Machine);
-        Scan(Registry.CurrentUser, FontScope.User);
+        Scan(ActiveUser.Registry, FontScope.User);
         var arr = new InstalledFont[raw.Count];
         Parallel.For(0, raw.Count, new ParallelOptions { MaxDegreeOfParallelism = Math.Clamp(Environment.ProcessorCount, 2, 8) }, i =>
         {
@@ -177,7 +177,7 @@ public static class FontService
             var dir = allUsers ? MachineDir : UserDir;
             Directory.CreateDirectory(dir);
             var dest = System.IO.Path.Combine(dir, f.FileName);
-            var root = allUsers ? Registry.LocalMachine : Registry.CurrentUser;
+            var root = allUsers ? Registry.LocalMachine : ActiveUser.Registry;
             if (File.Exists(dest))
             {
                 if (SameFile(dest, f.Path))
@@ -232,7 +232,7 @@ public static class FontService
         try
         {
             if (unloadFirst) RemoveFontResource(f.File);
-            var root = f.Scope == FontScope.Machine ? Registry.LocalMachine : Registry.CurrentUser;
+            var root = f.Scope == FontScope.Machine ? Registry.LocalMachine : ActiveUser.Registry;
             using (var k = root.OpenSubKey(FontsKey, true)) k?.DeleteValue(f.RegName, false);
             var restart = false;
             if (File.Exists(f.File) && !TryDelete(f.File))

@@ -77,11 +77,11 @@ public static class OfficeService
     /// <summary>Có giấy phép Microsoft 365 (đăng nhập tài khoản, "vNext") trên máy không.</summary>
     public static bool HasSubscriptionLicense()
     {
-        var d = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Office\Licenses");
+        var d = Path.Combine(ActiveUser.Folder(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Office\Licenses");
         try
         {
             if (Directory.Exists(d) && Directory.EnumerateFileSystemEntries(d, "*", SearchOption.AllDirectories).Any()) return true;
-            using var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Office\16.0\Common\Licensing\LicensingNext");
+            using var k = ActiveUser.Registry.OpenSubKey(@"Software\Microsoft\Office\16.0\Common\Licensing\LicensingNext");
             return k is not null && k.GetValueNames().Any(n => n.Contains("retail", StringComparison.OrdinalIgnoreCase) || n.Contains("o365", StringComparison.OrdinalIgnoreCase));
         }
         catch { return false; }
@@ -104,7 +104,7 @@ public static class OfficeService
         try
         {
             const string b = @"Software\Microsoft\Office\16.0\Common\Licensing\LicensingNext";
-            using var map = Registry.CurrentUser.OpenSubKey(b + @"\LicenseIdToEmailMapping");
+            using var map = ActiveUser.Registry.OpenSubKey(b + @"\LicenseIdToEmailMapping");
             if (map is null) return null;
             var mapping = map.GetValueNames()
                 .Select(n => (Id: n, Mail: map.GetValue(n) as string))
@@ -112,7 +112,7 @@ public static class OfficeService
                 .ToDictionary(x => x.Id, x => x.Mail!.Trim(), StringComparer.OrdinalIgnoreCase);
             if (mapping.Count == 0) return null;
             var errored = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            using (var err = Registry.CurrentUser.OpenSubKey(b + @"\LicensingErrors"))
+            using (var err = ActiveUser.Registry.OpenSubKey(b + @"\LicensingErrors"))
                 if (err is not null) foreach (var n in err.GetSubKeyNames()) errored.Add(n);
             return PickLicensingEmail(mapping, errored);
         }
@@ -138,7 +138,7 @@ public static class OfficeService
     {
         try
         {
-            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Office\Licenses");
+            var dir = Path.Combine(ActiveUser.Folder(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Office\Licenses");
             if (!Directory.Exists(dir)) return null;
             foreach (var f in new DirectoryInfo(dir).EnumerateFiles("*", SearchOption.AllDirectories).OrderByDescending(f => f.LastWriteTimeUtc))
             {
@@ -194,7 +194,7 @@ public static class OfficeService
     {
         try
         {
-            using var ids = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Office\16.0\Common\Identity\Identities");
+            using var ids = ActiveUser.Registry.OpenSubKey(@"Software\Microsoft\Office\16.0\Common\Identity\Identities");
             if (ids is null) return null;
             var mails = new List<string>();
             foreach (var n in ids.GetSubKeyNames())
@@ -377,12 +377,12 @@ public static class OfficeService
             foreach (var proc in System.Diagnostics.Process.GetProcessesByName(p))
                 try { proc.CloseMainWindow(); } catch { }
         var n = 0;
-        using (var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Office\16.0\Common", true))
+        using (var k = ActiveUser.Registry.OpenSubKey(@"Software\Microsoft\Office\16.0\Common", true))
         {
             foreach (var sub in new[] { "Identity", "Licensing" })
                 try { if (k?.OpenSubKey(sub) is { } x) { x.Dispose(); k.DeleteSubKeyTree(sub, false); n++; } } catch { }
         }
-        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var local = ActiveUser.Folder(Environment.SpecialFolder.LocalApplicationData);
         foreach (var d in new[] { @"Microsoft\Office\Licenses", @"Microsoft\Office\16.0\Licensing" })
         {
             var path = Path.Combine(local, d);

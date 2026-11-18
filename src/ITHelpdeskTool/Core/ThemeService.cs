@@ -80,7 +80,7 @@ public static class ThemeService
     {
         try
         {
-            return Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1) is int v && v == 0;
+            return Registry.GetValue($@"{ITHelpdeskTool.Services.ActiveUser.RegRoot}\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1) is int v && v == 0;
         }
         catch { return false; }
     }

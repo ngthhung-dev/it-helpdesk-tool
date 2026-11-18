@@ -378,7 +378,7 @@ public static class PrinterFixCatalog
             ShellLauncher.Open(f.Open.StartsWith("shell:") ? "explorer.exe" : f.Open, f.Open.StartsWith("shell:") ? f.Open : null);
             return OpResult.Success($"Đã mở: {f.Title}");
         }
-        var r = await ProcessRunner.PowerShellAsync(Prelude + f.Script, ct: ct);
+        var r = await ProcessRunner.PowerShellAsync(Prelude + f.Script.Replace("'HKCU:\\", $"'{ActiveUser.PsRoot}\\"), ct: ct);
         var text = string.Join("\n", r.Output.Split('\n').Select(l => l.TrimEnd()).Where(l => l.Length > 0));
         var err = string.Join("\n", CleanErr(r.Error).Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0 && !l.StartsWith("At line") && !l.StartsWith("+ ")).Take(3));
         if (text.Length == 0 && err.Length > 0) return OpResult.Fail($"{f.Title}: {err}");

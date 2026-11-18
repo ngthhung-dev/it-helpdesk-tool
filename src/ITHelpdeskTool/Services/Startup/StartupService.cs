@@ -38,14 +38,14 @@ public static class StartupService
     private const string Run32Key = @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run";
     private const string Approved = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved";
 
-    public static string UserFolder => Environment.GetFolderPath(Environment.SpecialFolder.Startup);
+    public static string UserFolder => ActiveUser.Folder(Environment.SpecialFolder.Startup);
     public static string CommonFolder => Environment.GetFolderPath(Environment.SpecialFolder.CommonStartup);
 
     // ================= Đọc =================
     public static List<StartupEntry> ReadAll()
     {
         var list = new List<StartupEntry>();
-        ReadRun(list, Registry.CurrentUser, RunKey, StartupSource.RunUser);
+        ReadRun(list, ActiveUser.Registry, RunKey, StartupSource.RunUser);
         ReadRun(list, Registry.LocalMachine, RunKey, StartupSource.RunMachine);
         ReadRun(list, Registry.LocalMachine, Run32Key, StartupSource.RunMachine32);
         ReadFolder(list, UserFolder, StartupSource.FolderUser);
@@ -139,10 +139,10 @@ public static class StartupService
     // ================= Bật / tắt (StartupApproved) =================
     private static (RegistryKey Root, string Sub) ApprovedLocation(StartupSource src) => src switch
     {
-        StartupSource.RunUser => (Registry.CurrentUser, "Run"),
+        StartupSource.RunUser => (ActiveUser.Registry, "Run"),
         StartupSource.RunMachine => (Registry.LocalMachine, "Run"),
         StartupSource.RunMachine32 => (Registry.LocalMachine, "Run32"),
-        StartupSource.FolderUser => (Registry.CurrentUser, "StartupFolder"),
+        StartupSource.FolderUser => (ActiveUser.Registry, "StartupFolder"),
         _ => (Registry.LocalMachine, "StartupFolder"),
     };
 
@@ -177,7 +177,7 @@ public static class StartupService
 
     private static (RegistryKey Root, string RootName, string Path) RunLocation(StartupSource src) => src switch
     {
-        StartupSource.RunUser => (Registry.CurrentUser, "HKEY_CURRENT_USER", RunKey),
+        StartupSource.RunUser => (ActiveUser.Registry, ActiveUser.RegRoot, RunKey),
         StartupSource.RunMachine => (Registry.LocalMachine, "HKEY_LOCAL_MACHINE", RunKey),
         _ => (Registry.LocalMachine, "HKEY_LOCAL_MACHINE", Run32Key),
     };
@@ -224,7 +224,7 @@ public static class StartupService
         name = name.Trim();
         if (name.Length == 0) return OpResult.Fail("Nhập tên hiển thị.");
         if (!File.Exists(exePath)) return OpResult.Fail("Không tìm thấy file chương trình.");
-        var root = allUsers ? Registry.LocalMachine : Registry.CurrentUser;
+        var root = allUsers ? Registry.LocalMachine : ActiveUser.Registry;
         using var k = root.CreateSubKey(RunKey, writable: true);
         if (k.GetValue(name) is not null) return OpResult.Fail($"Đã có mục khởi động tên \"{name}\".");
         var cmd = $"\"{exePath}\"" + (string.IsNullOrWhiteSpace(args) ? "" : " " + args.Trim());

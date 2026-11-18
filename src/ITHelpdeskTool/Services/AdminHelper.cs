@@ -22,7 +22,7 @@ public static class ShellLauncher
     public static void Open(string target, string? args = null)
     {
         // App chạy quyền admin nên cmd/PowerShell mở ra cũng là admin; mở ở thư mục người dùng thay vì System32
-        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var home = ActiveUser.Folder(Environment.SpecialFolder.UserProfile);
         if (target == Terminal)
         {
             if (!TryStart("wt.exe", $"-d \"{home}\"", home) && !TryStart("powershell.exe", "-NoLogo", home))
