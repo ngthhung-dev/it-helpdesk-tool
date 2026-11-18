@@ -55,6 +55,7 @@
                     <StackPanel>
                         <TextBlock Text="Tweaks Windows" Style="{StaticResource H1}"/>
                         <TextBlock Text="{Binding Summary}" Style="{StaticResource Muted}" Margin="0,4,0,0" FontSize="13"/>
+                        <TextBlock Text="{Binding AccountText}" Style="{StaticResource Muted}" Margin="0,2,0,0" FontSize="12" TextWrapping="Wrap"/>
                     </StackPanel>
                 </DockPanel>
 
@@ -132,6 +133,9 @@
                                                             <Border Style="{StaticResource Badge}" Background="#1A34D399"
                                                                     Visibility="{Binding Recommended, Converter={StaticResource BoolVis}}">
                                                                 <TextBlock Text="Khuyên dùng" Style="{StaticResource BadgeText}" Foreground="{DynamicResource GoodBrush}"/>
+                                                            </Border>
+                                                            <Border Style="{StaticResource Badge}" Visibility="{Binding ScopeText, Converter={StaticResource NullVis}}">
+                                                                <TextBlock Text="{Binding ScopeText}" Style="{StaticResource BadgeText}"/>
                                                             </Border>
                                                             <Border Style="{StaticResource Badge}" Visibility="{Binding EffectText, Converter={StaticResource NullVis}}">
                                                                 <TextBlock Text="{Binding EffectText}" Style="{StaticResource BadgeText}"/>

@@ -59,8 +59,9 @@ public static class AppxService
 
     public static async Task<List<AppxApp>> ReadAsync()
     {
-        const string script = """
-            Get-AppxPackage | Where-Object { -not $_.IsFramework -and -not $_.NonRemovable -and $_.SignatureKind -ne 'System' } |
+        // Gói Store của người đang đăng nhập (không phải tài khoản chạy app)
+        var script = $"Get-AppxPackage -User '{ActiveUser.Sid}'" + """
+             | Where-Object { -not $_.IsFramework -and -not $_.NonRemovable -and $_.SignatureKind -ne 'System' } |
             Select-Object Name, PackageFullName, Version, PublisherId, @{n='Pub';e={ ($_.Publisher -split ',')[0] -replace '^CN=' }} |
             ConvertTo-Json -Compress
             """;
@@ -87,7 +88,7 @@ public static class AppxService
         var script = allUsers
             ? $"Get-AppxPackage -AllUsers -Name {PsQuote(a.Name)} | Remove-AppxPackage -AllUsers -ErrorAction Stop; " +
               $"Get-AppxProvisionedPackage -Online | Where-Object DisplayName -eq {PsQuote(a.Name)} | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Out-Null"
-            : $"Remove-AppxPackage -Package {PsQuote(a.FullName)} -ErrorAction Stop";
+            : $"Remove-AppxPackage -Package {PsQuote(a.FullName)} -User '{ActiveUser.Sid}' -ErrorAction Stop";
         var r = await PowerShellAsync(script);
         return OpResult.From(r, $"Đã gỡ {a.Display}" + (allUsers ? " cho mọi tài khoản." : "."), $"Không gỡ được {a.Display}");
     }

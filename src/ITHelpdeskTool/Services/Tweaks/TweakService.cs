@@ -160,14 +160,24 @@ public static class TweakService
     {
         try
         {
-            foreach (var p in Process.GetProcessesByName("explorer"))
+            // Chỉ Explorer trong phiên này (máy có thể có người khác đăng nhập song song)
+            var session = Process.GetCurrentProcess().SessionId;
+            bool Running() => Process.GetProcessesByName("explorer").Any(p => p.SessionId == session);
+            // Lấy token của người đang đăng nhập trước khi tắt explorer (token mượn từ explorer)
+            using var userToken = ActiveUser.PrimaryToken();
+            foreach (var p in Process.GetProcessesByName("explorer").Where(p => p.SessionId == session))
             {
                 try { p.Kill(); } catch { }
             }
             // Windows thường tự bật lại Explorer; chờ một chút rồi tự bật nếu chưa có
-            for (var i = 0; i < 20 && Process.GetProcessesByName("explorer").Length == 0; i++) await Task.Delay(150);
-            if (Process.GetProcessesByName("explorer").Length == 0)
-                Process.Start(new ProcessStartInfo("explorer.exe") { UseShellExecute = true });
+            for (var i = 0; i < 20 && !Running(); i++) await Task.Delay(150);
+            if (!Running())
+            {
+                // App chạy bằng tài khoản admin khác → phải bật Explorer dưới tên người đang đăng nhập, không thì hiện desktop của admin
+                if (ActiveUser.IsOther && userToken is not null) ActiveUser.StartAs(userToken, "explorer.exe");
+                else if (!ActiveUser.IsOther) Process.Start(new ProcessStartInfo("explorer.exe") { UseShellExecute = true });
+                else return OpResult.Fail($"Đã tắt Explorer nhưng không bật lại được cho {ActiveUser.Account} — bấm Ctrl+Shift+Esc → Run new task → explorer.");
+            }
             return OpResult.Success("Đã khởi động lại Explorer.");
         }
         catch (Exception ex) { return OpResult.Fail($"Không khởi động lại được Explorer: {ex.Message}"); }

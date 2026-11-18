@@ -37,6 +37,9 @@ public sealed record UserInfo(string Name, string FullName, bool Enabled, bool I
     /// <summary>Tài khoản ẩn có sẵn của Windows (Guest, DefaultAccount, WDAGUtilityAccount).</summary>
     public bool IsSystem => Sid.EndsWith("-501") || Sid.EndsWith("-503") || Sid.EndsWith("-504");
 
+    /// <summary>Tài khoản nhập ở UAC để chạy app (khác người đang đăng nhập).</summary>
+    public bool IsRunningApp => !IsCurrent && Sid.Equals(ITHelpdeskTool.Services.ActiveUser.RunningSid, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Dòng mô tả phụ: họ tên · lần đăng nhập cuối.</summary>
     public string Detail => string.Join(" · ", new[]
     {

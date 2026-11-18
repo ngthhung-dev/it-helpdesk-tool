@@ -444,7 +444,11 @@
                                                         </Border>
                                                         <Border Style="{StaticResource Badge}" Background="#1A34D399"
                                                                 Visibility="{Binding IsCurrent, Converter={StaticResource BoolVis}}">
-                                                            <TextBlock Text="Đang dùng" FontSize="11" Foreground="{DynamicResource GoodBrush}"/>
+                                                            <TextBlock Text="Đang đăng nhập" FontSize="11" Foreground="{DynamicResource GoodBrush}"/>
+                                                        </Border>
+                                                        <Border Style="{StaticResource Badge}" Background="{DynamicResource HoverBrush}"
+                                                                Visibility="{Binding IsRunningApp, Converter={StaticResource BoolVis}}">
+                                                            <TextBlock Text="Đang chạy app" FontSize="11" Foreground="{DynamicResource MutedBrush}"/>
                                                         </Border>
                                                         <Border Style="{StaticResource Badge}" Background="{DynamicResource HoverBrush}"
                                                                 Visibility="{Binding Enabled, Converter={StaticResource NotBoolVis}}">

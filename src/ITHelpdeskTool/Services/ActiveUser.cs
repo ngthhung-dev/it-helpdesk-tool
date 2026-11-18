@@ -25,6 +25,13 @@ public static class ActiveUser
     /// <summary>Người đang đăng nhập khác tài khoản chạy app (đã đổi sang tài khoản admin khi UAC hỏi).</summary>
     public static bool IsOther { get; }
 
+    /// <summary>SID tài khoản đang chạy app (tài khoản nhập ở hộp thoại UAC).</summary>
+    public static string RunningSid { get; }
+    /// <summary>DOMAIN	ên tài khoản đang chạy app.</summary>
+    public static string RunningAccount { get; }
+    /// <summary>Tên ngắn tài khoản đang chạy app.</summary>
+    public static string RunningName => RunningAccount.Contains('\\') ? RunningAccount[(RunningAccount.LastIndexOf('\\') + 1)..] : RunningAccount;
+
     /// <summary>Hive registry của người đang đăng nhập (thay cho Registry.CurrentUser). Không Dispose.</summary>
     public static RegistryKey Registry { get; }
 
@@ -39,6 +46,8 @@ public static class ActiveUser
         using var me = WindowsIdentity.GetCurrent();
         var mySid = me.User?.Value ?? "";
         var myName = me.Name;
+        RunningSid = mySid;
+        RunningAccount = myName;
         Sid = mySid;
         Account = myName;
         Registry = Microsoft.Win32.Registry.CurrentUser;
@@ -69,7 +78,9 @@ public static class ActiveUser
         Name = Account.Contains('\\') ? Account[(Account.LastIndexOf('\\') + 1)..] : Account;
         ProfilePath = IsOther ? ReadProfilePath(Sid) ?? Path.Combine(Path.GetDirectoryName(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) ?? @"C:\Users", Name)
                               : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (IsOther) Log.Info($"App chạy bằng {myName}, người đang đăng nhập: {Account} — đọc/ghi thông tin người dùng theo {Account}");
+        Log.Info(IsOther
+            ? $"App chạy bằng {myName}, người đang đăng nhập: {Account} ({Sid}, {ProfilePath}) — đọc/ghi thông tin người dùng theo {Account}"
+            : $"App chạy bằng chính người đang đăng nhập: {Account} ({Sid})");
     }
 
     // ================= Thư mục =================
@@ -199,6 +210,52 @@ public static class ActiveUser
         }
         Log.Warn($"Không lấy được token của {Account} từ explorer.exe");
         return null;
+    }
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool DuplicateTokenEx(SafeAccessTokenHandle existing, uint access, IntPtr attributes, int impersonationLevel, int tokenType, out SafeAccessTokenHandle newToken);
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct STARTUPINFO
+    {
+        public int cb; public string? lpReserved; public string? lpDesktop; public string? lpTitle;
+        public int dwX, dwY, dwXSize, dwYSize, dwXCountChars, dwYCountChars, dwFillAttribute, dwFlags;
+        public short wShowWindow, cbReserved2; public IntPtr lpReserved2, hStdInput, hStdOutput, hStdError;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PROCESS_INFORMATION { public IntPtr hProcess, hThread; public int dwProcessId, dwThreadId; }
+
+    [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool CreateProcessWithTokenW(SafeAccessTokenHandle token, int logonFlags, string? app, string cmdLine,
+        int creationFlags, IntPtr env, string? curDir, ref STARTUPINFO si, out PROCESS_INFORMATION pi);
+
+    /// <summary>
+    /// Token chính (primary) của người đang đăng nhập để tạo tiến trình dưới tên họ. Lấy TRƯỚC khi tắt explorer.exe
+    /// (token mượn từ explorer). Null khi app chạy đúng tài khoản người dùng hoặc không lấy được.
+    /// </summary>
+    public static SafeAccessTokenHandle? PrimaryToken()
+    {
+        using var tok = OpenToken();
+        if (tok is null) return null;
+        const uint MAXIMUM_ALLOWED = 0x02000000;
+        return DuplicateTokenEx(tok, MAXIMUM_ALLOWED, IntPtr.Zero, 2 /*SecurityImpersonation*/, 1 /*TokenPrimary*/, out var primary) ? primary : null;
+    }
+
+    /// <summary>Chạy chương trình dưới tài khoản người đang đăng nhập (vd bật lại explorer.exe cho đúng người). Trả false nếu lỗi.</summary>
+    public static bool StartAs(SafeAccessTokenHandle primaryToken, string commandLine)
+    {
+        var si = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFO>(), lpDesktop = @"winsta0\default" };
+        const int LOGON_WITH_PROFILE = 1;
+        if (!CreateProcessWithTokenW(primaryToken, LOGON_WITH_PROFILE, null, commandLine, 0, IntPtr.Zero,
+                Environment.GetFolderPath(Environment.SpecialFolder.Windows), ref si, out var pi))
+        {
+            Log.Warn($"Không chạy được \"{commandLine}\" dưới tài khoản {Account}: lỗi {Marshal.GetLastWin32Error()}");
+            return false;
+        }
+        CloseHandle(pi.hThread);
+        CloseHandle(pi.hProcess);
+        return true;
     }
 
     // ================= Người đăng nhập phiên =================

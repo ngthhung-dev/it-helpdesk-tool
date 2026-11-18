@@ -12,7 +12,9 @@ namespace ITHelpdeskTool.Services.Policy;
 /// <summary>Tài khoản có thể nhận policy kiểu "người dùng".</summary>
 public sealed record PolicyUser(string Name, string Sid, bool IsAdmin, bool IsCurrent, bool HasProfile)
 {
-    public string Display => Name + (IsCurrent ? " (đang dùng)" : "") + (IsAdmin ? " · quản trị" : "") + (HasProfile ? "" : " · chưa có hồ sơ");
+    /// <summary>Tài khoản nhập ở UAC để chạy app (khác người đang đăng nhập).</summary>
+    public bool IsRunningApp => !IsCurrent && Sid.Equals(ActiveUser.RunningSid, StringComparison.OrdinalIgnoreCase);
+    public string Display => Name + (IsCurrent ? " (đang đăng nhập)" : IsRunningApp ? " (đang chạy app)" : "") + (IsAdmin ? " · quản trị" : "") + (HasProfile ? "" : " · chưa có hồ sơ");
 }
 
 public sealed record PasswordPolicy(int MinLength, int MaxAgeDays, int LockoutThreshold, int LockoutMinutes);
@@ -262,7 +264,8 @@ public static class PolicyService
         {
             var path = Path.Combine(Path.GetTempPath(), $"GPResult_{stamp}.html");
             using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
-            var r = await ProcessRunner.ConsoleAsync("gpresult.exe", $"/h \"{path}\" /f", cts.Token);
+            // Không có /user thì gpresult báo cáo cho tài khoản chạy app (vd Administrator nhập ở UAC)
+            var r = await ProcessRunner.ConsoleAsync("gpresult.exe", $"/h \"{path}\" /f{GpUserArg(userSid)}", cts.Token);
             if (File.Exists(path)) return (OpResult.Success("Đã tạo báo cáo Group Policy (gpresult)."), path);
             why = OpResult.FirstLine(r.Text);
             Log.Info($"gpresult /h không dùng được ({why}) — tự tạo báo cáo");
@@ -270,7 +273,7 @@ public static class PolicyService
         try
         {
             var own = Path.Combine(Path.GetTempPath(), $"PolicyReport_{stamp}.html");
-            var gpr = await ProcessRunner.ConsoleAsync("gpresult.exe", "/r");
+            var gpr = await ProcessRunner.ConsoleAsync("gpresult.exe", $"/r{GpUserArg(userSid)}");
             await File.WriteAllTextAsync(own, await Task.Run(() => BuildReport(userSid, gpr.Success ? gpr.Output : null)), Encoding.UTF8);
             return (OpResult.Success(why is null ? "Đã tạo báo cáo policy." : "Đã tạo báo cáo policy (Windows này không có báo cáo HTML của gpresult nên app tự tổng hợp)."), own);
         }
@@ -284,11 +287,23 @@ public static class PolicyService
         @"SOFTWARE\WOW6432Node\Policies",
     ];
 
+    /// <summary>Tham số /user cho gpresult khi báo cáo cho tài khoản khác tài khoản chạy app.</summary>
+    private static string GpUserArg(string? userSid)
+    {
+        var sid = userSid ?? ActiveUser.Sid;
+        if (sid.Equals(ActiveUser.RunningSid, StringComparison.OrdinalIgnoreCase)) return "";
+        try
+        {
+            var acc = new System.Security.Principal.SecurityIdentifier(sid).Translate(typeof(System.Security.Principal.NTAccount)).Value;
+            return $" /user \"{acc}\"";
+        }
+        catch { return ""; }
+    }
+
     private static string BuildReport(string? userSid, string? gpresultText)
     {
         static string H(string? s) => System.Net.WebUtility.HtmlEncode(s ?? "");
-        var me = System.Security.Principal.WindowsIdentity.GetCurrent();
-        userSid ??= me.User?.Value;
+        userSid ??= ActiveUser.Sid;
         var states = ReadStates(userSid);
         var sb = new StringBuilder();
         sb.Append("""
