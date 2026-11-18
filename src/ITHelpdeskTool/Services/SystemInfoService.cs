@@ -157,7 +157,7 @@ public sealed class SystemInfoService
 
         return new HardwareInfo(
             osName, display, build, arch,
-            Environment.MachineName, Environment.UserName, Str(cs, "Domain"),
+            Environment.MachineName, ActiveUser.Name, Str(cs, "Domain"),
             Str(cs, "Manufacturer"), Str(cs, "Model"), Str(bios, "SerialNumber"),
             Str(cpu, "Name").Trim(), Num(cpu, "NumberOfCores"), Num(cpu, "NumberOfLogicalProcessors"),
             string.Join(" + ", gpus),

@@ -36,7 +36,7 @@ public sealed partial class UserFoldersViewModel : PageViewModel
     private IEnumerable<UserFolderRow> AllRows => Folders.Concat(AppFolders);
     public ObservableCollection<string> Bases { get; } = [];
     [ObservableProperty] private string _basePath = "";
-    [ObservableProperty] private string _account = $"{Environment.UserDomainName}\\{Environment.UserName}";
+    [ObservableProperty] private string _account = ActiveUser.Account;
     [ObservableProperty] private string _systemFree = "";
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsIdle))] private bool _isBusy;

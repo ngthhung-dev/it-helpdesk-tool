@@ -24,15 +24,15 @@ public sealed class ZaloProfile
 public static class MultiZaloService
 {
     private static string ConfigFile => Path.Combine(Path.GetDirectoryName(Log.Folder) ?? Log.Folder, "multizalo.json");
-    public static string DefaultBase => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MultiZalo");
-    public static string MainDataDir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ZaloData");
+    public static string DefaultBase => Path.Combine(ActiveUser.Folder(Environment.SpecialFolder.LocalApplicationData), "MultiZalo");
+    public static string MainDataDir => Path.Combine(ActiveUser.Folder(Environment.SpecialFolder.ApplicationData), "ZaloData");
 
     /// <summary>Thư mục cài Zalo (chứa Zalo.exe khởi chạy và thư mục phiên bản Zalo-x.y.z).</summary>
     public static string? InstallDir()
     {
         var c = new[]
         {
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Programs\Zalo"),
+            Path.Combine(ActiveUser.Folder(Environment.SpecialFolder.LocalApplicationData), @"Programs\Zalo"),
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Zalo"),
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Zalo"),
         };
@@ -102,10 +102,10 @@ public static class MultiZaloService
     {
         foreach (var f in Linked)
         {
-            var target = Environment.GetFolderPath(f);
+            var target = ActiveUser.Folder(f);
             if (target.Length > 0) yield return (Path.Combine(p.Folder, Path.GetFileName(target)), target);
         }
-        var dl = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+        var dl = ActiveUser.Downloads;
         yield return (Path.Combine(p.Folder, "Downloads"), dl);
     }
 
@@ -113,7 +113,7 @@ public static class MultiZaloService
     {
         foreach (var f in Obsolete)
         {
-            var target = Environment.GetFolderPath(f);
+            var target = ActiveUser.Folder(f);
             if (target.Length > 0) RemoveLink(Path.Combine(p.Folder, Path.GetFileName(target)));
         }
         foreach (var (link, target) in Links(p))
@@ -166,7 +166,7 @@ public static class MultiZaloService
         foreach (var (link, _) in Links(p)) RemoveLink(link);
         foreach (var f in Obsolete)
         {
-            var target = Environment.GetFolderPath(f);
+            var target = ActiveUser.Folder(f);
             if (target.Length > 0) RemoveLink(Path.Combine(p.Folder, Path.GetFileName(target)));
         }
     }
@@ -177,7 +177,7 @@ public static class MultiZaloService
     /// </summary>
     public static void WriteLauncher(ZaloProfile p)
     {
-        var root = InstallDir() ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Programs\Zalo");
+        var root = InstallDir() ?? Path.Combine(ActiveUser.Folder(Environment.SpecialFolder.LocalApplicationData), @"Programs\Zalo");
         string V(string s) => s.Replace("\"", "\"\"");
         var vbs = $"""
             ' Mo Zalo voi ho so rieng "{V(p.Name)}" - tao boi IT Helpdesk Tool
@@ -230,7 +230,7 @@ public static class MultiZaloService
     public static OpResult CreateShortcut(ZaloProfile p)
     {
         if (!File.Exists(p.Launcher)) WriteLauncher(p);
-        var desk = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        var desk = ActiveUser.Folder(Environment.SpecialFolder.DesktopDirectory);
         var lnk = Path.Combine(desk, $"Zalo - {Safe(p.Name)}.lnk");
         var wscript = Path.Combine(Environment.SystemDirectory, "wscript.exe");
         ShellLink.Create(lnk, wscript, $"\"{p.Launcher}\"", p.Folder, $"Zalo — {p.Name}");
@@ -253,7 +253,7 @@ public static class MultiZaloService
         var list = Load();
         var x = list.FirstOrDefault(i => i.Folder.Equals(p.Folder, StringComparison.OrdinalIgnoreCase));
         if (x is null) return OpResult.Fail("Không thấy hồ sơ.");
-        var old = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), $"Zalo - {Safe(x.Name)}.lnk");
+        var old = Path.Combine(ActiveUser.Folder(Environment.SpecialFolder.DesktopDirectory), $"Zalo - {Safe(x.Name)}.lnk");
         var hadShortcut = File.Exists(old);
         x.Name = name;
         Save(list);
@@ -294,7 +294,7 @@ public static class MultiZaloService
             return OpResult.Fail("Không gỡ được liên kết thư mục trong hồ sơ — dừng để không xoá nhầm dữ liệu thật.");
         try { if (Directory.Exists(p.Folder)) Directory.Delete(p.Folder, true); }
         catch (Exception ex) { return OpResult.Fail($"Không xoá được thư mục: {ex.Message}"); }
-        var lnk = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), $"Zalo - {Safe(p.Name)}.lnk");
+        var lnk = Path.Combine(ActiveUser.Folder(Environment.SpecialFolder.DesktopDirectory), $"Zalo - {Safe(p.Name)}.lnk");
         try { File.Delete(lnk); } catch { }
         var list = Load();
         list.RemoveAll(i => i.Folder.Equals(p.Folder, StringComparison.OrdinalIgnoreCase));

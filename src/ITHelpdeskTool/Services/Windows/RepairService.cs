@@ -205,12 +205,12 @@ public static class RepairService
         log("> dừng explorer");
         await ProcessRunner.ConsoleAsync("taskkill.exe", "/f /im explorer.exe", ct);
         await Task.Delay(800, ct);
-        var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Windows\Explorer");
+        var dir = Path.Combine(ActiveUser.Folder(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Windows\Explorer");
         var n = 0;
         if (Directory.Exists(dir))
             foreach (var f in Directory.GetFiles(dir, "iconcache*.db").Concat(Directory.GetFiles(dir, "thumbcache*.db")))
                 try { File.Delete(f); n++; } catch { }
-        var legacy = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "IconCache.db");
+        var legacy = Path.Combine(ActiveUser.Folder(Environment.SpecialFolder.LocalApplicationData), "IconCache.db");
         if (File.Exists(legacy)) try { File.Delete(legacy); n++; } catch { }
         log($"Đã xoá {n} file bộ đệm");
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe") { UseShellExecute = true });

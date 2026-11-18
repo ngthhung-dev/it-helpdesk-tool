@@ -88,7 +88,7 @@ public sealed partial class ReportViewModel : PageViewModel
             Title = "Lưu báo cáo cấu hình",
             Filter = filter,
             FileName = ReportExporter.SuggestedFileName(_scannedAt) + ext,
-            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+            InitialDirectory = ActiveUser.Folder(Environment.SpecialFolder.DesktopDirectory),
             AddExtension = true,
         };
         if (dlg.ShowDialog() != true) return;

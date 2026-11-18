@@ -182,8 +182,8 @@ public static class AppBackupService
         foreach (var d in new[] { Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"C:\" })
             Add("HTKK", System.IO.Path.Combine(d, "HTKK"), "thư mục cài đặt HTKK");
         // 3. Thư mục dữ liệu (cấp 1) trong ProgramData / AppData / ổ C: có tên phần mềm
-        foreach (var root in new[] { Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"C:\" })
+        foreach (var root in new[] { Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), ActiveUser.Folder(Environment.SpecialFolder.ApplicationData),
+                                     ActiveUser.Folder(Environment.SpecialFolder.LocalApplicationData), @"C:\" })
         {
             string[] subs;
             try { subs = Directory.GetDirectories(root); } catch { continue; }

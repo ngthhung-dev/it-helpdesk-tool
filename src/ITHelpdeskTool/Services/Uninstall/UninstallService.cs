@@ -18,7 +18,7 @@ public sealed record InstalledApp(
 {
     public string RegistryPath => Scope switch
     {
-        AppScope.User => $@"HKEY_CURRENT_USER\{UninstallService.UninstallKey}\{KeyName}",
+        AppScope.User => $@"{ActiveUser.RegRoot}\{UninstallService.UninstallKey}\{KeyName}",
         AppScope.Machine32 => $@"HKEY_LOCAL_MACHINE\{UninstallService.Uninstall32Key}\{KeyName}",
         _ => $@"HKEY_LOCAL_MACHINE\{UninstallService.UninstallKey}\{KeyName}",
     };
@@ -88,7 +88,7 @@ public static class UninstallService
         }
         Scan(Registry.LocalMachine, UninstallKey, AppScope.Machine64);
         Scan(Registry.LocalMachine, Uninstall32Key, AppScope.Machine32);
-        Scan(Registry.CurrentUser, UninstallKey, AppScope.User);
+        Scan(ActiveUser.Registry, UninstallKey, AppScope.User);
         return list.GroupBy(a => (a.Name, a.Version)).Select(g => g.First())
             .OrderBy(a => a.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
     }
@@ -116,7 +116,7 @@ public static class UninstallService
 
     private static (RegistryKey Root, string Path) KeyLocation(InstalledApp a) => a.Scope switch
     {
-        AppScope.User => (Registry.CurrentUser, UninstallKey),
+        AppScope.User => (ActiveUser.Registry, UninstallKey),
         AppScope.Machine32 => (Registry.LocalMachine, Uninstall32Key),
         _ => (Registry.LocalMachine, UninstallKey),
     };
@@ -305,8 +305,8 @@ public static class UninstallService
             Environment.SpecialFolder.UserProfile, Environment.SpecialFolder.CommonProgramFiles, Environment.SpecialFolder.CommonProgramFilesX86,
             Environment.SpecialFolder.Programs, Environment.SpecialFolder.CommonPrograms, Environment.SpecialFolder.DesktopDirectory,
             Environment.SpecialFolder.MyDocuments, Environment.SpecialFolder.System, Environment.SpecialFolder.SystemX86,
-        }.Select(Environment.GetFolderPath).Where(x => x.Length > 0).ToList();
-        roots.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs"));
+        }.Select(ActiveUser.Folder).Where(x => x.Length > 0).ToList();
+        roots.Add(Path.Combine(ActiveUser.Folder(Environment.SpecialFolder.LocalApplicationData), "Programs"));
         roots.Add(Path.GetPathRoot(Environment.SystemDirectory)!.TrimEnd('\\'));
         roots.Add(@"C:\Users");
         // Thư mục gốc hoặc thư mục cha của các vị trí hệ thống → cấm
@@ -369,9 +369,9 @@ public static class UninstallService
             {
                 Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
                 Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs"),
+                ActiveUser.Folder(Environment.SpecialFolder.ApplicationData),
+                ActiveUser.Folder(Environment.SpecialFolder.LocalApplicationData),
+                Path.Combine(ActiveUser.Folder(Environment.SpecialFolder.LocalApplicationData), "Programs"),
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             }.Where(b => b.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
             foreach (var b in bases)
@@ -392,7 +392,7 @@ public static class UninstallService
             }
 
             // --- Lối tắt Start Menu / Desktop ---
-            foreach (var sm in new[] { Environment.GetFolderPath(Environment.SpecialFolder.Programs), Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms) })
+            foreach (var sm in new[] { ActiveUser.Folder(Environment.SpecialFolder.Programs), Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms) })
             {
                 if (!Directory.Exists(sm)) continue;
                 foreach (var n in names.Concat(pubs))
@@ -405,7 +405,7 @@ public static class UninstallService
             }
             if (loc.Length > 0)
             {
-                foreach (var desk in new[] { Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory) })
+                foreach (var desk in new[] { ActiveUser.Folder(Environment.SpecialFolder.DesktopDirectory), Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory) })
                 {
                     if (!Directory.Exists(desk)) continue;
                     foreach (var lnk in Directory.GetFiles(desk, "*.lnk"))
@@ -417,11 +417,11 @@ public static class UninstallService
             // --- Registry ---
             if (StillInstalled(a))
                 list.Add(new Leftover(LeftoverKind.RegistryKey, a.RegistryPath, "Mục trong danh sách phần mềm đã cài", true));
-            foreach (var (root, rootName) in new[] { (Registry.CurrentUser, "HKEY_CURRENT_USER"), (Registry.LocalMachine, "HKEY_LOCAL_MACHINE") })
+            foreach (var (root, rootName) in new[] { (ActiveUser.Registry, ActiveUser.RegRoot), (Registry.LocalMachine, "HKEY_LOCAL_MACHINE") })
             {
                 foreach (var sw in new[] { "Software", @"Software\WOW6432Node" })
                 {
-                    if (root == Registry.CurrentUser && sw.Contains("WOW")) continue;
+                    if (root == ActiveUser.Registry && sw.Contains("WOW")) continue;
                     foreach (var n in names)
                     {
                         AddKey(root, rootName, $@"{sw}\{n}", true, "Cấu hình trong registry");
@@ -680,6 +680,8 @@ public static class UninstallService
         var i = full.IndexOf('\\');
         var hive = full[..i];
         var sub = full[(i + 1)..];
-        return (hive.Equals("HKEY_CURRENT_USER", StringComparison.OrdinalIgnoreCase) ? Registry.CurrentUser : Registry.LocalMachine, sub);
+        // HKEY_USERS\SID\… (người đang đăng nhập khác tài khoản chạy app) · HKEY_CURRENT_USER (bản cũ ghi) = người đang đăng nhập
+        if (hive.Equals("HKEY_USERS", StringComparison.OrdinalIgnoreCase)) return (Registry.Users, sub);
+        return (hive.Equals("HKEY_CURRENT_USER", StringComparison.OrdinalIgnoreCase) ? ActiveUser.Registry : Registry.LocalMachine, sub);
     }
 }

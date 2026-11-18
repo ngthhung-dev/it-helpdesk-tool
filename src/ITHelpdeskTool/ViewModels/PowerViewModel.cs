@@ -197,7 +197,7 @@ public sealed partial class PowerViewModel : PageViewModel
             Title = "Xuất gói nguồn",
             Filter = "Gói nguồn Windows (*.pow)|*.pow",
             FileName = string.Concat(p.Name.Where(c => !Path.GetInvalidFileNameChars().Contains(c))) + ".pow",
-            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+            InitialDirectory = ActiveUser.Folder(Environment.SpecialFolder.DesktopDirectory),
         };
         if (dlg.ShowDialog() != true) return;
         if (File.Exists(dlg.FileName)) File.Delete(dlg.FileName);   // powercfg không ghi đè file có sẵn

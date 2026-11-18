@@ -22,7 +22,7 @@ public static class TweakService
     {
         TweakHive.LocalMachine => Registry.LocalMachine,
         TweakHive.DefaultUser => Registry.Users.OpenSubKey(".DEFAULT", writable: true) ?? Registry.Users,
-        _ => Registry.CurrentUser,
+        _ => ActiveUser.Registry,
     };
 
     private static string Norm(object? v) => Convert.ToString(v, CultureInfo.InvariantCulture) ?? "";
@@ -30,11 +30,24 @@ public static class TweakService
     private static bool Matches(TweakReg r)
     {
         using var k = Root(r.Hive).OpenSubKey(r.Path);
-        if (k is null) return false;
+        if (k is null) return r.MissingOk && !r.DeleteKeyOnOff;
         var v = k.GetValue(r.Name);
         // Khoá dạng "có là bật": giá trị mặc định rỗng vẫn tính là có
         if (r.DeleteKeyOnOff) return v is not null || k.GetValueNames().Contains(r.Name);
-        return v is not null && Norm(v).Equals(Norm(r.On), StringComparison.OrdinalIgnoreCase);
+        if (v is null) return r.MissingOk;
+        var s = Norm(v).Trim();
+        if (r.Test is not null) return ToNumber(s) is { } n && r.Test(n);
+        if (s.Equals(Norm(r.On), StringComparison.OrdinalIgnoreCase)) return true;
+        // Cùng số nhưng khác kiểu ghi (DWORD ghi thành chuỗi "0", "0x0"…)
+        return ToNumber(s) is { } a && ToNumber(Norm(r.On)) is { } b && a == b;
+    }
+
+    private static long? ToNumber(string s)
+    {
+        s = s.Trim();
+        if (s.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+            return long.TryParse(s[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var h) ? h : null;
+        return long.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : null;
     }
 
     private static bool ServiceExists(string name)
@@ -54,7 +67,7 @@ public static class TweakService
         (!t.Win11Only || IsWin11) && (t.DisableService is null || ServiceExists(t.DisableService));
 
     public static bool IsOn(TweakDef t) =>
-        t.Values.All(Matches) && (t.DisableService is null || ServiceDisabled(t.DisableService));
+        (t.Values.All(Matches) || (t.Alt?.Any(Matches) ?? false)) && (t.DisableService is null || ServiceDisabled(t.DisableService));
 
     public static Dictionary<string, bool> ReadAll() =>
         TweakCatalog.All.ToDictionary(t => t.Key, t => IsAvailable(t) && IsOn(t));
@@ -107,6 +120,9 @@ public static class TweakService
         try
         {
             foreach (var r in t.Values) Write(r, on);
+            // Trả về mặc định: xoá cả cách bật khác (policy / công cụ khác đặt), nếu không tweak vẫn hiện là đang bật
+            if (!on && t.Alt is not null)
+                foreach (var a in t.Alt) Write(a with { Off = null, DeleteKeyOnOff = false }, false);
             if (t.DisableService is { } svc && await SetServiceAsync(svc, on) is { } err) return err;
 
             var when = t.Effect switch

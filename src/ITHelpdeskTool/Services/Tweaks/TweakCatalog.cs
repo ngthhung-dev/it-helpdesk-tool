@@ -10,8 +10,11 @@ public enum TweakEffect { Immediate, Explorer, Relogon, Restart }
 /// <summary>
 /// Một giá trị registry của tweak. <see cref="Off"/> = null nghĩa là xoá giá trị khi tắt (về mặc định Windows);
 /// <see cref="DeleteKeyOnOff"/> = xoá cả khoá khi tắt (dùng cho các tweak dựa vào việc khoá có tồn tại hay không).
+/// <see cref="Test"/> = cách nhận "đang bật" khi không so khớp đúng giá trị (ngưỡng số, bit cờ) — đối số là giá trị dạng số.
+/// <see cref="MissingOk"/> = không có giá trị vẫn coi như đạt (giá trị phụ, mặc định của Windows đã đúng).
 /// </summary>
-public sealed record TweakReg(TweakHive Hive, string Path, string Name, RegistryValueKind Kind, object On, object? Off = null, bool DeleteKeyOnOff = false)
+public sealed record TweakReg(TweakHive Hive, string Path, string Name, RegistryValueKind Kind, object On, object? Off = null, bool DeleteKeyOnOff = false,
+    Func<long, bool>? Test = null, bool MissingOk = false)
 {
     public static TweakReg Dword(TweakHive h, string path, string name, int on, int? off = null) =>
         new(h, path, name, RegistryValueKind.DWord, on, off);
@@ -23,7 +26,11 @@ public sealed record TweakReg(TweakHive Hive, string Path, string Name, Registry
 public sealed record TweakDef(
     string Key, string Group, string Title, string Description,
     IReadOnlyList<TweakReg> Values, TweakEffect Effect = TweakEffect.Immediate,
-    string? DisableService = null, bool Recommended = false, bool Win11Only = false, string? Warning = null);
+    string? DisableService = null, bool Recommended = false, bool Win11Only = false, string? Warning = null,
+    IReadOnlyList<TweakReg>? Alt = null);
+
+// Alt: cách bật khác cùng tác dụng (Group Policy hoặc do công cụ khác đặt). Có một giá trị Alt khớp là coi như đã bật;
+// khi trả về mặc định thì xoá luôn các giá trị Alt để trạng thái thật sự tắt.
 
 public static class TweakCatalog
 {
@@ -92,18 +99,24 @@ public static class TweakCatalog
             ], TweakEffect.Relogon),
         new("perf.menudelay", GroupPerf, "Menu hiện ngay (bỏ độ trễ)",
             "Menu con mở ngay khi rê chuột thay vì chờ 0,4 giây.",
-            [TweakReg.Str(CU, @"Control Panel\Desktop", "MenuShowDelay", "50", "400")], TweakEffect.Relogon, Recommended: true),
+            [TweakReg.Str(CU, @"Control Panel\Desktop", "MenuShowDelay", "50", "400") with { Test = v => v <= 100 }], TweakEffect.Relogon, Recommended: true),
         new("perf.transparency", GroupPerf, "Tắt hiệu ứng trong suốt", "Giảm tải card đồ hoạ tích hợp.",
             [TweakReg.Dword(CU, Personalize, "EnableTransparency", 0, 1)]),
         new("perf.gamedvr", GroupPerf, "Tắt Game Bar ghi hình nền",
             "Game DVR ngầm ghi hình làm giảm FPS khi chơi game.",
             [
                 TweakReg.Dword(CU, @"System\GameConfigStore", "GameDVR_Enabled", 0, 1),
-                TweakReg.Dword(CU, @"Software\Microsoft\Windows\CurrentVersion\GameDVR", "AppCaptureEnabled", 0),
-            ], Recommended: true),
+                TweakReg.Dword(CU, @"Software\Microsoft\Windows\CurrentVersion\GameDVR", "AppCaptureEnabled", 0) with { MissingOk = true },
+            ], Recommended: true,
+            Alt: [TweakReg.Dword(LM, @"SOFTWARE\Policies\Microsoft\Windows\GameDVR", "AllowGameDVR", 0)]),
         new("perf.bgapps", GroupPerf, "Không cho ứng dụng Store chạy nền",
             "Ứng dụng như Mail, Weather, Xbox không tự chạy ngầm.",
-            [TweakReg.Dword(CU, @"Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications", "GlobalUserDisabled", 1, 0)]),
+            [TweakReg.Dword(CU, @"Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications", "GlobalUserDisabled", 1, 0)],
+            Alt:
+            [
+                TweakReg.Dword(CU, @"Software\Microsoft\Windows\CurrentVersion\Search", "BackgroundAppGlobalToggle", 0),
+                TweakReg.Dword(LM, @"SOFTWARE\Policies\Microsoft\Windows\AppPrivacy", "LetAppsRunInBackground", 2),
+            ]),
         new("perf.sysmain", GroupPerf, "Tắt SysMain (Superfetch)",
             "Giảm tình trạng ổ cứng chạy 100% trên máy dùng HDD.",
             [], DisableService: "SysMain",
@@ -116,11 +129,13 @@ public static class TweakCatalog
         // ===================== Quyền riêng tư =====================
         new("priv.telemetry", GroupPrivacy, "Giảm thu thập dữ liệu (Telemetry)",
             "Đặt mức gửi dữ liệu chẩn đoán thấp nhất và tắt dịch vụ DiagTrack.",
-            [TweakReg.Dword(LM, @"SOFTWARE\Policies\Microsoft\Windows\DataCollection", "AllowTelemetry", 0)],
-            DisableService: "DiagTrack", Recommended: true),
+            [TweakReg.Dword(LM, @"SOFTWARE\Policies\Microsoft\Windows\DataCollection", "AllowTelemetry", 0) with { Test = v => v <= 1 }],
+            DisableService: "DiagTrack", Recommended: true,
+            Alt: [TweakReg.Dword(LM, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection", "AllowTelemetry", 0) with { Test = v => v <= 1 }]),
         new("priv.adid", GroupPrivacy, "Tắt mã quảng cáo (Advertising ID)",
             "Ứng dụng không theo dõi được bạn để hiện quảng cáo cá nhân hoá.",
-            [TweakReg.Dword(CU, @"Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo", "Enabled", 0, 1)], Recommended: true),
+            [TweakReg.Dword(CU, @"Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo", "Enabled", 0, 1)], Recommended: true,
+            Alt: [TweakReg.Dword(LM, @"SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo", "DisabledByGroupPolicy", 1)]),
         new("priv.suggestions", GroupPrivacy, "Tắt gợi ý và quảng cáo trong Start, Settings, màn hình khoá",
             "Bỏ “mẹo”, ứng dụng gợi ý, quảng cáo trên lock screen.",
             [
@@ -133,16 +148,23 @@ public static class TweakCatalog
                 TweakReg.Dword(CU, Cdm, "RotatingLockScreenOverlayEnabled", 0, 1),
             ], Recommended: true),
         new("priv.tailored", GroupPrivacy, "Tắt “trải nghiệm cá nhân hoá” từ dữ liệu chẩn đoán", "",
-            [TweakReg.Dword(CU, @"Software\Microsoft\Windows\CurrentVersion\Privacy", "TailoredExperiencesWithDiagnosticDataEnabled", 0, 1)], Recommended: true),
+            [TweakReg.Dword(CU, @"Software\Microsoft\Windows\CurrentVersion\Privacy", "TailoredExperiencesWithDiagnosticDataEnabled", 0, 1)], Recommended: true,
+            Alt: [TweakReg.Dword(CU, @"Software\Policies\Microsoft\Windows\CloudContent", "DisableTailoredExperiencesWithDiagnosticData", 1)]),
         new("priv.activity", GroupPrivacy, "Tắt lịch sử hoạt động (Activity History)",
             "Windows không ghi lại các file, trang web bạn đã mở để đồng bộ.",
             [
                 TweakReg.Dword(LM, @"SOFTWARE\Policies\Microsoft\Windows\System", "PublishUserActivities", 0),
-                TweakReg.Dword(LM, @"SOFTWARE\Policies\Microsoft\Windows\System", "UploadUserActivities", 0),
-            ]),
+                TweakReg.Dword(LM, @"SOFTWARE\Policies\Microsoft\Windows\System", "UploadUserActivities", 0) with { MissingOk = true },
+            ],
+            Alt: [TweakReg.Dword(LM, @"SOFTWARE\Policies\Microsoft\Windows\System", "EnableActivityFeed", 0)]),
         new("priv.bing", GroupPrivacy, "Không tìm Bing trong Start",
             "Ô tìm kiếm chỉ tìm trong máy, nhanh hơn.",
-            [TweakReg.Dword(CU, @"Software\Microsoft\Windows\CurrentVersion\Search", "BingSearchEnabled", 0)], TweakEffect.Explorer),
+            [TweakReg.Dword(CU, @"Software\Microsoft\Windows\CurrentVersion\Search", "BingSearchEnabled", 0)], TweakEffect.Explorer,
+            Alt:
+            [
+                TweakReg.Dword(CU, @"Software\Policies\Microsoft\Windows\Explorer", "DisableSearchBoxSuggestions", 1),
+                TweakReg.Dword(LM, @"SOFTWARE\Policies\Microsoft\Windows\Explorer", "DisableSearchBoxSuggestions", 1),
+            ]),
 
         // ===================== Tiện ích =====================
         new("util.longpath", GroupUtil, "Cho phép đường dẫn dài trên 260 ký tự",
@@ -150,16 +172,17 @@ public static class TweakCatalog
             [TweakReg.Dword(LM, @"SYSTEM\CurrentControlSet\Control\FileSystem", "LongPathsEnabled", 1, 0)], TweakEffect.Restart, Recommended: true),
         new("util.stickykeys", GroupUtil, "Tắt hỏi Sticky Keys khi bấm Shift 5 lần",
             "Hay bật nhầm khi chơi game hoặc gõ nhanh.",
-            [TweakReg.Str(CU, @"Control Panel\Accessibility\StickyKeys", "Flags", "506", "510")], Recommended: true),
+            [TweakReg.Str(CU, @"Control Panel\Accessibility\StickyKeys", "Flags", "506", "510") with { Test = v => (v & 4) == 0 }], Recommended: true),
         new("util.numlock", GroupUtil, "Bật NumLock khi khởi động",
             "Bàn phím số dùng được ngay ở màn hình đăng nhập.",
             [
-                TweakReg.Str(DU, @"Control Panel\Keyboard", "InitialKeyboardIndicators", "2", "0"),
-                TweakReg.Str(CU, @"Control Panel\Keyboard", "InitialKeyboardIndicators", "2", "0"),
+                TweakReg.Str(DU, @"Control Panel\Keyboard", "InitialKeyboardIndicators", "2", "0") with { Test = v => (v & 2) != 0 },
+                TweakReg.Str(CU, @"Control Panel\Keyboard", "InitialKeyboardIndicators", "2", "0") with { Test = v => (v & 2) != 0 },
             ], TweakEffect.Restart, Recommended: true),
         new("util.verbose", GroupUtil, "Hiện chi tiết khi khởi động/tắt máy",
             "Màn hình ghi rõ đang làm gì (“Applying settings…”) — dễ biết máy treo ở bước nào.",
-            [TweakReg.Dword(LM, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "VerboseStatus", 1)], TweakEffect.Restart),
+            [TweakReg.Dword(LM, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "VerboseStatus", 1)], TweakEffect.Restart,
+            Alt: [TweakReg.Dword(LM, @"SOFTWARE\Policies\Microsoft\Windows\System", "VerboseStatus", 1)]),
         new("util.autoreboot", GroupUtil, "Không tự khởi động lại khi bị màn hình xanh",
             "Giữ màn hình xanh để đọc mã lỗi thay vì máy tự khởi động lại.",
             [TweakReg.Dword(LM, @"SYSTEM\CurrentControlSet\Control\CrashControl", "AutoReboot", 0, 1)], TweakEffect.Restart),

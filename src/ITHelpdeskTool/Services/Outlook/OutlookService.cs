@@ -18,9 +18,9 @@ public sealed record OutlookDataFile(string Path, long Size, DateTime Modified, 
 /// <summary>Dữ liệu Outlook: tìm PST/OST, sao lưu, dựng lại OST, sửa PST (ScanPST), hồ sơ, chữ ký, chế độ an toàn.</summary>
 public static class OutlookService
 {
-    private static string Local => Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-    private static string Roaming => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-    private static string Docs => Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+    private static string Local => ActiveUser.Folder(Environment.SpecialFolder.LocalApplicationData);
+    private static string Roaming => ActiveUser.Folder(Environment.SpecialFolder.ApplicationData);
+    private static string Docs => ActiveUser.Folder(Environment.SpecialFolder.MyDocuments);
     public static string SignaturesDir => Path.Combine(Roaming, @"Microsoft\Signatures");
     public static string RoamCacheDir => Path.Combine(Local, @"Microsoft\Outlook\RoamCache");
 
@@ -82,7 +82,7 @@ public static class OutlookService
     private static IEnumerable<string> ProfilePaths()
     {
         var result = new List<string>();
-        using var root = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Office\16.0\Outlook\Profiles");
+        using var root = ActiveUser.Registry.OpenSubKey(@"Software\Microsoft\Office\16.0\Outlook\Profiles");
         if (root is null) return result;
         void Walk(RegistryKey k, int depth)
         {
@@ -107,8 +107,8 @@ public static class OutlookService
 
     public static (List<string> Profiles, string Default) Profiles()
     {
-        using var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Office\16.0\Outlook\Profiles");
-        using var o = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Office\16.0\Outlook");
+        using var k = ActiveUser.Registry.OpenSubKey(@"Software\Microsoft\Office\16.0\Outlook\Profiles");
+        using var o = ActiveUser.Registry.OpenSubKey(@"Software\Microsoft\Office\16.0\Outlook");
         return (k?.GetSubKeyNames().ToList() ?? [], o?.GetValue("DefaultProfile") as string ?? "");
     }
 
@@ -117,7 +117,7 @@ public static class OutlookService
     public static async Task<OpResult> BackupAsync(IReadOnlyList<OutlookDataFile> files, string destDir, Action<int> progress, CancellationToken ct)
     {
         if (IsRunning()) return OpResult.Fail("Outlook đang mở — đóng Outlook trước khi sao lưu (file đang bị khoá).");
-        var dest = Path.Combine(destDir, $"Outlook-{Environment.UserName}-{DateTime.Now:yyyyMMdd-HHmm}");
+        var dest = Path.Combine(destDir, $"Outlook-{ActiveUser.Name}-{DateTime.Now:yyyyMMdd-HHmm}");
         Directory.CreateDirectory(dest);
         long total = files.Sum(f => f.Size), done = 0;
         var buf = new byte[4 << 20];
@@ -185,7 +185,7 @@ public static class OutlookService
         var count = 0;
         foreach (var ver in new[] { "16.0", "15.0" })
         {
-            using var profiles = Registry.CurrentUser.OpenSubKey($@"Software\Microsoft\Office\{ver}\Outlook\Profiles", writable: true);
+            using var profiles = ActiveUser.Registry.OpenSubKey($@"Software\Microsoft\Office\{ver}\Outlook\Profiles", writable: true);
             if (profiles is null) continue;
             foreach (var profName in profiles.GetSubKeyNames())
                 using (var prof = profiles.OpenSubKey(profName, writable: true))
@@ -217,7 +217,7 @@ public static class OutlookService
     {
         foreach (var ver in new[] { "16.0", "15.0" })
         {
-            using var profiles = Registry.CurrentUser.OpenSubKey($@"Software\Microsoft\Office\{ver}\Outlook\Profiles");
+            using var profiles = ActiveUser.Registry.OpenSubKey($@"Software\Microsoft\Office\{ver}\Outlook\Profiles");
             if (profiles is null) continue;
             foreach (var profName in profiles.GetSubKeyNames())
                 using (var prof = profiles.OpenSubKey(profName))
@@ -254,7 +254,7 @@ public static class OutlookService
         var n = 0;
         foreach (var ver in new[] { "16.0", "15.0" })
         {
-            using var profiles = Registry.CurrentUser.OpenSubKey($@"Software\Microsoft\Office\{ver}\Outlook\Profiles", writable: true);
+            using var profiles = ActiveUser.Registry.OpenSubKey($@"Software\Microsoft\Office\{ver}\Outlook\Profiles", writable: true);
             if (profiles is null) continue;
             foreach (var profName in profiles.GetSubKeyNames())
                 using (var prof = profiles.OpenSubKey(profName, writable: true))

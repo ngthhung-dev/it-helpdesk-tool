@@ -130,7 +130,7 @@ public static partial class ReportCollector
         const string U = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
         Scan(RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64), U);
         Scan(RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32), U);
-        Scan(Registry.CurrentUser, U);
+        Scan(ActiveUser.Registry, U);
 
         d.F("Số phần mềm", apps.Count.ToString());
         var t = d.Table("Danh sách", ["Tên", "Phiên bản", "Nhà phát hành", "Ngày cài", "Dung lượng"],

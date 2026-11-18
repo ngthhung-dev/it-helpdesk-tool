@@ -17,7 +17,7 @@ public static partial class ReportCollector
         var chassis = Wmi.First("SELECT ChassisTypes FROM Win32_SystemEnclosure");
 
         d.F("Tên máy", Environment.MachineName);
-        d.F("Người dùng đang đăng nhập", cs?.Str("UserName") is { Length: > 0 } u ? u : $@"{Environment.UserDomainName}\{Environment.UserName}");
+        d.F("Người dùng đang đăng nhập", cs?.Str("UserName") is { Length: > 0 } u ? u : ActiveUser.Account);
         if (cs?.Bool("PartOfDomain") == true) d.F("Domain", cs.Str("Domain"));
         else d.F("Workgroup", cs?.Str("Workgroup") is { Length: > 0 } wg ? wg : cs?.Str("Domain"));
 

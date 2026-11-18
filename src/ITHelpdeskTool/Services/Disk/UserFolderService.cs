@@ -28,8 +28,8 @@ public static class UserFolderService
         new("music", "Music", new Guid("4BD8D571-6D19-48D3-BE97-422220080E43"), "Music", ""),
     ];
 
-    private static string Roaming => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-    private static string Local => Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+    private static string Roaming => ActiveUser.Folder(Environment.SpecialFolder.ApplicationData);
+    private static string Local => ActiveUser.Folder(Environment.SpecialFolder.LocalApplicationData);
 
     /// <summary>Dữ liệu ứng dụng hay phình to trên ổ C:.</summary>
     public static readonly IReadOnlyList<UserFolder> AppFolders =
@@ -56,13 +56,15 @@ public static class UserFolderService
             return LinkTarget(orig) ?? orig;
         }
         const uint KF_FLAG_DONT_VERIFY = 0x4000;
-        if (SHGetKnownFolderPath(f.Id, KF_FLAG_DONT_VERIFY, IntPtr.Zero, out var p) != 0) return "";
+        // App chạy bằng tài khoản admin khác → hỏi thư mục của người đang đăng nhập bằng token của họ
+        using var tok = ActiveUser.OpenToken();
+        if (SHGetKnownFolderPath(f.Id, KF_FLAG_DONT_VERIFY, tok?.DangerousGetHandle() ?? IntPtr.Zero, out var p) != 0) return "";
         try { return Marshal.PtrToStringUni(p) ?? ""; }
         finally { Marshal.FreeCoTaskMem(p); }
     }
 
     public static string DefaultPath(UserFolder f) =>
-        f.IsApp ? f.AppPath!() : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), f.DefaultName);
+        f.IsApp ? f.AppPath!() : Path.Combine(ActiveUser.Folder(Environment.SpecialFolder.UserProfile), f.DefaultName);
 
     public static bool IsDefault(UserFolder f) => f.IsApp ? LinkTarget(f.AppPath!()) is null : GetPath(f).TrimEnd('\\').Equals(DefaultPath(f), StringComparison.OrdinalIgnoreCase);
 
@@ -128,7 +130,7 @@ public static class UserFolderService
     public static List<string> SuggestedBases()
     {
         var sys = Path.GetPathRoot(Environment.SystemDirectory)!;
-        var user = Environment.UserName;
+        var user = ActiveUser.Name;
         DriveInfo[] all;
         try { all = DriveInfo.GetDrives(); } catch { return []; }
         var fixedDrives = all.Where(d =>
@@ -184,7 +186,10 @@ public static class UserFolderService
         }
 
         // Trỏ Known Folder sang chỗ mới (Windows tự cập nhật registry User Shell Folders)
-        var hr = SHSetKnownFolderPath(f.Id, 0, IntPtr.Zero, target);
+        using var tok = ActiveUser.OpenToken();
+        if (ActiveUser.IsOther && tok is null)
+            return OpResult.Fail($"Đã chép nhưng không đổi được vị trí {f.Name}: không lấy được phiên đăng nhập của {ActiveUser.Account}.");
+        var hr = SHSetKnownFolderPath(f.Id, 0, tok?.DangerousGetHandle() ?? IntPtr.Zero, target);
         if (hr != 0) return OpResult.Fail($"Đã chép nhưng không đổi được vị trí {f.Name} (HRESULT 0x{hr:X8}).");
         SHChangeNotify(0x08000000 /*SHCNE_ASSOCCHANGED*/, 0, IntPtr.Zero, IntPtr.Zero);
 

@@ -51,7 +51,7 @@ public static partial class SysConfigService
         var ntp = (p?.GetValue("NtpServer") as string ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Select(s => s.Split(',')[0]).FirstOrDefault() ?? "";
         var running = Wmi.First("SELECT State FROM Win32_Service WHERE Name = 'W32Time'")?.Str("State") == "Running";
-        using var intl = Registry.CurrentUser.OpenSubKey(@"Control Panel\International");
+        using var intl = ActiveUser.Registry.OpenSubKey(@"Control Panel\International");
         var culture = intl?.GetValue("LocaleName") as string ?? CultureInfo.CurrentCulture.Name;
         return new TimeInfo(TimeZoneInfo.Local.Id, ntp, running, culture);
     }

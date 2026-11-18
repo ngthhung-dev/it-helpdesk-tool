@@ -27,22 +27,22 @@ public static class PreviewService
     // ================= Thiết lập Explorer =================
     public static bool PreviewHandlersOn
     {
-        get { using var k = Registry.CurrentUser.OpenSubKey(Adv); return k?.GetValue("ShowPreviewHandlers") is not int v || v != 0; }
-        set { using var k = Registry.CurrentUser.CreateSubKey(Adv, true); k.SetValue("ShowPreviewHandlers", value ? 1 : 0, RegistryValueKind.DWord); }
+        get { using var k = ActiveUser.Registry.OpenSubKey(Adv); return k?.GetValue("ShowPreviewHandlers") is not int v || v != 0; }
+        set { using var k = ActiveUser.Registry.CreateSubKey(Adv, true); k.SetValue("ShowPreviewHandlers", value ? 1 : 0, RegistryValueKind.DWord); }
     }
 
     public static bool ThumbnailsOn
     {
-        get { using var k = Registry.CurrentUser.OpenSubKey(Adv); return k?.GetValue("IconsOnly") is not int v || v == 0; }
-        set { using var k = Registry.CurrentUser.CreateSubKey(Adv, true); k.SetValue("IconsOnly", value ? 0 : 1, RegistryValueKind.DWord); }
+        get { using var k = ActiveUser.Registry.OpenSubKey(Adv); return k?.GetValue("IconsOnly") is not int v || v == 0; }
+        set { using var k = ActiveUser.Registry.CreateSubKey(Adv, true); k.SetValue("IconsOnly", value ? 0 : 1, RegistryValueKind.DWord); }
     }
 
     public static bool NetworkThumbnailsOn
     {
-        get { using var k = Registry.CurrentUser.OpenSubKey(PolExp); return k?.GetValue("DisableThumbnailsOnNetworkFolders") is not int v || v == 0; }
+        get { using var k = ActiveUser.Registry.OpenSubKey(PolExp); return k?.GetValue("DisableThumbnailsOnNetworkFolders") is not int v || v == 0; }
         set
         {
-            using var k = Registry.CurrentUser.CreateSubKey(PolExp, true);
+            using var k = ActiveUser.Registry.CreateSubKey(PolExp, true);
             if (value) k.DeleteValue("DisableThumbnailsOnNetworkFolders", false);
             else k.SetValue("DisableThumbnailsOnNetworkFolders", 1, RegistryValueKind.DWord);
         }

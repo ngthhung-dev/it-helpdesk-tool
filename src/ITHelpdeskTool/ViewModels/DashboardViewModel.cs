@@ -75,7 +75,7 @@ public sealed partial class DashboardViewModel : PageViewModel
             < 14 => "Chào buổi trưa",
             < 18 => "Chào buổi chiều",
             _ => "Chào buổi tối",
-        } + $", {Environment.UserName}";
+        } + $", {ActiveUser.Name}";
     }
 
     public override void OnNavigatedTo()

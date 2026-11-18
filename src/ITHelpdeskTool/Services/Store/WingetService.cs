@@ -93,7 +93,41 @@ public static class WingetService
     {
         var w = Locate() ?? throw new InvalidOperationException("Máy chưa có winget (App Installer) — bấm “Cài winget”.");
         Log.Info($"winget {args}");
-        return await ProcessRunner.RunAsync(w, args, line => onLine?.Invoke(Clean(line)), ct);
+        var r = await ProcessRunner.RunAsync(w, args, line => onLine?.Invoke(Clean(line)), ct);
+        // Nguồn tải hỏng / chưa tải dữ liệu (hay gặp ở máy mới cài, hoặc chạy quyền admin lần đầu) → làm mới nguồn rồi thử lại 1 lần
+        if (IsSourceError(r.ExitCode) && !args.StartsWith("source ", StringComparison.Ordinal))
+        {
+            Log.Warn($"winget lỗi nguồn {Explain(r.ExitCode)} → làm mới nguồn rồi thử lại");
+            onLine?.Invoke("Đang sửa nguồn tải của winget…");
+            await ResetSourcesAsync(ct);
+            r = await ProcessRunner.RunAsync(w, args, line => onLine?.Invoke(Clean(line)), ct);
+        }
+        return r;
+    }
+
+    private static bool IsSourceError(int code) => unchecked((uint)code) is
+        0x8A15000B or 0x8A15000F or 0x8A150012 or 0x8A150015 or 0x8A15003F or 0x8A150045 or 0x8A15004B;
+
+    private static readonly SemaphoreSlim SourceLock = new(1, 1);
+    private static DateTime _lastReset = DateTime.MinValue;
+
+    /// <summary>Đặt lại và tải lại dữ liệu các nguồn mặc định (winget, msstore). Cần quyền admin — app luôn chạy admin.</summary>
+    public static async Task<OpResult> ResetSourcesAsync(CancellationToken ct = default)
+    {
+        var w = Locate();
+        if (w is null) return OpResult.Fail("Máy chưa có winget.");
+        await SourceLock.WaitAsync(ct);
+        try
+        {
+            // Nhiều mục trong hàng đợi cùng lỗi → chỉ sửa một lần
+            if (DateTime.Now - _lastReset < TimeSpan.FromMinutes(2)) return OpResult.Success("Nguồn winget vừa được làm mới.");
+            Log.Info("winget source reset --force");
+            await ProcessRunner.RunAsync(w, "source reset --force --disable-interactivity", null, ct);
+            var r = await ProcessRunner.RunAsync(w, "source update --disable-interactivity", null, ct);
+            _lastReset = DateTime.Now;
+            return r.ExitCode == 0 ? OpResult.Success("Đã làm mới nguồn winget.") : OpResult.Fail($"Làm mới nguồn winget lỗi: {Explain(r.ExitCode)}");
+        }
+        finally { SourceLock.Release(); }
     }
 
     /// <summary>Bỏ ký tự quay vòng / thanh tiến trình mà winget in đè bằng \r.</summary>
@@ -121,7 +155,11 @@ public static class WingetService
         0x8A15010C => "đã bị huỷ",
         0x8A15010E => "máy đang có bản mới hơn",
         0x8A15010F => "bị chặn bởi chính sách",
-        0x8A150044 => "chưa đồng ý điều khoản nguồn tải",
+        0x8A150046 => "chưa đồng ý điều khoản nguồn tải",
+        0x8A15000B or 0x8A15003F => "dữ liệu nguồn tải của winget bị hỏng — chạy “winget source reset --force” (quyền admin) rồi thử lại",
+        0x8A15000F => "thiếu dữ liệu nguồn tải của winget (máy mới / chưa tải danh mục) — chạy “winget source reset --force” (quyền admin) rồi thử lại",
+        0x8A150012 or 0x8A150015 => "winget chưa có nguồn tải mặc định — chạy “winget source reset --force” (quyền admin)",
+        0x8A150045 or 0x8A15004B => "không mở được nguồn tải của winget — kiểm tra mạng / proxy / tường lửa rồi thử lại",
         _ => $"mã lỗi 0x{code:X8}",
     };
 

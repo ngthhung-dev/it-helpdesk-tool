@@ -47,8 +47,8 @@ public sealed record Browser(string Key, string Name, string Glyph, string Famil
 /// </summary>
 public static class BrowserBackupService
 {
-    private static string Local => Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-    private static string Roaming => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+    private static string Local => ActiveUser.Folder(Environment.SpecialFolder.LocalApplicationData);
+    private static string Roaming => ActiveUser.Folder(Environment.SpecialFolder.ApplicationData);
 
     private static IEnumerable<Browser> Known() =>
     [
