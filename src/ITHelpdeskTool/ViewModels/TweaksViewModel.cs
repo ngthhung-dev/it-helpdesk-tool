@@ -19,6 +19,8 @@ public sealed partial class TweakItem(TweakDef def) : ObservableObject
     public bool Recommended => Def.Recommended;
     public bool IsAvailable { get; } = TweakService.IsAvailable(def);
     public string? UnavailableText => IsAvailable ? null : Def.Win11Only && !TweakService.IsWin11 ? "Chỉ có trên Windows 11" : "Máy này không có dịch vụ tương ứng";
+    /// <summary>Tweak ghi vào HKLM / dịch vụ → áp dụng cho mọi tài khoản trên máy.</summary>
+    public string? ScopeText => Def.Values.All(v => v.Hive != TweakHive.CurrentUser) ? "Toàn máy" : null;
     public string? EffectText => Def.Effect switch
     {
         TweakEffect.Explorer => "Cần khởi động lại Explorer",
@@ -58,6 +60,11 @@ public sealed partial class TweaksViewModel : PageViewModel
     [ObservableProperty] private string _busyText = "";
     [ObservableProperty] private string _filter = "";
     [ObservableProperty] private string _summary = "";
+
+    /// <summary>Tài khoản Windows mà các tweak "người dùng" đang đọc / ghi.</summary>
+    public string AccountText { get; } = ActiveUser.IsOther
+        ? $"Áp dụng cho tài khoản Windows đang đăng nhập: {ActiveUser.Account} (app đang chạy bằng quyền {ActiveUser.RunningAccount}). Mục “Toàn máy” áp dụng cho mọi tài khoản."
+        : $"Áp dụng cho tài khoản Windows: {ActiveUser.Account}. Mục “Toàn máy” áp dụng cho mọi tài khoản.";
     [ObservableProperty] private bool _needsRestart;
     [ObservableProperty] private bool _needsExplorer;
 

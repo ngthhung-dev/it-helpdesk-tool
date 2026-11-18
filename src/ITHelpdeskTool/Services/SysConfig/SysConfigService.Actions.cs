@@ -177,6 +177,7 @@ public static partial class SysConfigService
     public static async Task<OpResult> SetUserEnabledAsync(UserInfo u, bool enabled, IReadOnlyList<UserInfo> all)
     {
         if (!enabled && u.IsCurrent) return OpResult.Fail("Không thể tắt tài khoản đang đăng nhập.");
+        if (!enabled && u.Sid == ActiveUser.RunningSid) return OpResult.Fail("Không thể tắt tài khoản đang chạy app.");
         if (!enabled && u.IsAdmin && all.Count(x => x.IsAdmin && x.Enabled) <= 1)
             return OpResult.Fail("Đây là tài khoản quản trị duy nhất đang bật — tắt đi sẽ không còn ai quản trị máy.");
         var r = await PowerShellAsync($"{(enabled ? "Enable" : "Disable")}-LocalUser -Name {PsQuote(u.Name)}");
@@ -186,6 +187,7 @@ public static partial class SysConfigService
     public static async Task<OpResult> SetUserAdminAsync(UserInfo u, bool admin, IReadOnlyList<UserInfo> all)
     {
         if (!admin && u.IsCurrent) return OpResult.Fail("Không thể bỏ quyền quản trị của chính tài khoản đang dùng.");
+        if (!admin && u.Sid == ActiveUser.RunningSid) return OpResult.Fail("Không thể bỏ quyền quản trị của tài khoản đang chạy app.");
         if (!admin && all.Count(x => x.IsAdmin && x.Enabled) <= 1)
             return OpResult.Fail("Đây là tài khoản quản trị duy nhất — phải còn ít nhất một tài khoản quản trị.");
         var r = await PowerShellAsync($"{(admin ? "Add" : "Remove")}-LocalGroupMember -SID '{AdminsSid}' -Member {PsQuote(u.Name)}");
@@ -195,6 +197,7 @@ public static partial class SysConfigService
     public static async Task<OpResult> DeleteUserAsync(UserInfo u, IReadOnlyList<UserInfo> all)
     {
         if (u.IsCurrent) return OpResult.Fail("Không thể xoá tài khoản đang đăng nhập.");
+        if (u.Sid == ActiveUser.RunningSid) return OpResult.Fail("Không thể xoá tài khoản đang chạy app.");
         if (u.IsBuiltinAdmin || IsSystemAccount(u)) return OpResult.Fail("Không xoá tài khoản có sẵn của Windows, chỉ tắt được.");
         if (u.IsAdmin && all.Count(x => x.IsAdmin && x.Enabled) <= 1) return OpResult.Fail("Không thể xoá tài khoản quản trị cuối cùng.");
         var r = await PowerShellAsync($"Remove-LocalUser -Name {PsQuote(u.Name)}");

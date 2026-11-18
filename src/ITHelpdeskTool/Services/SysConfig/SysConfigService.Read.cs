@@ -129,7 +129,8 @@ public static partial class SysConfigService
         var r = await ProcessRunner.PowerShellAsync(script);
         if (!r.Success) throw new InvalidOperationException(OpResult.FirstLine(r.Text));
 
-        var me = System.Security.Principal.WindowsIdentity.GetCurrent().User?.Value ?? "";
+        // "Đang đăng nhập" = người ngồi máy (không phải tài khoản nhập ở UAC để chạy app)
+        var me = ActiveUser.Sid;
         var list = new List<UserInfo>();
         var json = r.Output.Trim();
         if (json.Length == 0) return list;
