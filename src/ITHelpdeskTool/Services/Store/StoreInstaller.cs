@@ -69,10 +69,15 @@ public static class StoreInstaller
 
     public static async Task<OpResult> InstallAsync(StoreApp a, Action<string>? status = null, CancellationToken ct = default)
     {
+        if (a.Id == "Kingsoft.WPSOffice" && Tweaks.WpsInstallBlock.Instance.IsOn())
+            return OpResult.Fail("Máy đang bật chặn cài WPS Office (Tweaks → WPS Office). Tắt mục đó rồi cài lại.");
         try
         {
             switch (a.Kind)
             {
+                case StoreKind.Winget when a.UserScope && ActiveUser.IsOther:
+                    return await InstallForActiveUserAsync(a, status, ct);
+
                 case StoreKind.Winget:
                     status?.Invoke("Đang tải và cài…");
                     return await WingetService.InstallAsync(a.Id, a.Name, line => { if (Stage(line) is { } s) status?.Invoke(s); }, ct);
@@ -111,6 +116,51 @@ public static class StoreInstaller
         {
             Log.Warn($"Cài {a.Name} lỗi: {ex.Message}");
             return OpResult.Fail($"Không cài được {a.Name}: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Gói chỉ cài theo tài khoản trong khi app chạy bằng admin khác: winget tải bộ cài (đã kiểm tra mã băm) vào TEMP
+    /// của người đang đăng nhập, rồi chạy bộ cài im lặng dưới tên họ để phần mềm vào đúng hồ sơ của họ.
+    /// Lệnh cài im lặng và mã thành công lấy từ manifest winget tải kèm.
+    /// </summary>
+    private static async Task<OpResult> InstallForActiveUserAsync(StoreApp a, Action<string>? status, CancellationToken ct)
+    {
+        var dir = Path.Combine(ActiveUser.TempPath, "ITHelpdeskTool-store", a.Id);
+        try
+        {
+            if (Directory.Exists(dir)) Directory.Delete(dir, true);
+            Directory.CreateDirectory(dir);
+            status?.Invoke("Đang tải bộ cài…");
+            var d = await WingetService.DownloadAsync(a.Id, dir, line => { if (Stage(line) is { } s) status?.Invoke(s); }, ct);
+            var installer = Directory.EnumerateFiles(dir, "*.*", SearchOption.AllDirectories)
+                .FirstOrDefault(f => Path.GetExtension(f).ToLowerInvariant() is ".exe" or ".msi");
+            if (d.ExitCode != 0 || installer is null)
+                return OpResult.Fail($"Không tải được bộ cài {a.Name}: {(d.ExitCode != 0 ? WingetService.ExplainCode(d.ExitCode) : "winget không trả về file cài")}");
+
+            var manifest = string.Join("\n", Directory.EnumerateFiles(dir, "*.yaml", SearchOption.AllDirectories).Select(File.ReadAllText));
+            var silent = Regex.Match(manifest, @"^\s*Silent:\s*(.+?)\s*$", RegexOptions.Multiline) is { Success: true } m ? m.Groups[1].Value.Trim('\'', '"') : null;
+            if (silent is null && Path.GetExtension(installer).Equals(".msi", StringComparison.OrdinalIgnoreCase)) silent = "/qn /norestart";
+            if (silent is null) return OpResult.Fail($"Manifest winget của {a.Name} không có lệnh cài im lặng.");
+            // Mã thoát được coi là thành công (vd WPS trả 1223)
+            var okCodes = new HashSet<int> { 0 };
+            var codes = Regex.Match(manifest, @"^\s*InstallerSuccessCodes:[ \t]*\r?\n((?:[ \t]*-[ \t]*-?\d+[ \t]*\r?\n?)+)", RegexOptions.Multiline);
+            foreach (Match c in Regex.Matches(codes.Groups[1].Value, @"-?\d+")) okCodes.Add(int.Parse(c.Value));
+
+            status?.Invoke($"Đang cài cho {ActiveUser.Name}…");
+            var cmd = Path.GetExtension(installer).Equals(".msi", StringComparison.OrdinalIgnoreCase)
+                ? $"msiexec.exe /i \"{installer}\" {silent}"
+                : $"\"{installer}\" {silent}";
+            Log.Info($"Cài {a.Name} dưới tài khoản {ActiveUser.Account}: {cmd}");
+            var code = await ActiveUser.RunAsUserAsync(cmd, Path.GetDirectoryName(installer), ct);
+            if (code is null) return OpResult.Fail($"Không chạy được bộ cài {a.Name} dưới tài khoản {ActiveUser.Account}.");
+            return okCodes.Contains(code.Value)
+                ? OpResult.Success($"Đã cài {a.Name} cho tài khoản {ActiveUser.Account}.")
+                : OpResult.Fail($"Bộ cài {a.Name} báo lỗi (mã {code.Value}).");
+        }
+        finally
+        {
+            try { Directory.Delete(dir, true); } catch { }
         }
     }
 

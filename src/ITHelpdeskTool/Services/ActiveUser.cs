@@ -258,6 +258,36 @@ public static class ActiveUser
         return true;
     }
 
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool GetExitCodeProcess(IntPtr process, out uint exitCode);
+
+    /// <summary>
+    /// Chạy lệnh dưới tên người đang đăng nhập (quyền thường của họ, không nâng quyền) và chờ xong.
+    /// Dùng cho bộ cài theo tài khoản (cài vào AppData của họ). Trả mã thoát, null nếu không chạy được.
+    /// </summary>
+    public static async Task<int?> RunAsUserAsync(string commandLine, string? workDir = null, CancellationToken ct = default)
+    {
+        using var token = PrimaryToken();
+        if (token is null) return null;
+        var si = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFO>(), lpDesktop = @"winsta0\default" };
+        const int LOGON_WITH_PROFILE = 1;
+        if (!CreateProcessWithTokenW(token, LOGON_WITH_PROFILE, null, commandLine, 0, IntPtr.Zero,
+                workDir ?? Environment.GetFolderPath(Environment.SpecialFolder.Windows), ref si, out var pi))
+        {
+            Log.Warn($"Không chạy được \"{commandLine}\" dưới tài khoản {Account}: lỗi {Marshal.GetLastWin32Error()}");
+            return null;
+        }
+        CloseHandle(pi.hThread);
+        try
+        {
+            using var wait = new ManualResetEvent(false) { SafeWaitHandle = new SafeWaitHandle(pi.hProcess, ownsHandle: false) };
+            await Task.Run(() => WaitHandle.WaitAny([wait, ct.WaitHandle]), CancellationToken.None);
+            ct.ThrowIfCancellationRequested();
+            return GetExitCodeProcess(pi.hProcess, out var code) ? unchecked((int)code) : null;
+        }
+        finally { CloseHandle(pi.hProcess); }
+    }
+
     // ================= Người đăng nhập phiên =================
     private const int WTSUserName = 5, WTSDomainName = 7;
 

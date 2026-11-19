@@ -27,10 +27,11 @@ public sealed record TweakDef(
     string Key, string Group, string Title, string Description,
     IReadOnlyList<TweakReg> Values, TweakEffect Effect = TweakEffect.Immediate,
     string? DisableService = null, bool Recommended = false, bool Win11Only = false, string? Warning = null,
-    IReadOnlyList<TweakReg>? Alt = null);
+    IReadOnlyList<TweakReg>? Alt = null, ICustomTweak? Custom = null);
 
 // Alt: cách bật khác cùng tác dụng (Group Policy hoặc do công cụ khác đặt). Có một giá trị Alt khớp là coi như đã bật;
 // khi trả về mặc định thì xoá luôn các giá trị Alt để trạng thái thật sự tắt.
+// Custom: phần không thuần registry (tường lửa, tác vụ, Startup…) — tự đọc trạng thái thật và tự áp dụng.
 
 public static class TweakCatalog
 {
@@ -46,8 +47,9 @@ public static class TweakCatalog
     public const string GroupPerf = "Hiệu năng";
     public const string GroupPrivacy = "Quyền riêng tư & quảng cáo";
     public const string GroupUtil = "Tiện ích";
+    public const string GroupWps = "WPS Office";
 
-    public static IReadOnlyList<string> Groups { get; } = [GroupUi, GroupPerf, GroupPrivacy, GroupUtil];
+    public static IReadOnlyList<string> Groups { get; } = [GroupUi, GroupPerf, GroupPrivacy, GroupUtil, GroupWps];
 
     public static IReadOnlyList<TweakDef> All { get; } =
     [
@@ -186,5 +188,36 @@ public static class TweakCatalog
         new("util.autoreboot", GroupUtil, "Không tự khởi động lại khi bị màn hình xanh",
             "Giữ màn hình xanh để đọc mã lỗi thay vì máy tự khởi động lại.",
             [TweakReg.Dword(LM, @"SYSTEM\CurrentControlSet\Control\CrashControl", "AutoReboot", 0, 1)], TweakEffect.Restart),
+        // ===================== WPS Office (của người đang đăng nhập) =====================
+        new("wps.ads", GroupWps, "WPS: chặn quảng cáo và cửa sổ quảng cáo",
+            "Chặn mạng các tiến trình hiện quảng cáo/tin nóng (wpscenter, wpsnotify), tắt tác vụ hiện thông báo và khởi động cùng Windows của chúng. Soạn thảo, đăng nhập vẫn bình thường. Quảng cáo nhúng sẵn trong trang chủ WPS có thể vẫn còn — muốn hết hẳn thì dùng mục chặn toàn bộ Internet.",
+            [], Custom: new WpsBlock("quảng cáo", ["wpscenter.exe", "wpsnotify.exe"], tasks: @"^(WpsNotify|PPTAssistant|WpsExternal)", killRunning: true)),
+        new("wps.cloud", GroupWps, "WPS: không đồng bộ tài liệu lên cloud",
+            "Chặn mạng tiến trình đồng bộ / sao lưu tài liệu lên WPS Cloud (wpscloudsvr, wpscloudlaunch) và tắt khởi động cùng Windows của nó. Nên đăng nhập tài khoản trước rồi mới bật.",
+            [], Custom: new WpsBlock("cloud", ["wpscloudsvr.exe", "wpscloudlaunch.exe"]),
+            Warning: "Tài liệu sẽ không lên WPS Cloud nữa (kể cả khi đã đăng nhập Gmail).
+
+Nếu sau khi bật mà WPS báo lỗi đăng nhập hoặc khoá tính năng, hãy tắt lại mục này."),
+        new("wps.telemetry", GroupWps, "WPS: chặn gửi báo lỗi và thống kê",
+            "Chặn mạng các tiến trình gửi báo cáo lỗi và dữ liệu sử dụng (kcrashdumper, transerr). Tiến trình chính của WPS vẫn liên lạc máy chủ để đăng nhập, kiểm tra tài khoản.",
+            [], Custom: new WpsBlock("thu thập dữ liệu", ["kcrashdumper.exe", "kcrashdumper64.exe", "transerr.exe"])),
+        new("wps.update", GroupWps, "WPS: tắt tự cập nhật",
+            "Chặn mạng trình cập nhật (wpsupdate, updateself), tắt tác vụ WpsUpdateTask và dịch vụ cập nhật của WPS.",
+            [], Custom: new WpsBlock("cập nhật", ["wpsupdate.exe", "updateself.exe", "wpsupdatesvr.exe"], tasks: @"^WpsUpdate", services: @"(wps|kingsoft).*update", killRunning: true),
+            Warning: "WPS sẽ không nhận bản vá lỗi / bảo mật. Thỉnh thoảng nên tắt mục này để cập nhật rồi bật lại."),
+        new("wps.firewall", GroupWps, "WPS: chặn toàn bộ truy cập Internet (tường lửa)",
+            "Chặn mọi file chạy của WPS kết nối Internet và tắt mọi mục khởi động cùng Windows của WPS. Không còn quảng cáo, đồng bộ hay gửi dữ liệu nào.",
+            [], Custom: new WpsBlock("tường lửa", null),
+            Warning: "WPS sẽ không đăng nhập được, không dùng được cloud, mẫu tài liệu online, dịch, AI…
+Bản miễn phí có thể khoá một số tính năng khi không kiểm tra được tài khoản.
+
+Nếu chỉ muốn không đồng bộ dữ liệu mà vẫn đăng nhập, dùng các mục WPS khác thay vì mục này."),
+        new("wps.blockinstall", GroupWps, "WPS: chặn cài và chạy WPS Office trên máy này",
+            "Đặt chính sách Windows (Software Restriction Policies) không cho chạy bộ cài WPS (WPSOffice*.exe…) và mọi file trong thư mục cài WPS. Áp dụng cho mọi tài khoản, kể cả admin — tải bộ cài về cũng không chạy được. Explorer được khởi động lại để có hiệu lực ngay; trình duyệt và ứng dụng đang mở chỉ nhận sau khi khởi động lại máy.",
+            [], TweakEffect.Restart, Custom: WpsInstallBlock.Instance,
+            Warning: "WPS đang cài trên máy (nếu có) cũng sẽ không mở được, kể cả trình gỡ của nó.
+Nếu cần gỡ WPS, hãy gỡ trước rồi mới bật mục này (Gỡ app sạch → WPS Office).
+
+Tắt mục này để cho cài lại."),
     ];
 }
