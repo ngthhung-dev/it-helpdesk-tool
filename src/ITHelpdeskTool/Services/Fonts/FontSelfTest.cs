@@ -61,8 +61,21 @@ public static class FontSelfTest
                     try { await Downloader.DownloadAsync(u, Path.Combine(Downloader.CacheDir, "gf-check"), "x.ttf"); }
                     catch (Exception ex) { bad.Add($"{f.Name}: {ex.Message}"); }
                 }
+            // Font tải theo gói zip (Aptos của Microsoft): tải, giải nén, phải có đủ các kiểu
+            foreach (var f in GoogleFontCatalog.Fonts.Where(f => f.Zip is not null))
+            {
+                try
+                {
+                    var got = await GoogleFontCatalog.DownloadAsync(f);
+                    if (got.Count < 20) bad.Add($"{f.Name}: gói chỉ có {got.Count} file font");
+                    var narrow = got.FirstOrDefault(p => Path.GetFileName(p).Equals("Aptos-Narrow.ttf", StringComparison.OrdinalIgnoreCase));
+                    if (f.Dir == "aptos" && (narrow is null || FontService.Read(narrow).Family != "Aptos Narrow"))
+                        bad.Add($"{f.Name}: không đọc được Aptos Narrow");
+                }
+                catch (Exception ex) { bad.Add($"{f.Name}: {ex.Message}"); }
+            }
             Check(bad.Count == 0, string.Join("; ", bad));
-            return $"{GoogleFontCatalog.Fonts.Count} font, {GoogleFontCatalog.Fonts.Sum(f => f.Files.Length)} file đều tải được";
+            return $"{GoogleFontCatalog.Fonts.Count} font, {GoogleFontCatalog.Fonts.Sum(f => f.Files.Length)} file + gói zip đều tải được";
         });
 
         await t.Do("install.machine", async () =>

@@ -503,7 +503,7 @@ public sealed partial class FontsViewModel : PageViewModel
         finally { IsBusy = false; }
     }
 
-    // ================= Font Google =================
+    // ================= Font tải về (Google, Microsoft Aptos) =================
     [RelayCommand]
     private async Task InstallWebAsync()
     {
@@ -529,7 +529,7 @@ public sealed partial class FontsViewModel : PageViewModel
             await Task.Run(FontService.Broadcast);
         }
         finally { IsBusy = false; }
-        AddLog($"Đã tải và cài {ok}/{sel.Count} font Google.", ok == sel.Count);
+        AddLog($"Đã tải và cài {ok}/{sel.Count} font.", ok == sel.Count);
         InvalidateInstalled();
     }
 }
