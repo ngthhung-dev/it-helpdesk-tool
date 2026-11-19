@@ -183,6 +183,15 @@ public static class WingetService
         return ToResult(r, $"Đã cài {name}", $"Không cài được {name}");
     }
 
+    /// <summary>
+    /// Tải bộ cài (kèm manifest đã kiểm tra mã băm) về thư mục, không cài. Dùng cho gói cài theo tài khoản
+    /// khi app chạy bằng admin khác: tải bằng quyền admin rồi chạy bộ cài dưới tên người đang đăng nhập.
+    /// </summary>
+    public static async Task<ProcessResult> DownloadAsync(string id, string dir, Action<string>? onLine = null, CancellationToken ct = default) =>
+        await RunAsync($"download --id \"{id}\" --exact --source {SourceOf(id)} --download-directory \"{dir}\" {Agree}", onLine, ct);
+
+    public static string ExplainCode(int code) => Explain(code);
+
     public static async Task<OpResult> UpgradeAsync(string id, string name, Action<string>? onLine = null, CancellationToken ct = default)
     {
         var r = await RunAsync($"upgrade --id \"{id}\" --exact --silent --include-unknown {Agree}", onLine, ct);

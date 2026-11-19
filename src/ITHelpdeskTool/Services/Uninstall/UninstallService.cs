@@ -30,7 +30,7 @@ public sealed record InstalledApp(
     public string Detail => string.Join(" · ", new[] { Publisher, Version, InstallDate, SizeText, Scope == AppScope.User ? "chỉ tài khoản này" : "" }.Where(x => x.Length > 0));
 }
 
-public enum LeftoverKind { Folder, File, RegistryKey, Shortcut, StartupEntry, Service, Task }
+public enum LeftoverKind { Folder, File, RegistryKey, Shortcut, StartupEntry, Service, Task, Firewall }
 
 /// <summary>Phần mềm đã gỡ nhưng còn mục chưa xoá được — nhớ lại để quét / dọn tiếp sau khi khởi động lại.</summary>
 public sealed record PendingCleanup(string Name, string Publisher, string InstallLocation, DateTime When, List<Leftover> Items);
@@ -45,6 +45,7 @@ public sealed record Leftover(LeftoverKind Kind, string Path, string Detail, boo
         LeftoverKind.Shortcut => "Lối tắt",
         LeftoverKind.StartupEntry => "Khởi động",
         LeftoverKind.Service => "Dịch vụ",
+        LeftoverKind.Firewall => "Tường lửa",
         _ => "Tác vụ",
     };
 }
@@ -172,6 +173,11 @@ public static class UninstallService
         }
         file = Environment.ExpandEnvironmentVariables(file);
 
+        if (quiet && !silent && WpsCleanup.SilentArgs(file) is { } wpsArgs)
+        {
+            args = (args + " " + wpsArgs).Trim();
+            silent = true;
+        }
         if (quiet && !silent)
         {
             switch (DetectInstaller(file))
@@ -467,6 +473,24 @@ public static class UninstallService
             catch (Exception ex) { Log.Warn($"Quét tác vụ lỗi: {ex.Message}"); }
         }
 
+        // WPS Office: thêm phần sót riêng (AppData\Roaming\kingsoft, liên kết mở file, menu chuột phải, tác vụ, tường lửa…)
+        if (WpsCleanup.IsWps(a))
+        {
+            // Máy còn bản WPS khác (vd cài cho cả máy) → chỉ dọn phần của tài khoản đang đăng nhập
+            var machineWide = !others.Any(o => o.KeyName != a.KeyName && WpsCleanup.IsWps(o));
+            try
+            {
+                var extra = await Task.Run(() => WpsCleanup.Find(machineWide, DirSize, ShortcutTarget));
+                list.AddRange(extra.Where(l => l.Kind is not (LeftoverKind.Folder or LeftoverKind.Shortcut) || !IsProtected(l.Path)));
+                var all = list.DistinctBy(l => (l.Kind, l.Path.ToLowerInvariant())).ToList();
+                // Thư mục / khoá con nằm trong mục cha đã chọn xoá thì bỏ (tránh trùng)
+                all.RemoveAll(l => l.Kind is LeftoverKind.Folder or LeftoverKind.RegistryKey or LeftoverKind.Shortcut
+                    && all.Any(o => o.Kind == l.Kind && o.HighConfidence && !o.Path.Equals(l.Path, StringComparison.OrdinalIgnoreCase) && IsUnder(l.Path, o.Path)));
+                return all;
+            }
+            catch (Exception ex) { Log.Warn($"Quét phần sót riêng của WPS lỗi: {ex.Message}"); }
+        }
+
         return list.DistinctBy(l => (l.Kind, l.Path.ToLowerInvariant())).ToList();
 
         void AddKey(RegistryKey root, string rootName, string sub, bool high, string detail)
@@ -569,6 +593,7 @@ public static class UninstallService
             {
                 LeftoverKind.Folder or LeftoverKind.File or LeftoverKind.Shortcut => Directory.Exists(l.Path) || File.Exists(l.Path),
                 LeftoverKind.RegistryKey => SplitKey(l.Path) is var (root, sub) && root.OpenSubKey(sub) is { } k && Dispose(k),
+                LeftoverKind.Firewall => WpsCleanup.FirewallRuleExists(l.Path),
                 _ => true,
             };
         }
@@ -613,7 +638,7 @@ public static class UninstallService
         var regIndex = 0;
 
         // Dừng dịch vụ và tác vụ trước để file không còn bị giữ
-        foreach (var l in items.OrderBy(l => l.Kind switch { LeftoverKind.Service => 0, LeftoverKind.Task => 1, LeftoverKind.StartupEntry => 2, LeftoverKind.RegistryKey => 4, _ => 3 }))
+        foreach (var l in items.OrderBy(l => l.Kind switch { LeftoverKind.Service => 0, LeftoverKind.Task => 1, LeftoverKind.Firewall => 1, LeftoverKind.StartupEntry => 2, LeftoverKind.RegistryKey => 4, _ => 3 }))
         {
             try
             {
@@ -629,6 +654,10 @@ public static class UninstallService
                         var parts = l.Path.Split('|', 2);
                         var t = await ProcessRunner.PowerShellAsync($"Unregister-ScheduledTask -TaskPath {ProcessRunner.PsQuote(parts[0])} -TaskName {ProcessRunner.PsQuote(parts[1])} -Confirm:$false");
                         if (!t.Success) throw new InvalidOperationException(OpResult.FirstLine(t.Text));
+                        break;
+                    case LeftoverKind.Firewall:
+                        var fw = await ProcessRunner.PowerShellAsync($"Remove-NetFirewallRule -Name {ProcessRunner.PsQuote(l.Path)} -ErrorAction Stop");
+                        if (!fw.Success && WpsCleanup.FirewallRuleExists(l.Path)) throw new InvalidOperationException(OpResult.FirstLine(fw.Text));
                         break;
                     case LeftoverKind.StartupEntry:
                         var se = l.Path.Split('|', 2);

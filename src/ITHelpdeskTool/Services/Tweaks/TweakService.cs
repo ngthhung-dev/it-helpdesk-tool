@@ -64,10 +64,11 @@ public static class TweakService
 
     /// <summary>Tweak có dùng được trên máy này không (đúng phiên bản Windows, dịch vụ có tồn tại).</summary>
     public static bool IsAvailable(TweakDef t) =>
-        (!t.Win11Only || IsWin11) && (t.DisableService is null || ServiceExists(t.DisableService));
+        (!t.Win11Only || IsWin11) && (t.DisableService is null || ServiceExists(t.DisableService)) && (t.Custom?.IsAvailable() ?? true);
 
     public static bool IsOn(TweakDef t) =>
-        (t.Values.All(Matches) || (t.Alt?.Any(Matches) ?? false)) && (t.DisableService is null || ServiceDisabled(t.DisableService));
+        (t.Values.All(Matches) || (t.Alt?.Any(Matches) ?? false)) && (t.DisableService is null || ServiceDisabled(t.DisableService))
+        && (t.Custom?.IsOn() ?? true);
 
     public static Dictionary<string, bool> ReadAll() =>
         TweakCatalog.All.ToDictionary(t => t.Key, t => IsAvailable(t) && IsOn(t));
@@ -124,6 +125,7 @@ public static class TweakService
             if (!on && t.Alt is not null)
                 foreach (var a in t.Alt) Write(a with { Off = null, DeleteKeyOnOff = false }, false);
             if (t.DisableService is { } svc && await SetServiceAsync(svc, on) is { } err) return err;
+            if (t.Custom is { } custom && await custom.ApplyAsync(on) is { } cerr) return cerr;
 
             var when = t.Effect switch
             {

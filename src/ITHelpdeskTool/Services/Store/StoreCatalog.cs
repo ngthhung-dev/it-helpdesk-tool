@@ -16,10 +16,12 @@ public enum StoreKind
 /// Detect: regex tên trong danh sách phần mềm đã cài (Programs and Features). Mục winget để trống thì tự lấy
 /// "^Tên" làm mẫu, "-" = không dò theo tên. Dùng làm dự phòng khi winget không nhận ra gói (cài tay, nguồn lỗi…).
 /// Appx: tên gói Microsoft Store / MSIX (vd 5319275A.WhatsAppDesktop) cho phần mềm cài dạng gói ứng dụng.
+/// UserScope: gói winget chỉ cài theo tài khoản (vào AppData của người chạy bộ cài) — khi app chạy bằng admin khác
+/// thì tải về rồi chạy bộ cài dưới tên người đang đăng nhập, không thì phần mềm vào nhầm hồ sơ admin.
 /// </summary>
 public sealed record StoreApp(
     string Id, string Name, string Category, string Description,
-    StoreKind Kind = StoreKind.Winget, string Url = "", string Detect = "", string Exe = "", string Appx = "")
+    StoreKind Kind = StoreKind.Winget, string Url = "", string Detect = "", string Exe = "", string Appx = "", bool UserScope = false)
 {
     /// <summary>Mẫu dò tên trong Programs and Features (null = không dò).</summary>
     public string? DetectPattern => Detect == "-" ? null
@@ -72,7 +74,8 @@ public static class StoreCatalog
         new("SumatraPDF.SumatraPDF", "Sumatra PDF", Office, "Đọc PDF/EPUB siêu nhẹ", Detect: @"^Sumatra ?PDF\b"),
         new("TheDocumentFoundation.LibreOffice", "LibreOffice", Office, "Bộ văn phòng miễn phí, mở được file Word/Excel"),
         new("ONLYOFFICE.DesktopEditors", "ONLYOFFICE", Office, "Bộ văn phòng miễn phí, giao diện giống MS Office"),
-        new("Kingsoft.WPSOffice", "WPS Office", Office, "Bộ văn phòng miễn phí"),
+        new("Kingsoft.WPSOffice", "WPS Office", Office, "Bộ văn phòng miễn phí, bản quốc tế cài im lặng. Chặn quảng cáo / cloud ở Tweaks → WPS Office",
+            UserScope: true),
         new("Notion.Notion", "Notion", Office, "Ghi chú, quản lý công việc"),
         new("Obsidian.Obsidian", "Obsidian", Office, "Ghi chú Markdown"),
         new("Mozilla.Thunderbird", "Thunderbird", Office, "Ứng dụng email miễn phí", Detect: @"^Mozilla Thunderbird\b"),

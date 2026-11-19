@@ -18,9 +18,13 @@ public sealed partial class TweakItem(TweakDef def) : ObservableObject
     public string? Warning => Def.Warning;
     public bool Recommended => Def.Recommended;
     public bool IsAvailable { get; } = TweakService.IsAvailable(def);
-    public string? UnavailableText => IsAvailable ? null : Def.Win11Only && !TweakService.IsWin11 ? "Chỉ có trên Windows 11" : "Máy này không có dịch vụ tương ứng";
+    public string? UnavailableText => IsAvailable ? null
+        : Def.Win11Only && !TweakService.IsWin11 ? "Chỉ có trên Windows 11"
+        : Def.Custom is { } c ? c.UnavailableText
+        : "Máy này không có dịch vụ tương ứng";
     /// <summary>Tweak ghi vào HKLM / dịch vụ → áp dụng cho mọi tài khoản trên máy.</summary>
-    public string? ScopeText => Def.Values.All(v => v.Hive != TweakHive.CurrentUser) ? "Toàn máy" : null;
+    public string? ScopeText => Def.Custom is { } c ? (c.MachineWide ? "Toàn máy" : null)
+        : Def.Values.All(v => v.Hive != TweakHive.CurrentUser) ? "Toàn máy" : null;
     public string? EffectText => Def.Effect switch
     {
         TweakEffect.Explorer => "Cần khởi động lại Explorer",
