@@ -195,9 +195,7 @@ public static class TweakCatalog
         new("wps.cloud", GroupWps, "WPS: không đồng bộ tài liệu lên cloud",
             "Chặn mạng tiến trình đồng bộ / sao lưu tài liệu lên WPS Cloud (wpscloudsvr, wpscloudlaunch) và tắt khởi động cùng Windows của nó. Nên đăng nhập tài khoản trước rồi mới bật.",
             [], Custom: new WpsBlock("cloud", ["wpscloudsvr.exe", "wpscloudlaunch.exe"]),
-            Warning: "Tài liệu sẽ không lên WPS Cloud nữa (kể cả khi đã đăng nhập Gmail).
-
-Nếu sau khi bật mà WPS báo lỗi đăng nhập hoặc khoá tính năng, hãy tắt lại mục này."),
+            Warning: "Tài liệu sẽ không lên WPS Cloud nữa (kể cả khi đã đăng nhập Gmail).\n\nNếu sau khi bật mà WPS báo lỗi đăng nhập hoặc khoá tính năng, hãy tắt lại mục này."),
         new("wps.telemetry", GroupWps, "WPS: chặn gửi báo lỗi và thống kê",
             "Chặn mạng các tiến trình gửi báo cáo lỗi và dữ liệu sử dụng (kcrashdumper, transerr). Tiến trình chính của WPS vẫn liên lạc máy chủ để đăng nhập, kiểm tra tài khoản.",
             [], Custom: new WpsBlock("thu thập dữ liệu", ["kcrashdumper.exe", "kcrashdumper64.exe", "transerr.exe"])),
@@ -208,16 +206,10 @@ Nếu sau khi bật mà WPS báo lỗi đăng nhập hoặc khoá tính năng, h
         new("wps.firewall", GroupWps, "WPS: chặn toàn bộ truy cập Internet (tường lửa)",
             "Chặn mọi file chạy của WPS kết nối Internet và tắt mọi mục khởi động cùng Windows của WPS. Không còn quảng cáo, đồng bộ hay gửi dữ liệu nào.",
             [], Custom: new WpsBlock("tường lửa", null),
-            Warning: "WPS sẽ không đăng nhập được, không dùng được cloud, mẫu tài liệu online, dịch, AI…
-Bản miễn phí có thể khoá một số tính năng khi không kiểm tra được tài khoản.
-
-Nếu chỉ muốn không đồng bộ dữ liệu mà vẫn đăng nhập, dùng các mục WPS khác thay vì mục này."),
+            Warning: "WPS sẽ không đăng nhập được, không dùng được cloud, mẫu tài liệu online, dịch, AI…\nBản miễn phí có thể khoá một số tính năng khi không kiểm tra được tài khoản.\n\nNếu chỉ muốn không đồng bộ dữ liệu mà vẫn đăng nhập, dùng các mục WPS khác thay vì mục này."),
         new("wps.blockinstall", GroupWps, "WPS: chặn cài và chạy WPS Office trên máy này",
             "Đặt chính sách Windows (Software Restriction Policies) không cho chạy bộ cài WPS (WPSOffice*.exe…) và mọi file trong thư mục cài WPS. Áp dụng cho mọi tài khoản, kể cả admin — tải bộ cài về cũng không chạy được. Explorer được khởi động lại để có hiệu lực ngay; trình duyệt và ứng dụng đang mở chỉ nhận sau khi khởi động lại máy.",
             [], TweakEffect.Restart, Custom: WpsInstallBlock.Instance,
-            Warning: "WPS đang cài trên máy (nếu có) cũng sẽ không mở được, kể cả trình gỡ của nó.
-Nếu cần gỡ WPS, hãy gỡ trước rồi mới bật mục này (Gỡ app sạch → WPS Office).
-
-Tắt mục này để cho cài lại."),
+            Warning: "WPS đang cài trên máy (nếu có) cũng sẽ không mở được, kể cả trình gỡ của nó.\nNếu cần gỡ WPS, hãy gỡ trước rồi mới bật mục này (Gỡ app sạch → WPS Office).\n\nTắt mục này để cho cài lại."),
     ];
 }
