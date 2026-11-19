@@ -1,17 +1,28 @@
 using System.IO;
+using System.IO.Compression;
 
 namespace ITHelpdeskTool.Services.Fonts;
 
-/// <summary>Font miễn phí (giấy phép OFL) từ kho github.com/google/fonts, đều có đủ dấu tiếng Việt.</summary>
-public sealed record WebFont(string Name, string Style, string Dir, string[] Files)
+/// <summary>
+/// Font tải về miễn phí, đều có đủ dấu tiếng Việt: font Google (giấy phép OFL, kho github.com/google/fonts)
+/// và font mặc định của Microsoft 365 (Aptos) — Zip = gói zip chính thức trên download.microsoft.com.
+/// </summary>
+public sealed record WebFont(string Name, string Style, string Dir, string[] Files, string? Zip = null)
 {
     public IEnumerable<string> Urls => Files.Select(f => $"https://raw.githubusercontent.com/google/fonts/main/ofl/{Dir}/{Uri.EscapeDataString(f)}");
 }
 
 public static class GoogleFontCatalog
 {
+    /// <summary>Gói font Aptos chính thức của Microsoft (28 kiểu: Aptos, Narrow, Display, Serif, Mono…).</summary>
+    public const string AptosZip = "https://download.microsoft.com/download/8/6/0/860a94fa-7feb-44ef-ac79-c072d9113d69/Microsoft%20Aptos%20Fonts.zip";
+
     public static readonly IReadOnlyList<WebFont> Fonts =
     [
+        // Font mặc định của Excel / Word / PowerPoint 365 từ 2024. Máy dùng WPS, Office 2016–2021 thiếu font này
+        // nên file nhận từ Microsoft 365 hiển thị sai font (chữ kiểu máy đánh chữ).
+        new("Aptos", "Font mặc định Office 365 · sửa lỗi file Excel/Word 365 mở trên WPS, Office cũ bị sai font · của Microsoft", "aptos",
+            [], AptosZip),
         new("Be Vietnam Pro", "Không chân · thiết kế cho tiếng Việt", "bevietnampro",
             ["BeVietnamPro-Regular.ttf", "BeVietnamPro-Italic.ttf", "BeVietnamPro-Medium.ttf", "BeVietnamPro-SemiBold.ttf", "BeVietnamPro-Bold.ttf", "BeVietnamPro-BoldItalic.ttf", "BeVietnamPro-Light.ttf"]),
         new("Roboto", "Không chân · phổ biến", "roboto", ["Roboto[wdth,wght].ttf", "Roboto-Italic[wdth,wght].ttf"]),
@@ -37,6 +48,27 @@ public static class GoogleFontCatalog
     public static async Task<List<string>> DownloadAsync(WebFont f, Action<string>? status = null, CancellationToken ct = default)
     {
         var dir = Path.Combine(Downloader.CacheDir, "googlefonts", f.Dir);
+        if (f.Zip is { } zipUrl)
+        {
+            status?.Invoke($"Đang tải {f.Name}…");
+            var zip = await Downloader.DownloadAsync(zipUrl, Path.Combine(Downloader.CacheDir, "fontzip"), f.Dir + ".zip", ct: ct);
+            status?.Invoke($"Đang giải nén {f.Name}…");
+            if (Directory.Exists(dir)) Directory.Delete(dir, true);
+            Directory.CreateDirectory(dir);
+            var files = new List<string>();
+            using (var archive = ZipFile.OpenRead(zip))
+                foreach (var e in archive.Entries)
+                {
+                    // Chỉ lấy file font, bỏ thư mục con trong gói (tránh đường dẫn lạ)
+                    if (e.Name.Length == 0 || !FontService.IsFontFile(e.Name)) continue;
+                    var target = Path.Combine(dir, e.Name);
+                    e.ExtractToFile(target, overwrite: true);
+                    files.Add(target);
+                }
+            try { File.Delete(zip); } catch { }
+            if (files.Count == 0) throw new InvalidOperationException($"gói tải về không có file font {f.Name}");
+            return files;
+        }
         var list = new List<string>();
         var i = 0;
         foreach (var (url, file) in f.Urls.Zip(f.Files))

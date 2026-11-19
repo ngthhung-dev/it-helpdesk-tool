@@ -76,7 +76,7 @@
                     <StackPanel Orientation="Horizontal">
                         <RadioButton Style="{StaticResource TabSeg}" IsChecked="{Binding TabNew}" Content="Cài font mới"/>
                         <RadioButton Style="{StaticResource TabSeg}" IsChecked="{Binding TabInstalled}" Content="Font đã cài"/>
-                        <RadioButton Style="{StaticResource TabSeg}" IsChecked="{Binding TabGoogle}" Content="Font miễn phí (Google)"/>
+                        <RadioButton Style="{StaticResource TabSeg}" IsChecked="{Binding TabGoogle}" Content="Font miễn phí"/>
                     </StackPanel>
                 </Border>
                 <TextBox Style="{StaticResource InputBox}" Margin="12,0,0,0" VerticalAlignment="Center" MinHeight="34"
@@ -374,7 +374,7 @@
             <Border Grid.Row="2" Style="{StaticResource Card}" Padding="0" Visibility="{Binding TabGoogle, Converter={StaticResource BoolVis}}">
                 <DockPanel>
                     <DockPanel DockPanel.Dock="Top" Margin="18,14,18,8">
-                        <TextBlock Style="{StaticResource Hint}" Text="Font miễn phí, dùng được cả cho mục đích thương mại (giấy phép SIL OFL), đều có đủ dấu tiếng Việt. Tải từ kho github.com/google/fonts."/>
+                        <TextBlock Style="{StaticResource Hint}" Text="Font miễn phí, đều có đủ dấu tiếng Việt. Aptos là font mặc định của Office 365 (tải từ Microsoft) — cài vào máy dùng WPS hoặc Office cũ để file Excel/Word 365 hiển thị đúng. Các font còn lại từ kho github.com/google/fonts (giấy phép SIL OFL, dùng được cả cho mục đích thương mại)." TextWrapping="Wrap"/>
                     </DockPanel>
                     <DockPanel DockPanel.Dock="Bottom" Margin="18,10,18,14">
                         <Button DockPanel.Dock="Right" Style="{StaticResource BtnPrimary}" Command="{Binding InstallWebCommand}">
