@@ -68,8 +68,9 @@ public class BackupTests
 {
     private static UserPaths FakeProfile(out string root)
     {
-        root = Directory.CreateTempSubdirectory().FullName;
-        string D(string rel) => Directory.CreateDirectory(Path.Combine(root, rel)).FullName;
+        var dir = Directory.CreateTempSubdirectory().FullName;
+        root = dir;
+        string D(string rel) => Directory.CreateDirectory(Path.Combine(dir, rel)).FullName;
         var u = new UserPaths
         {
             Profile = root, Desktop = D("Desktop"), Documents = D("Documents"), Downloads = D("Downloads"),
