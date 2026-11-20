@@ -11,10 +11,15 @@ namespace ITHelpdeskTool.Reinstall.Cli
     /// <summary>
     /// ithreinstall — cài lại Windows không cần USB (dòng lệnh).
     ///   info    --image X.iso                       liệt kê bản Windows trong file cài
-    ///   check   --image X --staging D:\ITH          kiểm tra máy trước khi cài
+    ///   check   --image X --index N --staging D:\ITH  kiểm tra máy + tương thích với bản Windows đã chọn
+    ///   backup  --staging D:\ITH [--backup default|all|none|id,id] [--profile C:\Users\X] [--list]
     ///   prepare --image X --index N --staging D:\ITH [--account Admin] [--password P] [--computer NAME]
     ///           [--software default|none|id,id] [--tweaks default|none|id,id] [--no-drivers] [--after "lệnh"]
+    ///           [--backup default|all|none|id,id] [--profile …] [--no-restore] [--ignore-backup-errors]
+    ///           [--microsoft-account] [--confirm org,bitlocker-keys]
     ///           [--arm] [--reboot] [--test-fail-before-format]
+    ///   decrypt --drive C: [--wait]                 tắt BitLocker / mã hoá thiết bị, theo dõi % giải mã
+    ///           Thứ tự: kiểm tra → sao lưu (vào D:\ITH\backup) → chuẩn bị → đặt khởi động. Lỗi ở bước nào thì dừng ở đó.
     ///   arm     --staging D:\ITH                    đặt khởi động vào môi trường cài (một lần)
     ///   cancel  --staging D:\ITH [--remove]         huỷ, máy như cũ
     /// </summary>
@@ -39,6 +44,8 @@ namespace ITHelpdeskTool.Reinstall.Cli
                 {
                     case "info": return Info(run, a);
                     case "check": return CheckCmd(run, a);
+                    case "backup": return BackupCmd(run, a);
+                    case "decrypt": return Decrypt(run, a);
                     case "prepare": return Prepare(run, a);
                     case "arm": return Arm(run, a);
                     case "cancel": return Cancel(run, a);
@@ -64,7 +71,7 @@ namespace ITHelpdeskTool.Reinstall.Cli
         }
 
         private const string Usage =
-            "ithreinstall info|check|prepare|arm|cancel …  (xem chú thích trong Program.cs)\n" +
+            "ithreinstall info|check|backup|prepare|arm|cancel|decrypt …  (xem chú thích trong Program.cs)\n" +
             "Ví dụ: ithreinstall prepare --image E:\\Win11.iso --index 1 --staging D:\\ITH --account Admin --arm --reboot";
 
         private static void Log(string m)
@@ -94,6 +101,7 @@ namespace ITHelpdeskTool.Reinstall.Cli
                 Password = a.Get("password", ""),
                 ComputerName = a.Get("computer", "*"),
                 ExportDrivers = !a.Has("no-drivers"),
+                MicrosoftAccount = a.Has("microsoft-account"),
                 AfterPostInstall = a.Get("after", ""),
                 Firmware = BootEntry.DetectFirmware(run),
             };
@@ -131,15 +139,110 @@ namespace ITHelpdeskTool.Reinstall.Cli
 
         private static long ImageBytes(string image) => File.Exists(image) ? new FileInfo(image).Length : 0;
 
-        private static bool RunChecks(IRunner run, ReinstallPlan p)
+        /// <summary>Đọc chi tiết bản Windows đã chọn (kiến trúc, build, mã bản) — mở ISO nếu cần.</summary>
+        private static ImageEdition ReadEdition(IRunner run, string image, int index)
         {
-            var facts = MachineFacts.Read(run);
-            var checks = Preflight.Run(p, facts, ImageBytes(p.ImagePath));
+            IsoMount? iso = null;
+            try
+            {
+                if (image.EndsWith(".iso", StringComparison.OrdinalIgnoreCase))
+                {
+                    iso = IsoMount.Mount(run, image);
+                    image = MediaFiles.FromRoot(iso.Root).InstallImage;
+                }
+                var all = ImageInfo.Read(run, image, details: true);
+                return all.FirstOrDefault(e => e.Index == index)
+                       ?? throw new ReinstallException($"File cài không có bản số {index}. Có: {string.Join("; ", all)}");
+            }
+            finally { iso?.Dispose(); }
+        }
+
+        private static HashSet<string> Confirmed(Args a) =>
+            new HashSet<string>(a.Get("confirm", "").Split(',').Select(x => x.Trim()).Where(x => x.Length > 0), StringComparer.OrdinalIgnoreCase);
+
+        private static bool RunChecks(IRunner run, ReinstallPlan p, long backupBytes, ICollection<string> confirmed, out MachineFacts facts)
+        {
+            facts = MachineFacts.Read(run);
+            var ed = ReadEdition(run, p.ImagePath, p.ImageIndex);
+            Log($"Bản sẽ cài: {ed} [{ed.Edition}]");
+            Log($"Máy: {facts.ProductName} ({facts.EditionId}) · {facts.CpuName} · RAM {facts.RamBytes / 1073741824.0:0.#} GB · {facts.Firmware} · TPM {facts.Tpm}");
+            Log($"Tài khoản: {(facts.Account.Source.Length > 0 ? facts.Account.Source : "?")}" +
+                (facts.Account.ManagedByOrganization ? " · quản lý bởi " + facts.Account.OrganizationText : "") +
+                " · BitLocker: " + (facts.BitLocker.Count > 0 ? string.Join(", ", facts.BitLocker.Values) : "không"));
+            var checks = Preflight.Run(p, facts, ImageBytes(p.ImagePath) + backupBytes, null, confirmed);
+            long targetBytes = 0;
+            try { targetBytes = new DriveInfo(p.TargetDrive).TotalSize; } catch { }
+            checks.AddRange(Compatibility.Evaluate(facts, ed, targetBytes));
             foreach (var c in checks) Log(c.ToString());
             return checks.All(c => c.Level != CheckLevel.Block);
         }
 
-        private static int CheckCmd(IRunner run, Args a) => RunChecks(run, Plan(run, a)) ? 0 : 3;
+        private static int CheckCmd(IRunner run, Args a)
+        {
+            var items = BackupItems(a);
+            return RunChecks(run, Plan(run, a), items.Sum(i => i.Bytes), Confirmed(a), out _) ? 0 : 3;
+        }
+
+        // ---- Sao lưu ----
+        private static UserPaths Paths(Args a)
+        {
+            if (!a.Has("profile")) return UserPaths.Current();
+            var pr = a.Get("profile");
+            return new UserPaths
+            {
+                Profile = pr,
+                Desktop = Path.Combine(pr, "Desktop"),
+                Documents = Path.Combine(pr, "Documents"),
+                Downloads = Path.Combine(pr, "Downloads"),
+                Pictures = Path.Combine(pr, "Pictures"),
+                Videos = Path.Combine(pr, "Videos"),
+                Music = Path.Combine(pr, "Music"),
+                Roaming = Path.Combine(pr, @"AppData\Roaming"),
+                Local = Path.Combine(pr, @"AppData\Local"),
+            };
+        }
+
+        private static List<BackupItem> BackupItems(Args a)
+        {
+            var spec = a.Get("backup", "default");
+            if (spec == "none" || spec.Length == 0) return new List<BackupItem>();
+            var all = BackupScanner.Scan(Paths(a));
+            if (spec == "all") return all;
+            if (spec == "default") return all.Where(b => b.Default).ToList();
+            var ids = spec.Split(',').Select(x => x.Trim()).Where(x => x.Length > 0).ToList();
+            var unknown = ids.Where(i => all.All(b => !b.Id.Equals(i, StringComparison.OrdinalIgnoreCase))).ToList();
+            if (unknown.Count > 0) throw new ReinstallException("Máy không có mục sao lưu: " + string.Join(", ", unknown) + ". Có: " + string.Join(", ", all.Select(b => b.Id)));
+            return all.Where(b => ids.Contains(b.Id, StringComparer.OrdinalIgnoreCase)).ToList();
+        }
+
+        private static string Size(long b) => b >= 1073741824 ? $"{b / 1073741824.0:0.0} GB" : $"{b / 1048576.0:0} MB";
+
+        private static BackupResult? DoBackup(IRunner run, Args a, List<BackupItem> items, string staging, string target)
+        {
+            if (items.Count == 0) { Log("Không sao lưu (--backup none)."); return null; }
+            foreach (var b in items) Log($"Sao lưu: {b.Title} {(b.Bytes > 0 ? Size(b.Bytes) : "")} {(b.Source.Length > 0 ? "← " + b.Source : "")}");
+            var res = BackupRunner.Run(run, items, Path.Combine(staging, "backup"), target, Log);
+            foreach (var e in res.Errors) Log("LỖI sao lưu: " + e);
+            Log($"Sao lưu xong {res.Done.Count}/{items.Count} mục vào {res.Dir}");
+            return res;
+        }
+
+        private static int BackupCmd(IRunner run, Args a)
+        {
+            var staging = a.Get("staging", @"D:\ITH");
+            var target = a.Get("target", Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows))!.TrimEnd('\\'));
+            var items = BackupItems(a);
+            if (a.Has("list"))
+            {
+                foreach (var b in BackupScanner.Scan(Paths(a)))
+                    Console.WriteLine($"{(b.Default ? "[x]" : "[ ]")} {b.Id,-18} {Size(b.Bytes),9}  {b.Group} · {b.Title}" + (b.Note.Length > 0 ? $"\n      {b.Note}" : ""));
+                return 0;
+            }
+            Directory.CreateDirectory(staging);
+            OpenLog(staging);
+            var res = DoBackup(run, a, items, staging, target);
+            return res == null || res.Ok ? 0 : 4;
+        }
 
         private static int Prepare(IRunner run, Args a)
         {
@@ -147,15 +250,61 @@ namespace ITHelpdeskTool.Reinstall.Cli
             Directory.CreateDirectory(p.StagingDir);
             OpenLog(p.StagingDir);
             Log($"=== Chuẩn bị cài lại Windows: {p.ImagePath} bản {p.ImageIndex} → {p.TargetDrive} (đệm {p.StagingDir}, {p.Firmware})");
-            if (!RunChecks(run, p))
+
+            // 1. Kiểm tra máy + tương thích
+            var items = BackupItems(a);
+            var confirmed = Confirmed(a);
+            if (!RunChecks(run, p, items.Sum(i => i.Bytes), confirmed, out var facts))
             {
                 Log("Dừng: còn mục chặn (Block) ở trên.");
                 return 3;
             }
+
+            // 1b. Ổ dữ liệu mã hoá BitLocker: lưu khoá khôi phục, bắt xác nhận đã chép trước khi đi tiếp
+            var encrypted = Preflight.EncryptedDataDrives(p, facts);
+            if (encrypted.Count > 0)
+            {
+                var keys = new List<RecoveryKey>();
+                foreach (var v in encrypted)
+                {
+                    var k = Encryption.RecoveryKeys(run, v.Drive);
+                    if (k.Count == 0)
+                    {
+                        Log($"Dừng: ổ {v.Drive} mã hoá nhưng không có khoá khôi phục dạng 48 số — Windows mới sẽ không mở được ổ này. " +
+                            $"Thêm khoá: manage-bde -protectors -add {v.Drive} -RecoveryPassword (rồi chạy lại).");
+                        return 5;
+                    }
+                    keys.AddRange(k);
+                }
+                var keyDir = Path.Combine(p.StagingDir, "backup", "bitlocker");
+                Directory.CreateDirectory(keyDir);
+                var keyFile = Path.Combine(keyDir, "khoa-khoi-phuc-bitlocker.txt");
+                File.WriteAllText(keyFile, Encryption.KeysText(keys), new UTF8Encoding(true));
+                foreach (var k in keys) Console.WriteLine($"  Ổ {k.Drive}  khoá khôi phục: {k.Key}");
+                Log($"Đã lưu khoá khôi phục BitLocker của {string.Join(", ", encrypted.Select(v => v.Drive))} vào {keyFile}");
+                if (!confirmed.Contains(ConfirmKeys.BitLockerKeys))
+                {
+                    Log($"Dừng: chép các khoá trên ra giấy / nơi khác ngoài máy, rồi chạy lại với --confirm {ConfirmKeys.BitLockerKeys}.");
+                    return 6;
+                }
+            }
+
+            // 2. Sao lưu — chưa xong thì không đi tiếp
+            var backup = DoBackup(run, a, items, p.StagingDir, p.TargetDrive);
+            if (backup != null && !backup.Ok && !a.Has("ignore-backup-errors"))
+            {
+                Log("Dừng: sao lưu có lỗi. Sửa lỗi rồi chạy lại, hoặc thêm --ignore-backup-errors nếu chấp nhận thiếu các file trên.");
+                return 4;
+            }
+            if (backup != null && !a.Has("no-restore")) p.Restore = backup.Done;
+
+            // 3. Chuẩn bị
             var stager = new Stager(run, Log) { TestFailBeforeFormat = a.Has("test-fail-before-format") };
             var r = stager.Prepare(p);
-            Log($"Đã chuẩn bị: {r.Edition} · mã {r.Id} · driver ổ cứng: {r.StorageDrivers.Count}");
+            Log($"Đã chuẩn bị: {r.Edition} · mã {r.Id} · driver ổ cứng: {r.StorageDrivers.Count} · tự chép lại: {p.Restore.Count} mục");
             if (!a.Has("arm")) return 0;
+
+            // 4. Đặt khởi động một lần
             var e = stager.Arm(p);
             Log($"Đã đặt khởi động một lần vào môi trường cài ({e.EntryId}). Khởi động lại máy để bắt đầu; huỷ: ithreinstall cancel --staging {p.StagingDir}");
             if (a.Has("reboot"))
@@ -164,6 +313,31 @@ namespace ITHelpdeskTool.Reinstall.Cli
                 Process.Start(new ProcessStartInfo("shutdown.exe", "/r /t 10 /c \"IT Helpdesk Tool - cai lai Windows\"") { UseShellExecute = false, CreateNoWindow = true });
             }
             return 0;
+        }
+
+        private static int Decrypt(IRunner run, Args a)
+        {
+            var drive = a.Get("drive", "C:");
+            var before = Encryption.Status(run, drive);
+            if (before == null || !before.Encrypted)
+            {
+                Log($"Ổ {drive} không mã hoá.");
+                return 0;
+            }
+            if (!before.Decrypting)
+            {
+                var r = Encryption.TurnOff(run, drive);
+                if (!r.Ok) { Log("Không tắt được mã hoá: " + r.Output.Trim()); return 1; }
+                Log($"Đã bắt đầu giải mã ổ {drive}. Vẫn dùng máy bình thường được; tắt máy thì lần sau chạy tiếp.");
+            }
+            if (!a.Has("wait")) return 0;
+            while (true)
+            {
+                var st = Encryption.Status(run, drive);
+                if (st == null || !st.Encrypted) { Log($"Ổ {drive} đã giải mã xong."); return 0; }
+                Log($"Ổ {drive}: còn {st.Percent:0.#}% đang mã hoá…");
+                System.Threading.Thread.Sleep(15000);
+            }
         }
 
         private static int Arm(IRunner run, Args a)

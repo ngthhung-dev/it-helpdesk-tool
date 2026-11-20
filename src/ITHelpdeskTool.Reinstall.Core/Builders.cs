@@ -69,22 +69,28 @@ namespace ITHelpdeskTool.Reinstall
             sb.Append("  <settings pass=\"oobeSystem\">\r\n");
             sb.Append(Comp("Microsoft-Windows-International-Core", "oobeSystem", arch,
                 $"      <InputLocale>{X(p.InputLocale)}</InputLocale>\r\n" +
+                (p.UiLanguage.Length > 0 ? $"      <UILanguage>{X(p.UiLanguage)}</UILanguage>\r\n" : "") +
                 $"      <SystemLocale>{X(p.SystemLocale)}</SystemLocale>\r\n" +
                 $"      <UserLocale>{X(p.UserLocale)}</UserLocale>\r\n"));
-            sb.Append(Comp("Microsoft-Windows-Shell-Setup", "oobeSystem", arch,
-                "      <OOBE>\r\n" +
-                "        <HideEULAPage>true</HideEULAPage>\r\n" +
-                "        <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>\r\n" +
-                "        <HideOnlineAccountScreens>true</HideOnlineAccountScreens>\r\n" +
-                "        <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>\r\n" +
-                "        <HideLocalAccountScreen>true</HideLocalAccountScreen>\r\n" +
-                "        <ProtectYourPC>3</ProtectYourPC>\r\n" +
-                "      </OOBE>\r\n" +
+            // Tài khoản Microsoft: để OOBE hiện màn hình đăng nhập (và Wi-Fi), không tạo tài khoản cục bộ / tự đăng nhập
+            var ms = p.MicrosoftAccount;
+            var accounts = ms ? "" :
                 "      <UserAccounts><LocalAccounts>\r\n" +
                 $"        <LocalAccount wcm:action=\"add\"><Name>{X(p.AccountName)}</Name><DisplayName>{X(p.AccountName)}</DisplayName>" +
                 $"<Group>Administrators</Group>{pwd}</LocalAccount>\r\n" +
                 "      </LocalAccounts></UserAccounts>\r\n" +
-                $"      <AutoLogon><Enabled>true</Enabled><LogonCount>1</LogonCount><Username>{X(p.AccountName)}</Username>{pwd}</AutoLogon>\r\n" +
+                $"      <AutoLogon><Enabled>true</Enabled><LogonCount>1</LogonCount><Username>{X(p.AccountName)}</Username>{pwd}</AutoLogon>\r\n";
+            var hide = ms ? "false" : "true";
+            sb.Append(Comp("Microsoft-Windows-Shell-Setup", "oobeSystem", arch,
+                "      <OOBE>\r\n" +
+                "        <HideEULAPage>true</HideEULAPage>\r\n" +
+                "        <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>\r\n" +
+                $"        <HideOnlineAccountScreens>{hide}</HideOnlineAccountScreens>\r\n" +
+                $"        <HideWirelessSetupInOOBE>{hide}</HideWirelessSetupInOOBE>\r\n" +
+                $"        <HideLocalAccountScreen>{hide}</HideLocalAccountScreen>\r\n" +
+                "        <ProtectYourPC>3</ProtectYourPC>\r\n" +
+                "      </OOBE>\r\n" +
+                accounts +
                 "      <FirstLogonCommands>\r\n" +
                 $"        <SynchronousCommand wcm:action=\"add\"><Order>1</Order><CommandLine>{X(FirstLogonCommand)}</CommandLine>" +
                 "<Description>IT Helpdesk Tool - cai phan mem va tinh chinh</Description></SynchronousCommand>\r\n" +
@@ -111,6 +117,11 @@ namespace ITHelpdeskTool.Reinstall
             sb.Append(string.Join(",", p.Software.Select(s =>
                 $"\r\n    {{ \"id\": {Q(s.Id)}, \"name\": {Q(s.Name)}, \"kind\": {Q(s.Kind.ToString())}, \"url\": {Q(s.Url)}, \"args\": {Q(s.Args)}, \"exe\": {Q(s.Exe)} }}")));
             sb.Append(p.Software.Count > 0 ? "\r\n  ],\r\n" : "],\r\n");
+            var restore = p.Restore.Where(b => b.Restore != RestoreKind.None).ToList();
+            sb.Append("  \"restore\": [");
+            sb.Append(string.Join(",", restore.Select(b =>
+                $"\r\n    {{ \"folder\": {Q(b.Folder)}, \"kind\": {Q(b.Restore.ToString())}, \"to\": {Q(b.RestoreTo)}, \"title\": {Q(b.Title)} }}")));
+            sb.Append(restore.Count > 0 ? "\r\n  ],\r\n" : "],\r\n");
             sb.Append($"  \"after\": {Q(p.AfterPostInstall)}\r\n");
             sb.Append("}\r\n");
             return sb.ToString();

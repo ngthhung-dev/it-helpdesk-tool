@@ -65,14 +65,17 @@ namespace ITHelpdeskTool.Reinstall
                 var ed = editions.FirstOrDefault(e => e.Index == p.ImageIndex)
                          ?? throw new ReinstallException($"File cài không có bản số {p.ImageIndex}. Có: {string.Join("; ", editions)}");
                 var detail = ImageInfo.Read(_run, media.InstallImage, details: true).FirstOrDefault(e => e.Index == p.ImageIndex);
-                if (detail != null) { ed.Architecture = detail.Architecture; ed.Version = detail.Version; }
+                if (detail != null) { ed.Architecture = detail.Architecture; ed.Version = detail.Version; ed.Edition = detail.Edition; ed.Language = detail.Language; }
+                if (p.UiLanguage.Length == 0) p.UiLanguage = ed.Language;
                 if (ed.Architecture.Length > 0) p.Architecture = ImageInfo.UnattendArch(ed.Architecture);
 
                 // ---- 2. Dọn lần trước, đánh dấu thư mục đệm ----
                 foreach (var old in Directory.GetFiles(staging, "ITH-STAGING-*.tag")) File.Delete(old);
                 foreach (var f in new[] { "bootids.cmd", "apply.cmd", "unattend.xml", "boot.wim" }) Delete(Path.Combine(staging, f));
+                // Chỉ xoá dấu kết quả của lần trước (prepare.log đang mở để ghi — không xoá cả thư mục logs)
                 var logs = Path.Combine(staging, "logs");
-                if (Directory.Exists(logs)) Directory.Delete(logs, true);
+                foreach (var f in new[] { "winpe.log", "winpe.done", "winpe.safe", "winpe.failed" }) Delete(Path.Combine(logs, f));
+                if (Directory.Exists(Path.Combine(logs, "post"))) Directory.Delete(Path.Combine(logs, "post"), true);
                 var id = Guid.NewGuid().ToString("N").Substring(0, 10);
                 File.WriteAllText(Path.Combine(staging, $"ITH-STAGING-{id}.tag"), DateTime.Now.ToString("s"));
 

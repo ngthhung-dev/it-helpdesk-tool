@@ -63,11 +63,11 @@ if [ "$FW" = uefi ]; then
     -drive if=pflash,format=raw,unit=0,file=/usr/share/OVMF/OVMF_CODE_4M.ms.fd,readonly=on
     -drive if=pflash,format=raw,unit=1,file=vars.fd
     -chardev socket,id=chrtpm,path=$WORK/tpm/sock -tpmdev emulator,id=tpm0,chardev=chrtpm -device tpm-tis,tpmdev=tpm0
-    -device ahci,id=ahci -device ide-hd,drive=d0,bus=ahci.0,bootindex=1 -device ide-hd,drive=d1,bus=ahci.1
-    -device ide-cd,drive=cd0,bus=ahci.2,bootindex=0 -device ide-cd,drive=cd1,bus=ahci.3)
+    -device ahci,id=ahci -device ide-hd,drive=d0,bus=ahci.0,bootindex=0 -device ide-hd,drive=d1,bus=ahci.1
+    -device ide-cd,drive=cd0,bus=ahci.2,bootindex=1 -device ide-cd,drive=cd1,bus=ahci.3)
 else
-  ARGS=(-machine q35 -device ahci,id=ahci -device ide-hd,drive=d0,bus=ahci.0,bootindex=1 -device ide-hd,drive=d1,bus=ahci.1
-    -device ide-cd,drive=cd0,bus=ahci.2,bootindex=0 -device ide-cd,drive=cd1,bus=ahci.3)
+  ARGS=(-machine q35 -device ahci,id=ahci -device ide-hd,drive=d0,bus=ahci.0,bootindex=0 -device ide-hd,drive=d1,bus=ahci.1
+    -device ide-cd,drive=cd0,bus=ahci.2,bootindex=1 -device ide-cd,drive=cd1,bus=ahci.3)
 fi
 
 qemu-system-x86_64 "${COMMON[@]}" "${ARGS[@]}" &
@@ -76,8 +76,9 @@ mon() { echo "$1" | socat - unix-connect:$MON > /dev/null 2>&1 || true; }
 shot() { mon "screendump $WORK/s.ppm"; sleep 1; convert "$WORK/s.ppm" -resize 800x "$OUT/shots/$1.png" 2>/dev/null || true; }
 
 # "Press any key to boot from CD" ở lần bật đầu
-sleep 3
-for i in $(seq 1 15); do mon "sendkey ret"; sleep 1; done
+# Chỉ trong ~25 giây đầu (sau đó Setup đã chạy — Enter có thể bấm nhầm nút Cancel); các lần khởi động sau vào thẳng ổ cứng
+sleep 4
+for i in $(seq 1 22); do mon "sendkey ret"; sleep 1; done
 
 # ---- Chờ máy ảo tự tắt (run-test / FirstLogon.ps1 tắt máy khi xong), chụp màn hình mỗi phút ----
 START=$(date +%s); LIMIT=$((230 * 60)); n=0
@@ -126,12 +127,17 @@ echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
     check /mnt/win/ProgramData/ITHReinstall/logs/firstlogon.done "log sau cài nằm trên ổ Windows mới"
     check "/mnt/win/Program Files/7-Zip/7z.exe" "7-Zip (winget) đã cài"
     check /mnt/win/Users/itadmin "tài khoản itadmin đã tạo"
+    check /mnt/stg/ITH/backup/backup.json "đã sao lưu trước khi cài (backup.json)"
+    check /mnt/stg/ITH/backup/apps/phan-mem.csv "đã lưu danh sách phần mềm"
+    check /mnt/win/Users/itadmin/Desktop/ith-backup-test.txt "Desktop cũ đã tự chép lại vào tài khoản mới"
+    check "/mnt/win/Users/itadmin/Documents/Ke toan/bao-cao.txt" "Documents cũ đã tự chép lại vào tài khoản mới"
     [ -e /mnt/win/Users/olduser ] && { echo "FAIL tài khoản cũ olduser vẫn còn (ổ chưa bị cài lại)"; FAIL=1; } || echo "OK   Windows cũ đã được thay"
     [ -e /mnt/stg/ITH/logs/back-to-old.txt ] && { echo "FAIL máy đã quay về Windows cũ"; FAIL=1; } || true
   else
     check /mnt/stg/ITH/logs/winpe.safe "WinPE dừng an toàn trước khi xoá"
     check /mnt/stg/ITH/logs/back-to-old.txt "máy khởi động lại vào Windows cũ"
     check /mnt/win/Users/olduser "dữ liệu Windows cũ còn nguyên"
+    check /mnt/win/Users/olduser/Desktop/ith-backup-test.txt "file trên Desktop cũ còn nguyên"
     if [ -f /mnt/stg/ITH/logs/bcd-after.txt ] && grep -qi "ITH - Cai lai" /mnt/stg/ITH/logs/bcd-after.txt; then
       echo "FAIL mục khởi động tạm vẫn còn"; FAIL=1
     else echo "OK   mục khởi động tạm đã được xoá"; fi

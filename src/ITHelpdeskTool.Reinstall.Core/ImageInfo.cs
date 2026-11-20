@@ -16,6 +16,22 @@ namespace ITHelpdeskTool.Reinstall
         /// <summary>x64, x86, ARM64 (chỉ có khi đọc chi tiết).</summary>
         public string Architecture { get; set; } = "";
         public string Version { get; set; } = "";
+        /// <summary>Ngôn ngữ mặc định của bản Windows (vd en-US, vi-VN) — chỉ có khi đọc chi tiết.</summary>
+        public string Language { get; set; } = "";
+        /// <summary>Mã bản (Core, Professional, Enterprise, EnterpriseEval…) — chỉ có khi đọc chi tiết.</summary>
+        public string Edition { get; set; } = "";
+
+        /// <summary>Số build (10.0.22631 → 22631); 0 nếu chưa đọc chi tiết.</summary>
+        public int Build
+        {
+            get
+            {
+                var parts = Version.Split('.');
+                return parts.Length >= 3 && int.TryParse(parts[2], out var b) ? b : 0;
+            }
+        }
+
+        public bool IsWindows11 => Build >= 22000 || Name.IndexOf("Windows 11", StringComparison.OrdinalIgnoreCase) >= 0;
 
         public override string ToString() => $"{Index}. {Name}" + (Architecture.Length > 0 ? $" ({Architecture}, {Version})" : "");
     }
@@ -34,7 +50,7 @@ namespace ITHelpdeskTool.Reinstall
                     var d = run.Run("dism.exe", $"/English /Get-WimInfo /WimFile:\"{wimOrEsd}\" /Index:{e.Index}");
                     if (!d.Ok) continue;
                     var one = Parse(d.Output);
-                    if (one.Count > 0) { e.Architecture = one[0].Architecture; e.Version = one[0].Version; }
+                    if (one.Count > 0) { e.Architecture = one[0].Architecture; e.Version = one[0].Version; e.Edition = one[0].Edition; e.Language = one[0].Language; }
                 }
             return list;
         }
@@ -46,6 +62,9 @@ namespace ITHelpdeskTool.Reinstall
             ImageEdition? cur = null;
             foreach (var raw in output.Split('\n'))
             {
+                // "Languages :" rồi dòng sau "        en-US (Default)"
+                var lang = Regex.Match(raw, @"^\s*([A-Za-z]{2,3}-[A-Za-z]{2,4})\s*\(Default\)");
+                if (lang.Success && cur != null) { cur.Language = lang.Groups[1].Value; continue; }
                 var m = Regex.Match(raw, @"^\s*([A-Za-z ]+?)\s*:\s*(.*?)\s*$");
                 if (!m.Success) continue;
                 var key = m.Groups[1].Value.Trim();
@@ -67,6 +86,7 @@ namespace ITHelpdeskTool.Reinstall
                         break;
                     case "Architecture" when cur != null: cur.Architecture = val; break;
                     case "Version" when cur != null: cur.Version = val; break;
+                    case "Edition" when cur != null: cur.Edition = val; break;
                 }
             }
             return list;

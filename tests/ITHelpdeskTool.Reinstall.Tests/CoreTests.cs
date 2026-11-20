@@ -51,7 +51,10 @@ public class ImageInfoTests
     [Fact]
     public void Parses_details()
     {
-        var one = ImageInfo.Parse("Index : 6\nName : Windows 11 Pro\nArchitecture : x64\nVersion : 10.0.26100\n");
+        var one = ImageInfo.Parse("Index : 6\nName : Windows 11 Pro\nArchitecture : x64\nVersion : 10.0.26100\nEdition : Professional\nLanguages :\n        vi-VN (Default)\n");
+        Assert.Equal("vi-VN", one[0].Language);
+        Assert.Equal("Professional", one[0].Edition);
+        Assert.True(one[0].IsWindows11);
         Assert.Equal("x64", one[0].Architecture);
         Assert.Equal("10.0.26100", one[0].Version);
         Assert.Equal("amd64", ImageInfo.UnattendArch("x64"));
@@ -226,7 +229,7 @@ public class PreflightTests
         var sys = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows))!.TrimEnd('\\');
         var p = new ReinstallPlan { TargetDrive = sys, StagingDir = sys + @"\ITH" };
         var f = new MachineFacts { Firmware = FirmwareMode.Uefi, Tpm = 2, SecureBoot = true, RamBytes = 8L << 30 };
-        f.BitLocker[sys] = 1;
+        f.BitLocker[sys] = new BitLockerVolume { Drive = sys, Protected = true, Conversion = 1, Percent = 100, VolumeType = 0 };
         var checks = Preflight.Run(p, f, 5L << 30);
         Assert.Contains(checks, c => c.Level == CheckLevel.Block && c.Title.Contains("ổ khác"));
         Assert.Contains(checks, c => c.Level == CheckLevel.Block && c.Title.Contains("BitLocker"));

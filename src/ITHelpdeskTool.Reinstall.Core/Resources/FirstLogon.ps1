@@ -109,7 +109,50 @@ foreach ($s in @($cfg.software)) {
   $results += [pscustomobject]@{ name = $s.name; ok = $ok }
 }
 
-# ---- 5. Ket thuc ----
+# ---- 5. Chep lai du lieu da sao luu (o dem: <thu muc dem>\backup) ----
+$stg = $null
+foreach ($d in [IO.DriveInfo]::GetDrives()) {
+  $s = $d.Name.TrimEnd('\') + $cfg.stagingRel
+  if (Test-Path (Join-Path $s ("ITH-STAGING-" + $cfg.id + ".tag"))) { $stg = $s }
+}
+$restored = @()
+if ($stg) {
+  $folders = @{ Desktop = 'Desktop'; Documents = 'MyDocuments'; Pictures = 'MyPictures'; Videos = 'MyVideos'; Music = 'MyMusic' }
+  foreach ($r in @($cfg.restore)) {
+    if (-not $r) { continue }
+    $src = Join-Path $stg ('backup\' + $r.folder)
+    if (-not (Test-Path $src)) { Log "Khong thay ban sao luu $src"; continue }
+    $ok = $false
+    try {
+      switch ($r.kind) {
+        'UserFolder' {
+          $dst = if ($r.to -eq 'Downloads') { Join-Path $env:USERPROFILE 'Downloads' } else { [Environment]::GetFolderPath($folders[$r.to]) }
+          Log "Chep lai $($r.title) -> $dst"
+          robocopy $src $dst /E /COPY:DAT /XJ /R:1 /W:1 /MT:8 /NP /NFL /NDL | Out-Null
+          $ok = $LASTEXITCODE -lt 8
+        }
+        'WiFi' {
+          foreach ($x in Get-ChildItem $src -Filter *.xml) { netsh wlan add profile filename="$($x.FullName)" user=all | Out-Null }
+          $ok = $true
+        }
+        'Bookmarks' {
+          $bm = Join-Path $src 'Default\Bookmarks'
+          $dstDir = Join-Path $env:LOCALAPPDATA ($r.to + '\Default')
+          if ((Test-Path $bm) -and -not (Test-Path (Join-Path $dstDir 'Bookmarks'))) {
+            New-Item -ItemType Directory -Force $dstDir | Out-Null
+            Copy-Item $bm $dstDir -Force
+          }
+          $ok = $true
+        }
+      }
+    } catch { Log "LOI chep lai $($r.title): $($_.Exception.Message)" }
+    Log ("Chep lai {0}: {1}" -f $r.title, $(if ($ok) { 'OK' } else { 'LOI' }))
+    $restored += [pscustomobject]@{ name = $r.title; ok = $ok }
+  }
+}
+$restored | ConvertTo-Json | Set-Content (Join-Path $logDir 'restore.json') -Encoding UTF8
+
+# ---- 6. Ket thuc ----
 $results | ConvertTo-Json | Set-Content (Join-Path $logDir 'software.json') -Encoding UTF8
 Remove-Item "$env:SystemRoot\Panther\unattend.xml" -Force -ErrorAction SilentlyContinue
 Set-Content (Join-Path $logDir 'firstlogon.done') (Get-Date -Format s)

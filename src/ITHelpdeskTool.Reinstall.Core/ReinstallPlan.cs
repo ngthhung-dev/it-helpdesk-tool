@@ -26,12 +26,19 @@ namespace ITHelpdeskTool.Reinstall
         public string Architecture { get; set; } = "amd64";
 
         // ---- Tài khoản và vùng ----
+        /// <summary>
+        /// true = Windows mới hiện màn hình đăng nhập tài khoản Microsoft / tạo tài khoản lúc khởi động lần đầu (cần mạng),
+        /// không tạo tài khoản cục bộ, không tự đăng nhập. false = tạo tài khoản cục bộ <see cref="AccountName"/>.
+        /// </summary>
+        public bool MicrosoftAccount { get; set; }
         public string AccountName { get; set; } = "Admin";
         /// <summary>Rỗng = không đặt mật khẩu.</summary>
         public string Password { get; set; } = "";
         /// <summary>"*" = Windows tự đặt tên máy.</summary>
         public string ComputerName { get; set; } = "*";
         public string TimeZone { get; set; } = "SE Asia Standard Time";
+        /// <summary>Ngôn ngữ giao diện = ngôn ngữ có sẵn trong bộ cài (tự lấy từ file cài). Rỗng = để Windows tự chọn.</summary>
+        public string UiLanguage { get; set; } = "";
         public string UserLocale { get; set; } = "vi-VN";
         public string SystemLocale { get; set; } = "vi-VN";
         /// <summary>Bàn phím: US (gõ tiếng Việt bằng UniKey / EVKey).</summary>
@@ -43,6 +50,9 @@ namespace ITHelpdeskTool.Reinstall
 
         /// <summary>Xuất driver của máy hiện tại và nạp vào Windows mới.</summary>
         public bool ExportDrivers { get; set; } = true;
+
+        /// <summary>Mục đã sao lưu (trong &lt;thư mục đệm&gt;\backup) sẽ tự chép lại vào Windows mới ở lần đăng nhập đầu.</summary>
+        public List<BackupItem> Restore { get; set; } = new List<BackupItem>();
 
         /// <summary>Lệnh chạy cuối cùng sau khi cài phần mềm (dùng khi thử tự động, vd tắt máy ảo).</summary>
         public string AfterPostInstall { get; set; } = "";

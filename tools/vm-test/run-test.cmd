@@ -25,8 +25,14 @@ rem Neu may quay ve Windows cu (kich ban an toan, hoac WinPE loi truoc khi xoa):
 rem Cai lai thanh cong thi Windows cu (va tac vu nay) bi xoa nen khong chay.
 schtasks /create /tn ITHBackToOld /sc onstart /ru SYSTEM /rl HIGHEST /f /tr "cmd /c echo back>S:\ITH\logs\back-to-old.txt & bcdedit /enum all > S:\ITH\logs\bcd-after.txt & shutdown /s /t 20" >> "%LOG%" 2>&1
 
+rem Du lieu "quan trong" cua tai khoan cu de kiem tra sao luu va tu chep lai vao tai khoan moi
+echo ITH backup test %DATE% %TIME%> "%USERPROFILE%\Desktop\ith-backup-test.txt"
+mkdir "%USERPROFILE%\Documents\Ke toan" 2>nul
+echo so lieu> "%USERPROFILE%\Documents\Ke toan\bao-cao.txt"
+
 "%T%cli\ithreinstall.exe" info --image "%SRC%" >> "%LOG%" 2>&1
-"%T%cli\ithreinstall.exe" prepare --image "%SRC%" --index 1 --staging S:\ITH --account itadmin --password "Test@12345" --computer NEW-PC --software 7zip.7zip,unikey --tweaks default --after "shutdown /s /t 60" --arm --reboot __EXTRA__ >> "%LOG%" 2>&1
+"%T%cli\ithreinstall.exe" backup --staging S:\ITH --list >> "%LOG%" 2>&1
+"%T%cli\ithreinstall.exe" prepare --image "%SRC%" --index 1 --staging S:\ITH --account itadmin --password "Test@12345" --computer NEW-PC --software 7zip.7zip,unikey --tweaks default --backup Desktop,Documents,wifi,apps,printers --after "shutdown /s /t 60" --arm --reboot __EXTRA__ >> "%LOG%" 2>&1
 set RC=%ERRORLEVEL%
 echo [%DATE% %TIME%] prepare exit %RC% >> "%LOG%"
 copy /y "%LOG%" S:\ITH\logs\run-test.log >nul
