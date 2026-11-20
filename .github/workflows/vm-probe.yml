@@ -43,7 +43,9 @@ jobs:
       - name: Cài QEMU, OVMF, swtpm
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq qemu-system-x86 qemu-utils ovmf swtpm socat imagemagick > /dev/null
+          sudo apt-get install -y -qq qemu-system-x86 qemu-utils ovmf swtpm socat imagemagick genisoimage > /dev/null
+          # AppArmor của Ubuntu chặn swtpm mở socket ngoài thư mục cho phép → tắt profile của swtpm (máy runner dùng một lần)
+          if [ -f /etc/apparmor.d/usr.bin.swtpm ]; then sudo apparmor_parser -R /etc/apparmor.d/usr.bin.swtpm || true; fi
           { echo "## QEMU"; qemu-system-x86_64 --version | head -1; echo "## OVMF"; ls /usr/share/OVMF/; } | tee -a out/report.txt
 
       - name: Tải ISO Windows 11 Enterprise (dùng thử) và virtio-win
