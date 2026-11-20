@@ -115,6 +115,7 @@ namespace ITHelpdeskTool.Reinstall.Cli
                 ComputerName = a.Get("computer", "*"),
                 ExportDrivers = !a.Has("no-drivers"),
                 MicrosoftAccount = a.Has("microsoft-account"),
+                PreventDeviceEncryption = a.Has("no-device-encryption"),
                 AfterPostInstall = a.Get("after", ""),
                 Firmware = BootEntry.DetectFirmware(run),
             };

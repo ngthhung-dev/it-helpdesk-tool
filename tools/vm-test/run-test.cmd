@@ -32,9 +32,13 @@ echo ITH backup test %DATE% %TIME%> "%USERPROFILE%\Desktop\ith-backup-test.txt"
 mkdir "%USERPROFILE%\Documents\Ke toan" 2>nul
 echo so lieu> "%USERPROFILE%\Documents\Ke toan\bao-cao.txt"
 
+rem Windows 11 24H2 tu bat ma hoa thiet bi (may ao co TPM + Secure Boot) -> thu chuc nang tat ma hoa truoc khi cai
+"%T%cli\ithreinstall.exe" decrypt --drive C: --wait >> "%LOG%" 2>&1
+echo [%DATE% %TIME%] decrypt exit %ERRORLEVEL% >> "%LOG%"
+
 "%T%cli\ithreinstall.exe" info --image "%SRC%" >> "%LOG%" 2>&1
 "%T%cli\ithreinstall.exe" backup --staging C:\ITH-list --list >> "%LOG%" 2>&1
-"%T%cli\ithreinstall.exe" prepare --image "%SRC%" --index 1 --staging __STAGING__ --account itadmin --password "Test@12345" --computer NEW-PC --software 7zip.7zip,unikey --tweaks default --backup Desktop,Documents,wifi,apps,printers --after "shutdown /s /t 60" --arm --reboot __EXTRA__ >> "%LOG%" 2>&1
+"%T%cli\ithreinstall.exe" prepare --image "%SRC%" --index 1 --staging __STAGING__ --account itadmin --password "Test@12345" --computer NEW-PC --software 7zip.7zip,unikey --tweaks default --backup Desktop,Documents,wifi,apps,printers --after "shutdown /s /t 60" --no-device-encryption --arm --reboot __EXTRA__ >> "%LOG%" 2>&1
 set RC=%ERRORLEVEL%
 echo [%DATE% %TIME%] prepare exit %RC% >> "%LOG%"
 

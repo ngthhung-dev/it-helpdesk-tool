@@ -37,6 +37,12 @@ namespace ITHelpdeskTool.Reinstall
         /// không tạo tài khoản cục bộ, không tự đăng nhập. false = tạo tài khoản cục bộ <see cref="AccountName"/>.
         /// </summary>
         public bool MicrosoftAccount { get; set; }
+
+        /// <summary>
+        /// Không cho Windows mới tự bật mã hoá thiết bị (Windows 11 24H2+ tự bật khi có TPM + Secure Boot).
+        /// Tránh trường hợp ổ bị mã hoá mà người dùng không biết khoá khôi phục. Mặc định giữ hành vi của Windows.
+        /// </summary>
+        public bool PreventDeviceEncryption { get; set; }
         public string AccountName { get; set; } = "Admin";
         /// <summary>Rỗng = không đặt mật khẩu.</summary>
         public string Password { get; set; } = "";

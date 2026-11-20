@@ -62,6 +62,11 @@ namespace ITHelpdeskTool.Reinstall
                 "      <RunSynchronous>\r\n" +
                 "        <RunSynchronousCommand wcm:action=\"add\"><Order>1</Order>" +
                 "<Path>reg add HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\OOBE /v BypassNRO /t REG_DWORD /d 1 /f</Path></RunSynchronousCommand>\r\n" +
+                // Windows 11 24H2+ tự bật mã hoá thiết bị khi có TPM + Secure Boot — chặn nếu người dùng chọn
+                (p.PreventDeviceEncryption
+                    ? "        <RunSynchronousCommand wcm:action=\"add\"><Order>2</Order>" +
+                      "<Path>reg add HKLM\\SYSTEM\\CurrentControlSet\\Control\\BitLocker /v PreventDeviceEncryption /t REG_DWORD /d 1 /f</Path></RunSynchronousCommand>\r\n"
+                    : "") +
                 "      </RunSynchronous>\r\n"));
             sb.Append("  </settings>\r\n");
 

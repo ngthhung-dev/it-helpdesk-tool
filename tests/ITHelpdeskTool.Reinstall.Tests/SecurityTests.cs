@@ -147,3 +147,15 @@ public class SecurityTests
         Assert.Contains(calls, c => c.Contains("/XA:O"));
     }
 }
+
+public class DeviceEncryptionTests
+{
+    [Fact]
+    public void Prevent_device_encryption_adds_specialize_command_only_when_asked()
+    {
+        Assert.DoesNotContain("PreventDeviceEncryption", UnattendBuilder.Build(new ReinstallPlan()));
+        var xml = System.Xml.Linq.XDocument.Parse(UnattendBuilder.Build(new ReinstallPlan { PreventDeviceEncryption = true }));
+        System.Xml.Linq.XNamespace u = "urn:schemas-microsoft-com:unattend";
+        Assert.Contains(xml.Descendants(u + "Path"), e => e.Value.Contains("PreventDeviceEncryption /t REG_DWORD /d 1"));
+    }
+}
