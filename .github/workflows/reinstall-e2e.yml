@@ -1,0 +1,78 @@
+name: Reinstall E2E
+
+# Thử tính năng "Cài lại Windows" từ đầu đến cuối trên máy ảo (QEMU + KVM, runner Linux của GitHub) —
+# không chạy trên máy thật nào. Kết quả: result.txt, log, ảnh chụp màn hình từng phút trong artifact.
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/reinstall-core]
+    paths:
+      - src/ITHelpdeskTool.Reinstall.Core/**
+      - src/ITHelpdeskTool.Reinstall.Cli/**
+      - tests/ITHelpdeskTool.Reinstall.Tests/**
+      - tools/vm-test/**
+      - .github/workflows/reinstall-e2e.yml
+
+jobs:
+  core:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Test lõi
+        run: dotnet test tests/ITHelpdeskTool.Reinstall.Tests -c Release --logger "console;verbosity=normal"
+      - name: Build ithreinstall (.NET Framework 4.8)
+        run: dotnet build src/ITHelpdeskTool.Reinstall.Cli -c Release -o cli
+      - uses: actions/upload-artifact@v5
+        with:
+          name: ithreinstall
+          path: cli/
+
+  vm:
+    needs: core
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { fw: uefi, scen: happy }
+          - { fw: bios, scen: happy }
+          - { fw: uefi, scen: safe }
+    env:
+      WIN11_EVAL: https://go.microsoft.com/fwlink/?LinkId=2382600&clcid=0x409&culture=en-us&country=us
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          name: ithreinstall
+          path: cli
+      - name: Chuẩn bị runner (KVM, QEMU, dọn ổ)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq qemu-system-x86 qemu-utils ovmf swtpm socat imagemagick genisoimage ntfs-3g > /dev/null
+          if [ -f /etc/apparmor.d/usr.bin.swtpm ]; then sudo apparmor_parser -R /etc/apparmor.d/usr.bin.swtpm || true; fi
+          sudo mkdir -p /mnt/vm && sudo chown $USER /mnt/vm
+          df -h /
+      - name: Tải ISO Windows 11 Enterprise (dùng thử, chính thức của Microsoft)
+        run: curl -sSL --retry 3 -o /mnt/vm/win11.iso "$WIN11_EVAL" && ls -l /mnt/vm/win11.iso
+      - name: Chạy máy ảo ${{ matrix.fw }} / ${{ matrix.scen }}
+        run: bash tools/vm-test/run-vm.sh ${{ matrix.fw }} ${{ matrix.scen }} /mnt/vm/win11.iso "$PWD/cli" "$PWD/out"
+      - name: Tóm tắt
+        if: always()
+        run: |
+          [ -f out/result.txt ] && cat out/result.txt >> "$GITHUB_STEP_SUMMARY" || echo "Không có result.txt" >> "$GITHUB_STEP_SUMMARY"
+          for f in out/logs/winpe.log out/logs/prepare.log out/logs/post/firstlogon.log; do
+            [ -f "$f" ] && { echo "### $f"; echo '```'; tail -40 "$f"; echo '```'; } >> "$GITHUB_STEP_SUMMARY" || true
+          done
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: e2e-${{ matrix.fw }}-${{ matrix.scen }}
+          path: out/

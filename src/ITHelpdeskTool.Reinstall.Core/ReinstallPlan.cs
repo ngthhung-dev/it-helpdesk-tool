@@ -1,0 +1,50 @@
+using System.Collections.Generic;
+
+namespace ITHelpdeskTool.Reinstall
+{
+    public enum FirmwareMode { Uefi, Bios }
+
+    /// <summary>Mọi lựa chọn của một lần cài lại Windows.</summary>
+    public sealed class ReinstallPlan
+    {
+        /// <summary>File cài: .iso, hoặc install.wim / install.esd (đã giải nén).</summary>
+        public string ImagePath { get; set; } = "";
+
+        /// <summary>Số thứ tự bản Windows trong file cài (Home, Pro…), xem bằng <see cref="ImageInfo.Read"/>.</summary>
+        public int ImageIndex { get; set; } = 1;
+
+        /// <summary>Thư mục đệm trên ổ KHÁC ổ Windows sẽ bị xoá, vd D:\ITH.</summary>
+        public string StagingDir { get; set; } = @"D:\ITH";
+
+        /// <summary>Ổ Windows đang chạy sẽ bị format (vd C:).</summary>
+        public string TargetDrive { get; set; } = "C:";
+
+        /// <summary>Kiểu khởi động của máy (đọc bằng <see cref="BootEntry.DetectFirmware"/>).</summary>
+        public FirmwareMode Firmware { get; set; } = FirmwareMode.Uefi;
+
+        /// <summary>Kiến trúc của bản Windows sẽ cài: amd64 hoặc x86.</summary>
+        public string Architecture { get; set; } = "amd64";
+
+        // ---- Tài khoản và vùng ----
+        public string AccountName { get; set; } = "Admin";
+        /// <summary>Rỗng = không đặt mật khẩu.</summary>
+        public string Password { get; set; } = "";
+        /// <summary>"*" = Windows tự đặt tên máy.</summary>
+        public string ComputerName { get; set; } = "*";
+        public string TimeZone { get; set; } = "SE Asia Standard Time";
+        public string UserLocale { get; set; } = "vi-VN";
+        public string SystemLocale { get; set; } = "vi-VN";
+        /// <summary>Bàn phím: US (gõ tiếng Việt bằng UniKey / EVKey).</summary>
+        public string InputLocale { get; set; } = "0409:00000409";
+
+        // ---- Sau khi cài ----
+        public List<SoftwareItem> Software { get; set; } = new List<SoftwareItem>();
+        public List<TweakItem> Tweaks { get; set; } = new List<TweakItem>();
+
+        /// <summary>Xuất driver của máy hiện tại và nạp vào Windows mới.</summary>
+        public bool ExportDrivers { get; set; } = true;
+
+        /// <summary>Lệnh chạy cuối cùng sau khi cài phần mềm (dùng khi thử tự động, vd tắt máy ảo).</summary>
+        public string AfterPostInstall { get; set; } = "";
+    }
+}
