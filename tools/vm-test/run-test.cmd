@@ -33,7 +33,9 @@ mkdir "%USERPROFILE%\Documents\Ke toan" 2>nul
 echo so lieu> "%USERPROFILE%\Documents\Ke toan\bao-cao.txt"
 
 rem Windows 11 24H2 tu bat ma hoa thiet bi (may ao co TPM + Secure Boot) -> thu chuc nang tat ma hoa truoc khi cai
+reg add HKLM\SYSTEM\CurrentControlSet\Control\BitLocker /v PreventDeviceEncryption /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
 "%T%cli\ithreinstall.exe" decrypt --drive C: --wait >> "%LOG%" 2>&1
+if "__MKDISK__"=="1" "%T%cli\ithreinstall.exe" decrypt --drive S: --wait >> "%LOG%" 2>&1
 echo [%DATE% %TIME%] decrypt exit %ERRORLEVEL% >> "%LOG%"
 
 "%T%cli\ithreinstall.exe" info --image "%SRC%" >> "%LOG%" 2>&1

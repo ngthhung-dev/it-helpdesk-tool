@@ -291,6 +291,13 @@ namespace ITHelpdeskTool.Reinstall.Cli
                     var drive = StagingPartition.Create(run, info, needed);
                     p.StagingDir = drive + "\\ITH";
                     Log($"Đã tạo phân vùng đệm {drive} ({StagingPartition.Label}). Huỷ: ithreinstall cancel --staging {p.StagingDir} --remove");
+                    // Windows 11 24H2 tự mã hoá ổ mới khi có mã hoá thiết bị → tắt ngay (ổ còn trống nên giải mã gần như tức thì)
+                    var enc = Encryption.Status(run, drive);
+                    if (enc != null && enc.Encrypted)
+                    {
+                        Log($"Windows vừa tự mã hoá {drive} — đang tắt…");
+                        Encryption.TurnOff(run, drive);
+                    }
                 }
                 else if (info.Free >= needed + (2L << 30))
                 {
@@ -351,7 +358,16 @@ namespace ITHelpdeskTool.Reinstall.Cli
             Log($"Đã chuẩn bị: {r.Edition} · mã {r.Id} · driver ổ cứng: {r.StorageDrivers.Count} · tự chép lại: {p.Restore.Count} mục");
             if (!a.Has("arm")) return 0;
 
-            // 4. Đặt khởi động một lần
+            // 4. Đặt khởi động một lần — trước đó kiểm tra lại ổ đệm: Windows 11 24H2 có thể tự mã hoá ổ mới,
+            //    trình khởi động không đọc được ổ mã hoá → máy sẽ dừng ở màn hình lỗi khởi động
+            var stagingDrive = Path.GetPathRoot(Path.GetFullPath(p.StagingDir))!.TrimEnd('\\');
+            var st = Encryption.Status(run, stagingDrive);
+            if (st != null && st.Encrypted)
+            {
+                Log($"Dừng: ổ đệm {stagingDrive} đang mã hoá BitLocker ({st}) — chưa đặt khởi động. " +
+                    $"Tắt mã hoá: ithreinstall decrypt --drive {stagingDrive} --wait, rồi chạy: ithreinstall arm --staging {p.StagingDir}");
+                return 7;
+            }
             var e = stager.Arm(p);
             Log($"Đã đặt khởi động một lần vào môi trường cài ({e.EntryId}). Khởi động lại máy để bắt đầu; huỷ: ithreinstall cancel --staging {p.StagingDir}");
             if (a.Has("reboot"))

@@ -128,7 +128,7 @@ sudo cp -r /mnt/stg/ITH/logs "$OUT/logs" 2>/dev/null || true
 # Một ổ: log nằm trên ổ Windows mới (C:\ITH-Backup sau khi gộp phân vùng đệm, hoặc C:\ITH)
 [ -d "$OUT/logs" ] || sudo cp -r /mnt/win/ITH-Backup/logs "$OUT/logs" 2>/dev/null || sudo cp -r /mnt/win/ITH/logs "$OUT/logs" 2>/dev/null || true
 sudo blkid /dev/nbd1p* > "$OUT/partitions.txt" 2>/dev/null || true
-sudo cp /mnt/win/ith-test.log "$OUT/logs/" 2>/dev/null || true
+mkdir -p "$OUT/logs"; sudo cp /mnt/win/ith-test.log "$OUT/logs/" 2>/dev/null || true
 sudo chown -R "$USER" "$OUT"
 
 check() { if [ -e "$1" ]; then echo "OK   $2"; else echo "FAIL $2 ($1)"; FAIL=1; fi; }
@@ -176,6 +176,7 @@ echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
   [ -f /mnt/stg/ITH/logs/post/software.json ] && { echo "### Phần mềm"; cat /mnt/stg/ITH/logs/post/software.json; } || true
 } | tee -a "$OUT/result.txt"
 grep -q '^FAIL' "$OUT/result.txt" && FAIL=1
+{ echo "### ith-test.log (máy ảo)"; sudo tail -40 /mnt/win/ith-test.log 2>/dev/null | tr -d ''; } >> "$OUT/result.txt" || true
 sudo umount /mnt/stg /mnt/win 2>/dev/null || true
 sudo qemu-nbd -d /dev/nbd0 > /dev/null; sudo qemu-nbd -d /dev/nbd1 > /dev/null || true
 [ "${TIMEOUT:-0}" = 1 ] && FAIL=1
