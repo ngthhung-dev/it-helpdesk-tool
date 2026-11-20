@@ -26,10 +26,7 @@ if not exist "%TGT%\Windows\System32" (
   call :log "ERROR: %TGT% has no Windows folder"
   goto safe
 )
-if /i "%TGT%"=="%STG:~0,2%" (
-  call :log "ERROR: staging is on the target drive"
-  goto safe
-)
+{{STAGING_CHECK}}
 call :log "Target: %TGT%"
 
 rem ---- 2. Kiem tra file cai doc duoc ----
@@ -40,15 +37,7 @@ if errorlevel 1 (
 )
 {{TEST_FAIL_BEFORE_FORMAT}}
 
-rem ---- 3. Format o Windows (chi phan vung nay) ----
-call :log "Formatting %TGT% ..."
-> "%TEMP%\ith-fmt.txt" echo select volume %TGT:~0,1%
->>"%TEMP%\ith-fmt.txt" echo format fs=ntfs quick label=Windows override
-diskpart /s "%TEMP%\ith-fmt.txt" >>"%LOG%" 2>&1
-if errorlevel 1 (
-  call :log "ERROR: format failed"
-  goto safe_after_format_attempt
-)
+{{WIPE}}
 
 rem ---- 4. Bung ban Windows ----
 call :log "Applying image index {{INDEX}} ..."

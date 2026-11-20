@@ -42,6 +42,8 @@ jobs:
           - { fw: uefi, scen: happy }
           - { fw: bios, scen: happy }
           - { fw: uefi, scen: safe }
+          - { fw: uefi, scen: auto }
+          - { fw: bios, scen: samedrive }
     env:
       WIN11_EVAL: https://go.microsoft.com/fwlink/?LinkId=2382600&clcid=0x409&culture=en-us&country=us
     steps:

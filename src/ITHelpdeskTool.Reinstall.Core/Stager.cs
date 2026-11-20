@@ -36,7 +36,9 @@ namespace ITHelpdeskTool.Reinstall
         public Prepared Prepare(ReinstallPlan p)
         {
             var staging = Path.GetFullPath(p.StagingDir).TrimEnd('\\');
-            var (_, stagingRel) = BootEntry.Split(staging);
+            var (stagingDrive, stagingRel) = BootEntry.Split(staging);
+            // Thư mục đệm nằm ngay trên ổ Windows (máy một ổ, không thu nhỏ được C:): không format, xoá mọi thứ trừ thư mục đệm
+            var sameDrive = stagingDrive.Equals(p.TargetDrive.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase);
             Directory.CreateDirectory(staging);
 
             IsoMount? iso = null;
@@ -108,6 +110,8 @@ namespace ITHelpdeskTool.Reinstall
                     ["IMAGE"] = imageName,
                     ["INDEX"] = p.ImageIndex.ToString(),
                     ["FIRMWARE"] = p.Firmware == FirmwareMode.Uefi ? "UEFI" : "BIOS",
+                    ["STAGING_CHECK"] = sameDrive ? ApplySameDriveCheck : ApplyOtherDriveCheck,
+                    ["WIPE"] = sameDrive ? ApplyPurge : ApplyFormat,
                     ["TEST_FAIL_BEFORE_FORMAT"] = TestFailBeforeFormat
                         ? "call :log \"TEST: forced stop before format\"\r\ngoto safe"
                         : "",
@@ -132,6 +136,36 @@ namespace ITHelpdeskTool.Reinstall
             }
         }
 
+        // ---- Đoạn apply.cmd theo chế độ ổ đệm ----
+        internal const string ApplyOtherDriveCheck =
+            "if /i \"%TGT%\"==\"%STG:~0,2%\" (\r\n  call :log \"ERROR: staging is on the target drive\"\r\n  goto safe\r\n)";
+
+        internal const string ApplySameDriveCheck =
+            "if /i not \"%TGT%\"==\"%STG:~0,2%\" (\r\n  call :log \"ERROR: staging expected on the target drive\"\r\n  goto safe\r\n)";
+
+        internal const string ApplyFormat =
+            "rem ---- 3. Format o Windows (chi phan vung nay) ----\r\n" +
+            "call :log \"Formatting %TGT% ...\"\r\n" +
+            "> \"%TEMP%\\ith-fmt.txt\" echo select volume %TGT:~0,1%\r\n" +
+            ">>\"%TEMP%\\ith-fmt.txt\" echo format fs=ntfs quick label=Windows override\r\n" +
+            "diskpart /s \"%TEMP%\\ith-fmt.txt\" >>\"%LOG%\" 2>&1\r\n" +
+            "if errorlevel 1 (\r\n  call :log \"ERROR: format failed\"\r\n  goto safe_after_format_attempt\r\n)";
+
+        /// <summary>
+        /// Không format: gỡ mọi junction / symlink trên ổ (CHỈ gỡ đường dẫn — không đi theo sang ổ khác, vd thư mục đã “Chuyển thư mục” sang D:),
+        /// rồi robocopy /MIR từ thư mục rỗng để xoá mọi thứ trừ thư mục đệm.
+        /// </summary>
+        internal const string ApplyPurge =
+            "rem ---- 3. Xoa moi thu tren o Windows tru thu muc dem (khong format) ----\r\n" +
+            "call :log \"Clearing %TGT% except %STG% ...\"\r\n" +
+            "for /f \"delims=\" %%j in ('dir /s /b /al \"%TGT%\\\" 2^>nul') do (\r\n" +
+            "  if exist \"%%j\\\" (rmdir \"%%j\" 2>nul) else (del /f /a \"%%j\" 2>nul)\r\n" +
+            ")\r\n" +
+            "mkdir \"%TEMP%\\ith-empty\" 2>nul\r\n" +
+            "robocopy \"%TEMP%\\ith-empty\" %TGT%\\ /MIR /B /XJ /R:0 /W:0 /NFL /NDL /NP /XD \"%STG%\" \"%TGT%\\System Volume Information\" >>\"%LOG%\" 2>&1\r\n" +
+            "if errorlevel 8 (\r\n  call :log \"ERROR: clearing failed\"\r\n  goto hard\r\n)\r\n" +
+            "if exist \"%TGT%\\Windows\\System32\" (\r\n  call :log \"ERROR: old Windows still present after clearing\"\r\n  goto hard\r\n)";
+
         /// <summary>Tạo mục khởi động tạm và đặt khởi động vào môi trường cài ở lần bật máy kế tiếp (một lần).</summary>
         public BootEntry Arm(ReinstallPlan p)
         {
@@ -152,7 +186,15 @@ namespace ITHelpdeskTool.Reinstall
             BootEntry.Load(staging)?.Delete(_run);
             Delete(Path.Combine(staging, "bootids.cmd"));
             foreach (var t in Directory.GetFiles(targetDrive.TrimEnd('\\') + "\\", "ITH-TARGET-*.tag")) Delete(t);
-            if (removeFiles && Directory.Exists(staging)) Directory.Delete(staging, true);
+            if (!removeFiles) return;
+            var root = Path.GetPathRoot(staging) ?? "";
+            if (StagingPartition.IsOurs(root))
+            {
+                // Phân vùng đệm do app tạo (thu nhỏ C:) → xoá và trả dung lượng lại cho ổ Windows
+                _progress($"Đang xoá phân vùng đệm {root.TrimEnd('\\')} và nới {targetDrive} lại…");
+                StagingPartition.Remove(_run, root, targetDrive);
+            }
+            else if (Directory.Exists(staging)) Directory.Delete(staging, true);
         }
 
         private void Copy(string src, string dst, string label)

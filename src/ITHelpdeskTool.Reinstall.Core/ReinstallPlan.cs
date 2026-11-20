@@ -16,6 +16,12 @@ namespace ITHelpdeskTool.Reinstall
         /// <summary>Thư mục đệm trên ổ KHÁC ổ Windows sẽ bị xoá, vd D:\ITH.</summary>
         public string StagingDir { get; set; } = @"D:\ITH";
 
+        /// <summary>
+        /// Thư mục đệm nằm trên phân vùng "ITH-STAGING" do app tạo bằng cách thu nhỏ ổ Windows (máy chỉ có ổ C:).
+        /// Cài xong, Windows mới chép bản sao lưu về C:\ITH-Backup rồi xoá phân vùng này và nới C: lại.
+        /// </summary>
+        public bool AutoStaging { get; set; }
+
         /// <summary>Ổ Windows đang chạy sẽ bị format (vd C:).</summary>
         public string TargetDrive { get; set; } = "C:";
 

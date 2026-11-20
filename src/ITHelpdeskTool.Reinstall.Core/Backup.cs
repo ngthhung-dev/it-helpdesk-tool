@@ -201,10 +201,13 @@ namespace ITHelpdeskTool.Reinstall
     /// </summary>
     public static class BackupRunner
     {
-        public static BackupResult Run(IRunner run, IEnumerable<BackupItem> items, string destRoot, string targetDrive, Action<string>? progress = null)
+        /// <param name="keptStagingDir">Thư mục đệm được giữ lại khi xoá ổ Windows (chế độ đệm ngay trên C:) — sao lưu vào trong nó thì được.</param>
+        public static BackupResult Run(IRunner run, IEnumerable<BackupItem> items, string destRoot, string targetDrive, Action<string>? progress = null,
+            string? keptStagingDir = null)
         {
             var dest = Path.GetFullPath(destRoot).TrimEnd('\\');
-            if (string.Equals(Path.GetPathRoot(dest)?.TrimEnd('\\'), targetDrive.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
+            var kept = keptStagingDir != null && dest.StartsWith(Path.GetFullPath(keptStagingDir).TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase);
+            if (!kept && string.Equals(Path.GetPathRoot(dest)?.TrimEnd('\\'), targetDrive.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
                 throw new ReinstallException($"Không được sao lưu vào ổ {targetDrive} — ổ này sẽ bị xoá.");
             Directory.CreateDirectory(dest);
             var res = new BackupResult { Dir = dest };

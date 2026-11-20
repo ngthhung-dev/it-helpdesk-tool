@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Thử "Cài lại Windows" trên máy ảo QEMU/KVM (runner Linux của GitHub).
-#   run-vm.sh <uefi|bios> <happy|safe> <win.iso> <thư mục ithreinstall> <thư mục kết quả>
+#   run-vm.sh <uefi|bios> <happy|safe|auto|samedrive> <win.iso> <thư mục ithreinstall> <thư mục kết quả>
 # happy: cài Windows "máy cũ" → ithreinstall prepare --arm --reboot → WinPE cài lại → Windows mới cài phần mềm → tắt máy.
 # safe : như trên nhưng WinPE dừng trước bước format → phải quay về Windows cũ, không mất gì.
+# auto : máy chỉ có một ổ, --staging auto (thu nhỏ C: tạo phân vùng đệm, không được thì đệm ngay trên C:).
+# samedrive: máy một ổ, --staging C:\ITH (không format, xoá mọi thứ trừ C:\ITH).
 set -euo pipefail
 FW=$1; SCEN=$2; ISO=$3; CLI=$4; OUT=$5
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -42,7 +44,13 @@ t = t.replace('__DISKCONFIG__', '''$DISK''').replace('__INSTALLTO__', sys.argv[3
 open(sys.argv[2], 'w', encoding='utf-8', newline='\r\n').write(t)
 PY
 EXTRA=""; [ "$SCEN" = safe ] && EXTRA="--test-fail-before-format"
-sed "s/__EXTRA__/$EXTRA/" "$HERE/run-test.cmd" | sed 's/$/\r/' > tools/run-test.cmd
+case "$SCEN" in
+  happy|safe) STAGING='S:\\ITH'; MKDISK=1 ;;
+  auto) STAGING=auto; MKDISK=0 ;;
+  samedrive) STAGING='C:\\ITH'; MKDISK=0 ;;
+esac
+sed -e "s/__EXTRA__/$EXTRA/" -e "s/__STAGING__/$STAGING/g" -e "s/__MKDISK__/$MKDISK/g" "$HERE/run-test.cmd" | sed 's/$/\r/' > tools/run-test.cmd
+grep -n "prepare" tools/run-test.cmd | head -2
 genisoimage -quiet -J -joliet-long -r -V ITHTEST -o tools.iso tools
 
 # ---- Ổ đĩa: 0 = Windows (sẽ bị cài lại), 1 = ổ đệm ----
@@ -98,7 +106,9 @@ echo "Máy ảo đã tắt sau $(( ($(date +%s) - START) / 60 )) phút"
 # ---- Đọc kết quả trên ổ đệm (và ổ Windows) ----
 sudo modprobe nbd max_part=16
 mount_largest_ntfs() {   # $1 = file qcow2, $2 = /dev/nbdX, $3 = thư mục mount
-  sudo qemu-nbd -r -c "$2" "$1"; sleep 2; sudo partprobe "$2" || true; sleep 2
+  sudo qemu-nbd -r -c "$2" "$1"
+  for i in $(seq 1 10); do ls "$2"p* > /dev/null 2>&1 && break; sleep 1; done
+  echo "--- $1"; sudo lsblk -o NAME,SIZE,FSTYPE,LABEL "$2" || true
   local best="" bestsize=0 p t sz
   for p in "$2"p*; do
     t=$(sudo blkid -o value -s TYPE "$p" 2>/dev/null || true)
@@ -107,11 +117,17 @@ mount_largest_ntfs() {   # $1 = file qcow2, $2 = /dev/nbdX, $3 = thư mục moun
     if [ "$sz" -gt "$bestsize" ]; then best=$p; bestsize=$sz; fi
   done
   [ -n "$best" ] || { echo "Không thấy phân vùng NTFS trên $1"; return 1; }
-  sudo mkdir -p "$3"; sudo mount -t ntfs-3g -o ro "$best" "$3"
+  sudo mkdir -p "$3"
+  # ntfs-3g từ chối ổ "chưa tắt sạch" (Windows ngủ đông / Fast Startup) → thử driver ntfs3 của kernel, chỉ đọc
+  sudo mount -t ntfs-3g -o ro "$best" "$3" 2>&1 || sudo mount -t ntfs3 -o ro,force "$best" "$3" 2>&1 || { echo "Không mount được $best"; return 1; }
+  echo "Đã mount $best → $3"
 }
 mount_largest_ntfs disk1.qcow2 /dev/nbd0 /mnt/stg || true
 mount_largest_ntfs disk0.qcow2 /dev/nbd1 /mnt/win || true
 sudo cp -r /mnt/stg/ITH/logs "$OUT/logs" 2>/dev/null || true
+# Một ổ: log nằm trên ổ Windows mới (C:\ITH-Backup sau khi gộp phân vùng đệm, hoặc C:\ITH)
+[ -d "$OUT/logs" ] || sudo cp -r /mnt/win/ITH-Backup/logs "$OUT/logs" 2>/dev/null || sudo cp -r /mnt/win/ITH/logs "$OUT/logs" 2>/dev/null || true
+sudo blkid /dev/nbd1p* > "$OUT/partitions.txt" 2>/dev/null || true
 sudo cp /mnt/win/ith-test.log "$OUT/logs/" 2>/dev/null || true
 sudo chown -R "$USER" "$OUT"
 
@@ -121,7 +137,22 @@ echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
 {
   check /mnt/stg/ITH/logs/prepare.log "ithreinstall prepare đã chạy"
   check /mnt/stg/ITH/logs/winpe.log "môi trường cài (WinPE) đã chạy"
-  if [ "$SCEN" = happy ]; then
+  if [ "$SCEN" = auto ] || [ "$SCEN" = samedrive ]; then
+    if [ -d /mnt/win/ITH-Backup ]; then L=/mnt/win/ITH-Backup/logs; B=/mnt/win/ITH-Backup; echo "Chế độ: phân vùng đệm riêng (thu nhỏ C:) → đã gộp"
+      check $L/merged.done "phân vùng đệm đã gộp lại vào C:"
+      grep -q 'ITH-STAGING' "$OUT/partitions.txt" && { echo "FAIL phân vùng ITH-STAGING vẫn còn"; FAIL=1; } || echo "OK   không còn phân vùng ITH-STAGING"
+    else L=/mnt/win/ITH/logs; B=/mnt/win/ITH/backup; echo "Chế độ: thư mục đệm ngay trên C: (C:\\ITH)"
+      [ -e /mnt/win/ITH/install.wim ] && { echo "FAIL file cài vẫn còn trong C:\\ITH"; FAIL=1; } || echo "OK   đã dọn file cài trong C:\\ITH"
+    fi
+    [ "$SCEN" = samedrive ] && [ -d /mnt/win/ITH-Backup ] && { echo "FAIL samedrive mà lại tạo phân vùng đệm"; FAIL=1; }
+    check $L/winpe.done "WinPE cài xong"
+    check $L/post/firstlogon.done "Windows mới vào Desktop, chạy FirstLogon.ps1"
+    check $B/backup.json "đã sao lưu trước khi cài"
+    check "/mnt/win/Program Files/7-Zip/7z.exe" "7-Zip (winget) đã cài"
+    check /mnt/win/Users/itadmin/Desktop/ith-backup-test.txt "Desktop cũ đã tự chép lại vào tài khoản mới"
+    check "/mnt/win/Users/itadmin/Documents/Ke toan/bao-cao.txt" "Documents cũ đã tự chép lại"
+    [ -e /mnt/win/Users/olduser ] && { echo "FAIL tài khoản cũ olduser vẫn còn"; FAIL=1; } || echo "OK   Windows cũ đã được thay"
+  elif [ "$SCEN" = happy ]; then
     check /mnt/stg/ITH/logs/winpe.done "WinPE cài xong"
     check /mnt/stg/ITH/logs/post/firstlogon.done "Windows mới vào Desktop, chạy FirstLogon.ps1"
     check /mnt/win/ProgramData/ITHReinstall/logs/firstlogon.done "log sau cài nằm trên ổ Windows mới"

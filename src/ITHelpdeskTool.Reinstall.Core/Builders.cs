@@ -111,6 +111,7 @@ namespace ITHelpdeskTool.Reinstall
             sb.Append("{\r\n");
             sb.Append($"  \"id\": {Q(id)},\r\n");
             sb.Append($"  \"stagingRel\": {Q(stagingRel)},\r\n");
+            sb.Append($"  \"mergeStaging\": {(p.AutoStaging ? "true" : "false")},\r\n");
             sb.Append($"  \"machine\": {Arr(p.Tweaks.Where(t => t.Scope == TweakScope.Machine).SelectMany(t => t.Commands))},\r\n");
             sb.Append($"  \"user\": {Arr(p.Tweaks.Where(t => t.Scope == TweakScope.User).SelectMany(t => t.Commands))},\r\n");
             sb.Append("  \"software\": [");

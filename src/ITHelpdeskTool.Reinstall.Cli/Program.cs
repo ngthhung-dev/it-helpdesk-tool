@@ -17,6 +17,7 @@ namespace ITHelpdeskTool.Reinstall.Cli
     ///           [--software default|none|id,id] [--tweaks default|none|id,id] [--no-drivers] [--after "lệnh"]
     ///           [--backup default|all|none|id,id] [--profile …] [--no-restore] [--ignore-backup-errors]
     ///           [--microsoft-account] [--confirm org,bitlocker-keys]
+    ///           --staging auto = máy chỉ có ổ C:: thu nhỏ C: tạo phân vùng đệm ITH-STAGING, cài xong tự gộp lại
     ///           [--arm] [--reboot] [--test-fail-before-format]
     ///   decrypt --drive C: [--wait]                 tắt BitLocker / mã hoá thiết bị, theo dõi % giải mã
     ///           Thứ tự: kiểm tra → sao lưu (vào D:\ITH\backup) → chuẩn bị → đặt khởi động. Lỗi ở bước nào thì dừng ở đó.
@@ -82,11 +83,22 @@ namespace ITHelpdeskTool.Reinstall.Cli
             _log?.Flush();
         }
 
+        private static string? _logPath;
+
         private static void OpenLog(string staging)
         {
             var dir = Path.Combine(staging, "logs");
             Directory.CreateDirectory(dir);
-            _log = new StreamWriter(Path.Combine(dir, "prepare.log"), append: true, new UTF8Encoding(false));
+            var path = Path.Combine(dir, "prepare.log");
+            // Đang ghi log tạm (chưa có phân vùng đệm) → chuyển nội dung sang log thật
+            if (_log != null && _logPath != null && !_logPath.Equals(path, StringComparison.OrdinalIgnoreCase))
+            {
+                _log.Dispose();
+                File.AppendAllText(path, File.ReadAllText(_logPath), new UTF8Encoding(false));
+                try { File.Delete(_logPath); } catch { }
+            }
+            _logPath = path;
+            _log = new StreamWriter(path, append: true, new UTF8Encoding(false));
         }
 
         private static ReinstallPlan Plan(IRunner run, Args a)
@@ -96,6 +108,7 @@ namespace ITHelpdeskTool.Reinstall.Cli
                 ImagePath = a.Get("image"),
                 ImageIndex = int.Parse(a.Get("index", "1")),
                 StagingDir = a.Get("staging", @"D:\ITH"),
+                AutoStaging = a.Get("staging", "").Equals("auto", StringComparison.OrdinalIgnoreCase),
                 TargetDrive = a.Get("target", Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows))!.TrimEnd('\\')),
                 AccountName = a.Get("account", "Admin"),
                 Password = a.Get("password", ""),
@@ -221,7 +234,9 @@ namespace ITHelpdeskTool.Reinstall.Cli
         {
             if (items.Count == 0) { Log("Không sao lưu (--backup none)."); return null; }
             foreach (var b in items) Log($"Sao lưu: {b.Title} {(b.Bytes > 0 ? Size(b.Bytes) : "")} {(b.Source.Length > 0 ? "← " + b.Source : "")}");
-            var res = BackupRunner.Run(run, items, Path.Combine(staging, "backup"), target, Log);
+            // Thư mục đệm ngay trên ổ Windows được giữ lại khi xoá ổ → cho sao lưu vào đó
+            var sameDrive = string.Equals(Path.GetPathRoot(Path.GetFullPath(staging))?.TrimEnd('\\'), target.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase);
+            var res = BackupRunner.Run(run, items, Path.Combine(staging, "backup"), target, Log, sameDrive ? staging : null);
             foreach (var e in res.Errors) Log("LỖI sao lưu: " + e);
             Log($"Sao lưu xong {res.Done.Count}/{items.Count} mục vào {res.Dir}");
             return res;
@@ -247,9 +262,11 @@ namespace ITHelpdeskTool.Reinstall.Cli
         private static int Prepare(IRunner run, Args a)
         {
             var p = Plan(run, a);
-            Directory.CreateDirectory(p.StagingDir);
-            OpenLog(p.StagingDir);
-            Log($"=== Chuẩn bị cài lại Windows: {p.ImagePath} bản {p.ImageIndex} → {p.TargetDrive} (đệm {p.StagingDir}, {p.Firmware})");
+            var existing = p.AutoStaging ? StagingPartition.FindExisting() : null;
+            if (existing != null) p.StagingDir = existing + "\\ITH";        // chạy lại: dùng phân vùng đệm đã tạo
+            if (p.AutoStaging && existing == null) OpenLog(Path.Combine(Path.GetTempPath(), "ithreinstall"));
+            else { Directory.CreateDirectory(p.StagingDir); OpenLog(p.StagingDir); }
+            Log($"=== Chuẩn bị cài lại Windows: {p.ImagePath} bản {p.ImageIndex} → {p.TargetDrive} (đệm {(p.AutoStaging && existing == null ? "tự tạo bằng cách thu nhỏ " + p.TargetDrive : p.StagingDir)}, {p.Firmware})");
 
             // 1. Kiểm tra máy + tương thích
             var items = BackupItems(a);
@@ -258,6 +275,35 @@ namespace ITHelpdeskTool.Reinstall.Cli
             {
                 Log("Dừng: còn mục chặn (Block) ở trên.");
                 return 3;
+            }
+
+            // 1a. Máy chỉ có ổ C:: thu nhỏ C: tạo phân vùng đệm (lần chạy lại dùng phân vùng đã tạo)
+            if (p.AutoStaging && existing == null)
+            {
+                var needed = StagingPartition.NeededBytes(ImageBytes(p.ImagePath), items.Sum(i => i.Bytes));
+                var info = StagingPartition.Probe(run, p.TargetDrive);
+                var shrink = StagingPartition.Check(info, needed);
+                foreach (var c in shrink) Log(c.ToString());
+                if (!shrink.Any(c => c.Level == CheckLevel.Block))
+                {
+                    Log($"Đang thu nhỏ {p.TargetDrive} {needed / 1073741824} GB để tạo phân vùng đệm…");
+                    var drive = StagingPartition.Create(run, info, needed);
+                    p.StagingDir = drive + "\\ITH";
+                    Log($"Đã tạo phân vùng đệm {drive} ({StagingPartition.Label}). Huỷ: ithreinstall cancel --staging {p.StagingDir} --remove");
+                }
+                else if (info.Free >= needed + (2L << 30))
+                {
+                    // Không thu nhỏ được (file hệ thống nằm cuối ổ) → để thư mục đệm ngay trên ổ Windows, môi trường cài xoá mọi thứ trừ nó
+                    p.StagingDir = p.TargetDrive.TrimEnd('\\') + "\\ITH";
+                    Log($"Không thu nhỏ được {p.TargetDrive} — dùng thư mục đệm ngay trên ổ Windows: {p.StagingDir} (không format, xoá mọi thứ trừ thư mục này).");
+                }
+                else
+                {
+                    Log($"Dừng: {p.TargetDrive} không đủ chỗ trống cho thư mục đệm (~{needed / 1073741824} GB). Bớt mục sao lưu hoặc dọn ổ.");
+                    return 3;
+                }
+                Directory.CreateDirectory(p.StagingDir);
+                OpenLog(p.StagingDir);
             }
 
             // 1b. Ổ dữ liệu mã hoá BitLocker: lưu khoá khôi phục, bắt xác nhận đã chép trước khi đi tiếp
@@ -353,6 +399,8 @@ namespace ITHelpdeskTool.Reinstall.Cli
         {
             var staging = a.Get("staging", @"D:\ITH");
             var target = a.Get("target", Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows))!.TrimEnd('\\'));
+            if (staging.Equals("auto", StringComparison.OrdinalIgnoreCase))
+                staging = (StagingPartition.FindExisting() ?? throw new ReinstallException("Không có phân vùng đệm do app tạo.")) + "\\ITH";
             new Stager(run, Log).Cancel(staging, target, a.Has("remove"));
             Log("Đã huỷ: bỏ mục khởi động tạm và file đánh dấu.");
             return 0;

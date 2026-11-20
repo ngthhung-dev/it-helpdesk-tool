@@ -164,20 +164,23 @@ namespace ITHelpdeskTool.Reinstall
         {
             var list = new List<Check>();
             var target = Norm(p.TargetDrive);
-            var stagingRoot = Norm(Path.GetPathRoot(Path.GetFullPath(p.StagingDir)) ?? "");
+            var stagingRoot = StagingRoot(p);
             var sysDrive = Norm(Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:");
             Check Confirmable(string key, string title, string detail) =>
                 new Check(confirmed != null && confirmed.Contains(key) ? CheckLevel.Warn : CheckLevel.Block, title, detail, key);
 
             if (!target.Equals(sysDrive, StringComparison.OrdinalIgnoreCase))
                 list.Add(new Check(CheckLevel.Block, $"Chỉ cài lại được ổ Windows đang chạy ({sysDrive})", $"Đang chọn {target}."));
-            if (stagingRoot.Equals(target, StringComparison.OrdinalIgnoreCase))
-                list.Add(new Check(CheckLevel.Block, "Thư mục đệm phải nằm trên ổ khác ổ Windows", $"{p.StagingDir} nằm trên {target} — ổ này sẽ bị xoá."));
+            if (!p.AutoStaging && stagingRoot.Equals(target, StringComparison.OrdinalIgnoreCase))
+                list.Add(new Check(CheckLevel.Info, $"Thư mục đệm nằm ngay trên ổ Windows ({p.StagingDir})",
+                    $"Không format {target}: môi trường cài xoá mọi thứ trên {target} trừ {p.StagingDir} rồi cài Windows mới. " +
+                    "Thư mục đã “Chuyển thư mục” sang ổ khác (junction) chỉ bị gỡ đường dẫn, dữ liệu bên ổ kia không bị đụng."));
 
-            // ---- Ổ đệm ----
+            // ---- Ổ đệm (tự tạo bằng cách thu nhỏ C: thì kiểm tra riêng ở StagingPartition.Check) ----
             DriveInfo? d = null;
-            try { d = new DriveInfo(stagingRoot); } catch { }
-            if (d == null || !d.IsReady)
+            try { if (!p.AutoStaging) d = new DriveInfo(stagingRoot); } catch { }
+            if (p.AutoStaging) { }
+            else if (d == null || !d.IsReady)
                 list.Add(new Check(CheckLevel.Block, $"Không đọc được ổ {stagingRoot}"));
             else
             {
@@ -199,7 +202,7 @@ namespace ITHelpdeskTool.Reinstall
                     : new Check(CheckLevel.Block, $"Ổ {target} đang bật mã hoá BitLocker / mã hoá thiết bị",
                         "Phải tắt mã hoá trước: nút “Tắt mã hoá” (ithreinstall decrypt --drive " + target + ") hoặc Settings → Privacy & security → Device encryption → Off. " +
                         "Giải mã chạy nền 10–60 phút."));
-            if (!stagingRoot.Equals(target, StringComparison.OrdinalIgnoreCase) && f.BitLocker.TryGetValue(stagingRoot, out var sv) && sv.Encrypted)
+            if (!p.AutoStaging && !stagingRoot.Equals(target, StringComparison.OrdinalIgnoreCase) && f.BitLocker.TryGetValue(stagingRoot, out var sv) && sv.Encrypted)
                 list.Add(new Check(CheckLevel.Block, $"Ổ đệm {stagingRoot} đang mã hoá BitLocker",
                     "Trình khởi động không đọc được ổ mã hoá — chọn ổ khác làm ổ đệm, hoặc tắt mã hoá ổ này."));
             var others = f.BitLocker.Values
@@ -242,7 +245,7 @@ namespace ITHelpdeskTool.Reinstall
         public static List<BitLockerVolume> EncryptedDataDrives(ReinstallPlan p, MachineFacts f)
         {
             var target = Norm(p.TargetDrive);
-            var stagingRoot = Norm(Path.GetPathRoot(Path.GetFullPath(p.StagingDir)) ?? "");
+            var stagingRoot = StagingRoot(p);
             return f.BitLocker.Values.Where(v => v.Encrypted && !v.Locked && v.VolumeType != 2
                     && !v.Drive.Equals(target, StringComparison.OrdinalIgnoreCase) && !v.Drive.Equals(stagingRoot, StringComparison.OrdinalIgnoreCase))
                 .ToList();
@@ -266,5 +269,13 @@ namespace ITHelpdeskTool.Reinstall
         }
 
         private static string Norm(string drive) => drive.Trim().TrimEnd('\\').ToUpperInvariant();
+
+        /// <summary>Ổ của thư mục đệm; rỗng khi phân vùng đệm chưa được tạo (AutoStaging).</summary>
+        private static string StagingRoot(ReinstallPlan p)
+        {
+            if (p.AutoStaging && !Path.IsPathRooted(p.StagingDir)) return "";
+            try { return Norm(Path.GetPathRoot(Path.GetFullPath(p.StagingDir)) ?? ""); }
+            catch { return ""; }
+        }
     }
 }

@@ -159,12 +159,38 @@ Set-Content (Join-Path $logDir 'firstlogon.done') (Get-Date -Format s)
 Log '=== Xong'
 
 # Chep log ve thu muc dem (neu o dem con) de xem lai / kiem thu
-foreach ($d in [IO.DriveInfo]::GetDrives()) {
-  $stg = $d.Name.TrimEnd('\') + $cfg.stagingRel
-  if (Test-Path (Join-Path $stg ("ITH-STAGING-" + $cfg.id + ".tag"))) {
-    $dst = Join-Path $stg 'logs\post'
-    New-Item -ItemType Directory -Force $dst | Out-Null
-    Copy-Item "$logDir\*" $dst -Force
-  }
+if ($stg) {
+  $dst = Join-Path $stg 'logs\post'
+  New-Item -ItemType Directory -Force $dst | Out-Null
+  Copy-Item "$logDir\*" $dst -Force
 }
+# ---- 6b. Thư mục đệm nằm trên ổ Windows mới (C:\ITH): xoá file cài, giữ bản sao lưu + log ----
+if ($stg -and $stg.Substring(0, 2) -ieq $env:SystemDrive) {
+  foreach ($x in 'install.wim', 'install.esd', 'boot.wim', 'boot.sdi', 'drivers', 'post', 'mount') {
+    Remove-Item (Join-Path $stg $x) -Recurse -Force -ErrorAction SilentlyContinue
+  }
+  Log "Da don file cai trong $stg (giu backup, logs)"
+}
+
+# ---- 7. Phân vùng đệm do app tạo (máy chỉ có ổ C:): giữ bản sao lưu ở C:\ITH-Backup, xoá phân vùng, nới C: lại ----
+if ($cfg.mergeStaging -and $stg) {
+  $letter = $stg.Substring(0, 1)
+  $keep = Join-Path $env:SystemDrive 'ITH-Backup'
+  try {
+    $vol = Get-Volume -DriveLetter $letter
+    if ($vol.FileSystemLabel -ne 'ITH-STAGING' -or -not (Test-Path ($letter + ':\ITH-AUTOPART.tag'))) { throw "o $letter khong phai phan vung dem cua app" }
+    Log "Chep ban sao luu va log ve $keep"
+    if (Test-Path "$stg\backup") { robocopy "$stg\backup" $keep /E /COPY:DAT /XJ /R:1 /W:1 /NP /NFL /NDL | Out-Null }
+    robocopy "$stg\logs" (Join-Path $keep 'logs') /E /COPY:DAT /R:1 /W:1 /NP /NFL /NDL | Out-Null
+    if ($LASTEXITCODE -ge 8) { throw "chep log loi $LASTEXITCODE" }
+    $p = Get-Partition -DriveLetter $letter
+    Remove-Partition -DiskNumber $p.DiskNumber -PartitionNumber $p.PartitionNumber -Confirm:$false
+    $c = Get-Partition -DriveLetter $env:SystemDrive.Substring(0, 1)
+    $m = (Get-PartitionSupportedSize -DiskNumber $c.DiskNumber -PartitionNumber $c.PartitionNumber).SizeMax
+    if ($m -gt $c.Size) { Resize-Partition -DiskNumber $c.DiskNumber -PartitionNumber $c.PartitionNumber -Size $m }
+    Log ("Da gop phan vung dem vao {0} ({1:0.0} GB)" -f $env:SystemDrive, ($m / 1GB))
+    Set-Content (Join-Path $keep 'logs\merged.done') (Get-Date -Format s)
+  } catch { Log "LOI gop phan vung dem: $($_.Exception.Message) - xoa tay bang Disk Management" }
+}
+
 if ($cfg.after) { Log "> $($cfg.after)"; cmd.exe /c $cfg.after }
