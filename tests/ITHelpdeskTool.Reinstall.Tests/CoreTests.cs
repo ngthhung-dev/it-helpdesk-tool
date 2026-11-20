@@ -186,6 +186,8 @@ public class TemplateTests
         ["IMAGE"] = "install.esd",
         ["INDEX"] = "6",
         ["FIRMWARE"] = "UEFI",
+        ["STAGING_CHECK"] = Stager.ApplyOtherDriveCheck,
+        ["WIPE"] = Stager.ApplyFormat,
         ["TEST_FAIL_BEFORE_FORMAT"] = testFail ? "call :log \"TEST\"\r\ngoto safe" : "",
     });
 
@@ -231,7 +233,8 @@ public class PreflightTests
         var f = new MachineFacts { Firmware = FirmwareMode.Uefi, Tpm = 2, SecureBoot = true, RamBytes = 8L << 30 };
         f.BitLocker[sys] = new BitLockerVolume { Drive = sys, Protected = true, Conversion = 1, Percent = 100, VolumeType = 0 };
         var checks = Preflight.Run(p, f, 5L << 30);
-        Assert.Contains(checks, c => c.Level == CheckLevel.Block && c.Title.Contains("ổ khác"));
+        // Đệm ngay trên ổ Windows giờ là chế độ hợp lệ (không format, giữ thư mục đệm) → thông tin, không chặn
+        Assert.Contains(checks, c => c.Level == CheckLevel.Info && c.Title.Contains("ngay trên ổ Windows"));
         Assert.Contains(checks, c => c.Level == CheckLevel.Block && c.Title.Contains("BitLocker"));
     }
 

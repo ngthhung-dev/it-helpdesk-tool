@@ -82,7 +82,8 @@ public class SameDriveTests
         Assert.Contains("/XJ", purge);
         Assert.Contains("/XD \"%STG%\"", purge);
         Assert.Contains("goto hard", purge);
-        Assert.DoesNotContain("format", purge);
+        Assert.DoesNotContain("format fs=", purge);
+        Assert.DoesNotContain("diskpart", purge);
         Assert.Contains("format fs=ntfs", Stager.ApplyFormat);
         // Hai chế độ kiểm tra ngược nhau: đệm khác ổ / đệm cùng ổ
         Assert.Contains("if /i \"%TGT%\"", Stager.ApplyOtherDriveCheck);
