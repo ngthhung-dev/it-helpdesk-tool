@@ -140,6 +140,8 @@ public sealed partial class ReinstallViewModel : PageViewModel
         _ = RefreshEncryptionAsync();
         _armedStaging = FindArmed();
         Armed = _armedStaging.Length > 0;
+        // --page reinstall/download: mở sẵn phần tải bộ cài (chụp màn hình kiểm thử)
+        if (string.Equals(ShellViewModel.StartSubPage, "download", StringComparison.OrdinalIgnoreCase)) _ = OpenDownloadAsync();
     }
 
     public override void OnNavigatedFrom() => _timer?.Stop();
@@ -194,10 +196,15 @@ public sealed partial class ReinstallViewModel : PageViewModel
         };
         if (dlg.ShowDialog() != true) return;
         IsBusy = true;
+        try { await LoadImageAsync(dlg.FileName); }
+        finally { IsBusy = false; }
+    }
+
+    private async Task LoadImageAsync(string path)
+    {
         BusyText = "Đang đọc danh sách bản Windows trong bộ cài…";
         try
         {
-            var path = dlg.FileName;
             var list = await Task.Run(() => RI.Workflow.ReadEditions(new RI.ProcessRunner(), path));
             if (list.Count == 0) throw new InvalidOperationException("Không thấy bản Windows nào trong file này.");
             ImagePath = path;
@@ -209,8 +216,111 @@ public sealed partial class ReinstallViewModel : PageViewModel
             Invalidate();
         }
         catch (Exception ex) { DialogWindow.Info("Không đọc được bộ cài", ex.Message, error: true); }
-        finally { IsBusy = false; }
     }
+
+    // ================= Tải bộ cài gốc từ Microsoft =================
+    public IReadOnlyList<string> DlProducts { get; } = [RI.EsdCatalog.Windows11, RI.EsdCatalog.Windows10];
+    [ObservableProperty] private string _dlProduct = RI.EsdCatalog.Windows11;
+    [ObservableProperty] private bool _showDownload;
+    public ObservableCollection<RI.EsdFile> DlFiles { get; } = [];
+    [ObservableProperty] private RI.EsdFile? _dlFile;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(DlIdle))] private bool _downloading;
+    public bool DlIdle => !Downloading;
+    [ObservableProperty] private double _dlProgress;
+    [ObservableProperty] private string _dlText = "";
+    private CancellationTokenSource? _dlCts;
+
+    partial void OnDlProductChanged(string value) { if (ShowDownload) _ = LoadCatalogAsync(); }
+
+    [RelayCommand]
+    private async Task OpenDownloadAsync()
+    {
+        ShowDownload = !ShowDownload;
+        if (ShowDownload && DlFiles.Count == 0) await LoadCatalogAsync();
+    }
+
+    private async Task LoadCatalogAsync()
+    {
+        DlText = "Đang đọc danh mục bộ cài của Microsoft…";
+        DlFiles.Clear();
+        try
+        {
+            var product = DlProduct;
+            var arch = RI.EsdCatalog.MachineArchitecture();
+            var files = await RI.EsdCatalog.LoadAsync(new RI.ProcessRunner(), product, Path.Combine(Path.GetTempPath(), "ITH-catalog"));
+            foreach (var f in files.Where(f => f.Consumer && f.Architecture.Equals(arch, StringComparison.OrdinalIgnoreCase))) DlFiles.Add(f);
+            var ui = System.Globalization.CultureInfo.InstalledUICulture.Name.ToLowerInvariant();
+            DlFile = DlFiles.FirstOrDefault(f => f.LanguageCode == ui) ?? DlFiles.FirstOrDefault(f => f.LanguageCode == "en-us") ?? DlFiles.FirstOrDefault();
+            DlText = DlFiles.Count == 0 ? "Danh mục không có bản phù hợp với máy này."
+                : $"{product} bản {DlFile?.Build} ({arch}) · Microsoft không phát hành bản tiếng Việt riêng — cài xong thêm gói tiếng Việt trong Settings › Language.";
+        }
+        catch (Exception ex) { DlText = "Không đọc được danh mục: " + ex.Message; }
+    }
+
+    /// <summary>Thư mục lưu bộ cài tải về: ổ đệm (không bị xoá) nếu có, không thì Downloads.</summary>
+    private string DownloadRoot() =>
+        Staging is { Auto: false } s ? Path.Combine(Path.GetPathRoot(s.Value)!, "ITH-Windows") : Path.Combine(WindowsDownloads.DownloadDir, "ITH-Windows");
+
+    [RelayCommand]
+    private async Task DownloadAsync()
+    {
+        if (DlFile is not { } f) return;
+        var root = DownloadRoot();
+        var media = Path.Combine(root, $"{f.Product.Replace(" ", "")}-{f.Build}-{f.LanguageCode}-{f.Architecture}");
+        if (RI.MediaBuilder.Existing(media) is { } ready)
+        {
+            await LoadImageAsync(ready);
+            ShowDownload = false;
+            return;
+        }
+        var part = Path.Combine(root, f.FileName + ".part");
+        var have = File.Exists(part) ? new FileInfo(part).Length : 0;
+        var need = f.Size - have + (1L << 30);
+        var free = FreeGb(root) * 1073741824.0;
+        if (free < need)
+        {
+            DialogWindow.Info("Không đủ chỗ trống", $"Cần ~{RI.Workflow.Size(need)} trống trên {Path.GetPathRoot(root)} để tải, còn {RI.Workflow.Size((long)free)}.", error: true);
+            return;
+        }
+        Downloading = true;
+        _dlCts = new CancellationTokenSource();
+        var ct = _dlCts.Token;
+        var started = DateTime.UtcNow;
+        var startBytes = have;
+        try
+        {
+            var file = Path.Combine(root, f.FileName);
+            await RI.EsdDownloader.DownloadAsync(f, file, (d, t) => Application.Current?.Dispatcher.InvokeAsync(() =>
+            {
+                DlProgress = t > 0 ? d * 100.0 / t : 0;
+                var secs = Math.Max(1, (DateTime.UtcNow - started).TotalSeconds);
+                var speed = Math.Max(0, d - startBytes) / secs;
+                DlText = $"{d / 1048576.0:N0} / {t / 1048576.0:N0} MB" + (speed > 1 && d < t ? $" · {speed / 1048576:0.0} MB/s · còn ~{TimeSpan.FromSeconds((t - d) / speed):h\\:mm\\:ss}" : "");
+            }), m => Application.Current?.Dispatcher.InvokeAsync(() => DlText = m), ct);
+            DlText = "Đã tải xong, SHA1 khớp với Microsoft. Đang dựng bộ cài (2–5 phút)…";
+            var install = await Task.Run(() => RI.MediaBuilder.Build(new RI.ProcessRunner(), file, media,
+                m => Application.Current?.Dispatcher.InvokeAsync(() => DlText = m)), ct);
+            await LoadImageAsync(install);
+            DlText = "Đã tải và dựng xong: " + media;
+            ShowDownload = false;
+            Log.Info($"Reinstall: downloaded {f.FileName} → {media}");
+        }
+        catch (OperationCanceledException) { DlText = "Đã dừng tải — bấm Tải lại để tải tiếp phần còn thiếu."; }
+        catch (Exception ex)
+        {
+            DlText = "Lỗi: " + ex.Message;
+            Log.Warn($"Reinstall download: {ex}");
+        }
+        finally
+        {
+            Downloading = false;
+            _dlCts.Dispose();
+            _dlCts = null;
+        }
+    }
+
+    [RelayCommand]
+    private void CancelDownload() => _dlCts?.Cancel();
 
     partial void OnEditionChanged(RI.ImageEdition? value) => Invalidate();
     partial void OnStagingChanged(StagingOption? value) => Invalidate();
@@ -224,9 +334,26 @@ public sealed partial class ReinstallViewModel : PageViewModel
     }
 
     // ================= Ổ đệm =================
+    /// <summary>Ổ (C:) → số ổ cứng vật lý (Win32_LogicalDiskToPartition: "Disk #0, Partition #1" → "C:").</summary>
+    private static Dictionary<string, int> DiskOfDrives()
+    {
+        var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var r in Wmi.TryQuery("SELECT Antecedent, Dependent FROM Win32_LogicalDiskToPartition"))
+        {
+            var disk = System.Text.RegularExpressions.Regex.Match(r.Str("Antecedent"), @"Disk #(\d+)");
+            var drive = System.Text.RegularExpressions.Regex.Match(r.Str("Dependent"), @"DeviceID=""([A-Z]:)""", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (disk.Success && drive.Success) map[drive.Groups[1].Value.ToUpperInvariant()] = int.Parse(disk.Groups[1].Value);
+        }
+        return map;
+    }
+
     private void LoadStaging()
     {
         StagingOptions.Clear();
+        var diskOf = DiskOfDrives();
+        var targetDisk = diskOf.TryGetValue(Target, out var td) ? td : -1;
+        var sameDisk = new List<StagingOption>();
+        var otherDisk = new List<StagingOption>();
         StagingOptions.Add(new StagingOption("auto", $"Tự động — thu nhỏ {Target} tạo phân vùng đệm (cài xong tự gộp lại); không được thì dùng {Target}\\ITH", true));
         foreach (var d in DriveInfo.GetDrives())
         {
@@ -236,12 +363,21 @@ public sealed partial class ReinstallViewModel : PageViewModel
                 var root = d.Name.TrimEnd('\\').ToUpperInvariant();
                 if (root == Target || (d.DriveFormat != "NTFS" && !d.DriveFormat.StartsWith("FAT", StringComparison.OrdinalIgnoreCase))) continue;
                 var label = d.VolumeLabel.Length > 0 ? d.VolumeLabel + " " : "";
-                StagingOptions.Add(new StagingOption(root + "\\ITH", $"{root} {label}— trống {d.AvailableFreeSpace / 1073741824.0:0.#} GB (dùng thư mục {root}\\ITH, dữ liệu trên ổ này giữ nguyên)", false));
+                var other = targetDisk >= 0 && diskOf.TryGetValue(root, out var dk) && dk != targetDisk;
+                var opt = new StagingOption(root + "\\ITH",
+                    $"{root} {label}— trống {d.AvailableFreeSpace / 1073741824.0:0.#} GB (dùng thư mục {root}\\ITH, dữ liệu trên ổ này giữ nguyên)" +
+                    (other ? " · ổ cứng khác" : ""), false);
+                (other ? otherDisk : sameDisk).Add(opt);
             }
             catch { }
         }
-        // Ổ khác đủ chỗ (≥ 20 GB) thì dùng; không thì tự động
-        Staging = StagingOptions.Skip(1).FirstOrDefault(o => FreeGb(o.Value) >= 20) ?? StagingOptions[0];
+        // Cùng ổ cứng với Windows lên trước: máy UEFI bật Fast Boot có thể không thấy ổ cứng thứ hai lúc khởi động
+        foreach (var o in sameDisk.Concat(otherDisk)) StagingOptions.Add(o);
+        // Mặc định: phân vùng cùng ổ cứng đủ chỗ (≥ 20 GB) → tự động (thu nhỏ C:) → máy BIOS / không rõ ổ cứng thì ổ khác đủ chỗ
+        Staging = sameDisk.FirstOrDefault(o => FreeGb(o.Value) >= 20)
+                  ?? (RI.BootEntry.DetectFirmware(new RI.ProcessRunner()) == RI.FirmwareMode.Bios || targetDisk < 0
+                      ? otherDisk.FirstOrDefault(o => FreeGb(o.Value) >= 20) : null)
+                  ?? StagingOptions[0];
     }
 
     private static double FreeGb(string dir)

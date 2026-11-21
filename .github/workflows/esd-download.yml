@@ -1,0 +1,48 @@
+name: ESD Download
+
+# Thử chức năng tự tải bộ cài gốc của Microsoft trên máy Windows của GitHub:
+# đọc danh mục của Media Creation Tool, tải .esd (kiểm SHA1), dựng thư mục bộ cài, liệt kê các bản Windows.
+on:
+  push:
+    branches: [feat/reinstall-download]
+    paths:
+      - src/ITHelpdeskTool.Reinstall.Core/EsdDownload.cs
+      - .github/workflows/esd-download.yml
+  workflow_dispatch:
+    inputs:
+      product:
+        description: 'Windows 11 hoặc 10'
+        default: '11'
+      lang:
+        description: 'Ngôn ngữ (vd en-us, en-gb)'
+        default: 'en-us'
+
+jobs:
+  download:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Test lõi
+        run: dotnet test tests/ITHelpdeskTool.Reinstall.Tests -c Release
+      - name: Build ithreinstall
+        run: dotnet build src/ITHelpdeskTool.Reinstall.Cli -c Release -o cli
+      - name: Danh mục Windows 10 và 11
+        run: |
+          cli\ithreinstall.exe download --product 10 --dest $env:RUNNER_TEMP\cat10 --list
+          cli\ithreinstall.exe download --product 11 --dest $env:RUNNER_TEMP\cat11 --list
+      - name: Tải và dựng bộ cài
+        run: |
+          Get-PSDrive C,D -ErrorAction SilentlyContinue | Format-Table Name,Used,Free
+          $dest = 'C:\ith-win'
+          cli\ithreinstall.exe download --product ${{ github.event.inputs.product || '11' }} --lang ${{ github.event.inputs.lang || 'en-us' }} --arch x64 --dest $dest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $esd = Get-ChildItem $dest -Recurse -Filter install.esd | Select-Object -First 1
+          Get-ChildItem (Split-Path $esd.FullName) | Format-Table Name,Length
+          if (-not (Test-Path (Join-Path $esd.Directory.Parent.FullName 'boot\boot.sdi'))) { throw 'thiếu boot.sdi' }
+          cli\ithreinstall.exe info --image $esd.FullName
+          # Lần 2: đã có sẵn → không tải lại
+          cli\ithreinstall.exe download --product ${{ github.event.inputs.product || '11' }} --lang ${{ github.event.inputs.lang || 'en-us' }} --arch x64 --dest $dest

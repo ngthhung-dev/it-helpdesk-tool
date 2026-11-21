@@ -44,6 +44,8 @@ jobs:
           - { fw: uefi, scen: safe }
           - { fw: uefi, scen: auto }
           - { fw: bios, scen: samedrive }
+          - { fw: uefi, scen: esd }
+          - { fw: uefi, scen: multi }
     env:
       WIN11_EVAL: https://go.microsoft.com/fwlink/?LinkId=2382600&clcid=0x409&culture=en-us&country=us
     steps:

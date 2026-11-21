@@ -103,6 +103,9 @@ namespace ITHelpdeskTool.Reinstall
                 BootWim.Build(_run, media.BootWim, Path.Combine(staging, "boot.wim"), Path.Combine(staging, "mount"), runCmd, storage, _progress);
 
                 // ---- 6. Kịch bản ----
+                // Phân vùng khởi động đang dùng (ghi vào log để đối chiếu; môi trường cài gắn đúng phân vùng EFI này bằng mountvol /s)
+                var sys = SystemPartition.Probe(_run, p.TargetDrive);
+                _progress("Phân vùng khởi động: " + sys + (sys.OnOtherDisk ? " — nằm trên ổ cứng khác với Windows, giữ nguyên như hiện tại" : ""));
                 _progress("Đang tạo kịch bản cài…");
                 var apply = Templates.Fill(Templates.Load("apply.cmd"), new Dictionary<string, string>
                 {
