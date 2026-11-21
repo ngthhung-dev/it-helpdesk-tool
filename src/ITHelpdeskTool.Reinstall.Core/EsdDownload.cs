@@ -139,10 +139,8 @@ namespace ITHelpdeskTool.Reinstall
                 File.Delete(dest);
             }
             var part = dest + ".part";
-            // Máy chủ Microsoft có cả https; lỗi thì dùng link gốc trong danh mục (đã có SHA1 để kiểm)
-            var urls = new List<string>();
-            if (f.Url.StartsWith("http://", StringComparison.OrdinalIgnoreCase)) urls.Add("https://" + f.Url.Substring(7));
-            urls.Add(f.Url);
+            // Máy chủ dl.delivery.mp.microsoft.com chỉ phục vụ http — toàn vẹn file đảm bảo bằng SHA1 trong danh mục (tải qua https từ download.microsoft.com)
+            var urls = new List<string> { f.Url };
 
             using (var http = Client())
             {

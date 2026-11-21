@@ -194,10 +194,15 @@ public sealed partial class ReinstallViewModel : PageViewModel
         };
         if (dlg.ShowDialog() != true) return;
         IsBusy = true;
+        try { await LoadImageAsync(dlg.FileName); }
+        finally { IsBusy = false; }
+    }
+
+    private async Task LoadImageAsync(string path)
+    {
         BusyText = "Đang đọc danh sách bản Windows trong bộ cài…";
         try
         {
-            var path = dlg.FileName;
             var list = await Task.Run(() => RI.Workflow.ReadEditions(new RI.ProcessRunner(), path));
             if (list.Count == 0) throw new InvalidOperationException("Không thấy bản Windows nào trong file này.");
             ImagePath = path;
@@ -209,8 +214,111 @@ public sealed partial class ReinstallViewModel : PageViewModel
             Invalidate();
         }
         catch (Exception ex) { DialogWindow.Info("Không đọc được bộ cài", ex.Message, error: true); }
-        finally { IsBusy = false; }
     }
+
+    // ================= Tải bộ cài gốc từ Microsoft =================
+    public IReadOnlyList<string> DlProducts { get; } = [RI.EsdCatalog.Windows11, RI.EsdCatalog.Windows10];
+    [ObservableProperty] private string _dlProduct = RI.EsdCatalog.Windows11;
+    [ObservableProperty] private bool _showDownload;
+    public ObservableCollection<RI.EsdFile> DlFiles { get; } = [];
+    [ObservableProperty] private RI.EsdFile? _dlFile;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(DlIdle))] private bool _downloading;
+    public bool DlIdle => !Downloading;
+    [ObservableProperty] private double _dlProgress;
+    [ObservableProperty] private string _dlText = "";
+    private CancellationTokenSource? _dlCts;
+
+    partial void OnDlProductChanged(string value) { if (ShowDownload) _ = LoadCatalogAsync(); }
+
+    [RelayCommand]
+    private async Task OpenDownloadAsync()
+    {
+        ShowDownload = !ShowDownload;
+        if (ShowDownload && DlFiles.Count == 0) await LoadCatalogAsync();
+    }
+
+    private async Task LoadCatalogAsync()
+    {
+        DlText = "Đang đọc danh mục bộ cài của Microsoft…";
+        DlFiles.Clear();
+        try
+        {
+            var product = DlProduct;
+            var arch = RI.EsdCatalog.MachineArchitecture();
+            var files = await RI.EsdCatalog.LoadAsync(new RI.ProcessRunner(), product, Path.Combine(Path.GetTempPath(), "ITH-catalog"));
+            foreach (var f in files.Where(f => f.Consumer && f.Architecture.Equals(arch, StringComparison.OrdinalIgnoreCase))) DlFiles.Add(f);
+            var ui = System.Globalization.CultureInfo.InstalledUICulture.Name.ToLowerInvariant();
+            DlFile = DlFiles.FirstOrDefault(f => f.LanguageCode == ui) ?? DlFiles.FirstOrDefault(f => f.LanguageCode == "en-us") ?? DlFiles.FirstOrDefault();
+            DlText = DlFiles.Count == 0 ? "Danh mục không có bản phù hợp với máy này."
+                : $"{product} bản {DlFile?.Build} ({arch}) · Microsoft không phát hành bản tiếng Việt riêng — cài xong thêm gói tiếng Việt trong Settings › Language.";
+        }
+        catch (Exception ex) { DlText = "Không đọc được danh mục: " + ex.Message; }
+    }
+
+    /// <summary>Thư mục lưu bộ cài tải về: ổ đệm (không bị xoá) nếu có, không thì Downloads.</summary>
+    private string DownloadRoot() =>
+        Staging is { Auto: false } s ? Path.Combine(Path.GetPathRoot(s.Value)!, "ITH-Windows") : Path.Combine(WindowsDownloads.DownloadDir, "ITH-Windows");
+
+    [RelayCommand]
+    private async Task DownloadAsync()
+    {
+        if (DlFile is not { } f) return;
+        var root = DownloadRoot();
+        var media = Path.Combine(root, $"{f.Product.Replace(" ", "")}-{f.Build}-{f.LanguageCode}-{f.Architecture}");
+        if (RI.MediaBuilder.Existing(media) is { } ready)
+        {
+            await LoadImageAsync(ready);
+            ShowDownload = false;
+            return;
+        }
+        var part = Path.Combine(root, f.FileName + ".part");
+        var have = File.Exists(part) ? new FileInfo(part).Length : 0;
+        var need = f.Size - have + (1L << 30);
+        var free = FreeGb(root) * 1073741824.0;
+        if (free < need)
+        {
+            DialogWindow.Info("Không đủ chỗ trống", $"Cần ~{RI.Workflow.Size(need)} trống trên {Path.GetPathRoot(root)} để tải, còn {RI.Workflow.Size((long)free)}.", error: true);
+            return;
+        }
+        Downloading = true;
+        _dlCts = new CancellationTokenSource();
+        var ct = _dlCts.Token;
+        var started = DateTime.UtcNow;
+        var startBytes = have;
+        try
+        {
+            var file = Path.Combine(root, f.FileName);
+            await RI.EsdDownloader.DownloadAsync(f, file, (d, t) => Application.Current?.Dispatcher.InvokeAsync(() =>
+            {
+                DlProgress = t > 0 ? d * 100.0 / t : 0;
+                var secs = Math.Max(1, (DateTime.UtcNow - started).TotalSeconds);
+                var speed = Math.Max(0, d - startBytes) / secs;
+                DlText = $"{d / 1048576.0:N0} / {t / 1048576.0:N0} MB" + (speed > 1 && d < t ? $" · {speed / 1048576:0.0} MB/s · còn ~{TimeSpan.FromSeconds((t - d) / speed):h\\:mm\\:ss}" : "");
+            }), m => Application.Current?.Dispatcher.InvokeAsync(() => DlText = m), ct);
+            DlText = "Đã tải xong, SHA1 khớp với Microsoft. Đang dựng bộ cài (2–5 phút)…";
+            var install = await Task.Run(() => RI.MediaBuilder.Build(new RI.ProcessRunner(), file, media,
+                m => Application.Current?.Dispatcher.InvokeAsync(() => DlText = m)), ct);
+            await LoadImageAsync(install);
+            DlText = "Đã tải và dựng xong: " + media;
+            ShowDownload = false;
+            Log.Info($"Reinstall: downloaded {f.FileName} → {media}");
+        }
+        catch (OperationCanceledException) { DlText = "Đã dừng tải — bấm Tải lại để tải tiếp phần còn thiếu."; }
+        catch (Exception ex)
+        {
+            DlText = "Lỗi: " + ex.Message;
+            Log.Warn($"Reinstall download: {ex}");
+        }
+        finally
+        {
+            Downloading = false;
+            _dlCts.Dispose();
+            _dlCts = null;
+        }
+    }
+
+    [RelayCommand]
+    private void CancelDownload() => _dlCts?.Cancel();
 
     partial void OnEditionChanged(RI.ImageEdition? value) => Invalidate();
     partial void OnStagingChanged(StagingOption? value) => Invalidate();

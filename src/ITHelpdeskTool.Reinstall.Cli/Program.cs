@@ -122,6 +122,13 @@ namespace ITHelpdeskTool.Reinstall.Cli
                 AfterPostInstall = a.Get("after", ""),
                 Firmware = BootEntry.DetectFirmware(run),
             };
+            // --edition Professional: chọn bản theo mã (file .esd tải về có nhiều bản, số thứ tự khác ISO)
+            if (a.Has("edition"))
+            {
+                var ed = a.Get("edition");
+                p.ImageIndex = Workflow.ReadEditions(run, p.ImagePath).FirstOrDefault(e => e.Edition.Equals(ed, StringComparison.OrdinalIgnoreCase))?.Index
+                               ?? throw new ReinstallException($"File cài không có bản {ed}.");
+            }
             p.Software = Pick(a.Get("software", "default"), Catalog.Software, Catalog.DefaultSoftware, s => s.Id, s => s.Clone());
             p.Tweaks = Pick(a.Get("tweaks", "default"), Catalog.Tweaks, Catalog.DefaultTweaks, t => t.Id, t => t.Clone());
             return p;

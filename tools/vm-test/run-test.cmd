@@ -21,7 +21,14 @@ rem ---- O dia cai Windows ----
 set "SRC="
 for %%d in (D E F G H I J K L M N O P Q R T U V W) do if exist "%%d:\sources\install.wim" set "SRC=%%d:\sources\install.wim"
 for %%d in (D E F G H I J K L M N O P Q R T U V W) do if not defined SRC if exist "%%d:\sources\install.esd" set "SRC=%%d:\sources\install.esd"
-echo [%DATE% %TIME%] source=%SRC% >> "%LOG%"
+rem Kich ban esd: tu tai bo cai goc cua Microsoft (ithreinstall download) roi cai lai bang chinh bo cai do
+set "EDITION="
+if "__ESD__"=="1" (
+  "%T%cli\ithreinstall.exe" download --dest S:\ITH-Windows --product 11 --lang en-us --arch x64 >> "%LOG%" 2>&1
+  for /r S:\ITH-Windows %%f in (install.esd) do if exist "%%f" set "SRC=%%f"
+  set "EDITION=--edition Professional"
+)
+echo [%DATE% %TIME%] source=%SRC% %EDITION% >> "%LOG%"
 
 rem Neu may quay ve Windows cu (kich ban an toan, hoac WinPE loi truoc khi xoa): ghi dau hieu roi tat may.
 rem Cai lai thanh cong thi Windows cu (va tac vu nay) bi xoa nen khong chay.
@@ -40,7 +47,7 @@ echo [%DATE% %TIME%] decrypt exit %ERRORLEVEL% >> "%LOG%"
 
 "%T%cli\ithreinstall.exe" info --image "%SRC%" >> "%LOG%" 2>&1
 "%T%cli\ithreinstall.exe" backup --staging C:\ITH-list --list >> "%LOG%" 2>&1
-"%T%cli\ithreinstall.exe" prepare --image "%SRC%" --index 1 --staging __STAGING__ --account itadmin --password "Test@12345" --computer NEW-PC --software 7zip.7zip,unikey --tweaks default --backup Desktop,Documents,wifi,apps,printers --after "shutdown /s /t 60" --no-device-encryption --arm --reboot __EXTRA__ >> "%LOG%" 2>&1
+"%T%cli\ithreinstall.exe" prepare --image "%SRC%" --index 1 %EDITION% --staging __STAGING__ --account itadmin --password "Test@12345" --computer NEW-PC --software 7zip.7zip,unikey --tweaks default --backup Desktop,Documents,wifi,apps,printers --after "shutdown /s /t 60" --no-device-encryption --arm --reboot __EXTRA__ >> "%LOG%" 2>&1
 set RC=%ERRORLEVEL%
 echo [%DATE% %TIME%] prepare exit %RC% >> "%LOG%"
 

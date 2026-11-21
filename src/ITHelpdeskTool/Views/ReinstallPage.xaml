@@ -91,14 +91,44 @@
                     <Border c:SectionIndex.Title="1. Bộ cài" Style="{StaticResource Card}">
                         <StackPanel>
                             <DockPanel Margin="0,0,0,6">
-                                <Button DockPanel.Dock="Right" Content="Chọn file ISO…" Command="{Binding PickImageCommand}" VerticalAlignment="Center"/>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Content="Tải từ Microsoft…" Margin="0,0,8,0" Command="{Binding OpenDownloadCommand}"/>
+                                    <Button Content="Chọn file ISO…" Command="{Binding PickImageCommand}"/>
+                                </StackPanel>
                                 <Border Style="{StaticResource CardIcon}">
                                     <TextBlock Text="&#xE958;" Style="{StaticResource Icon}" FontSize="14" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
                                 </Border>
                                 <TextBlock Text="1. Bộ cài Windows" Style="{StaticResource H2}" VerticalAlignment="Center"/>
                             </DockPanel>
                             <TextBlock Style="{StaticResource Hint}" Visibility="{Binding HasImage, Converter={x:Static core:Converters.NotVis}}"
-                                       Text="Chọn ISO gốc của Microsoft (tải ở trang “Tải ISO”), hoặc install.wim / install.esd trong bộ cài đã giải nén."/>
+                                       Text="Bấm “Tải từ Microsoft…” để app tự tải bộ cài gốc, hoặc chọn ISO / install.wim / install.esd có sẵn."/>
+
+                            <!-- Tải bộ cài gốc từ Microsoft -->
+                            <Border Visibility="{Binding ShowDownload, Converter={StaticResource BoolVis}}" Margin="0,10,0,6" Padding="14,12"
+                                    CornerRadius="8" Background="{DynamicResource Surface2Brush}">
+                                <StackPanel>
+                                    <TextBlock Text="Tải bộ cài gốc từ Microsoft" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
+                                    <TextBlock Style="{StaticResource Hint}" Margin="0,2,0,8"
+                                               Text="Dùng danh mục của Media Creation Tool: tải file .esd trên máy chủ Microsoft, kiểm mã SHA1 rồi tự dựng bộ cài. ~4,5 GB, rớt mạng thì tải tiếp."/>
+                                    <Grid IsEnabled="{Binding DlIdle}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="160"/>
+                                            <ColumnDefinition Width="10"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="10"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ComboBox ItemsSource="{Binding DlProducts}" SelectedItem="{Binding DlProduct}"/>
+                                        <ComboBox Grid.Column="2" ItemsSource="{Binding DlFiles}" SelectedItem="{Binding DlFile}"/>
+                                        <Button Grid.Column="4" Style="{StaticResource BtnPrimary}" Content="Tải" Command="{Binding DownloadCommand}"/>
+                                    </Grid>
+                                    <DockPanel Margin="0,8,0,0" Visibility="{Binding Downloading, Converter={StaticResource BoolVis}}">
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource BtnSmall}" Content="Dừng" Command="{Binding CancelDownloadCommand}" Margin="10,0,0,0"/>
+                                        <ProgressBar Value="{Binding DlProgress}" Maximum="100" Height="6" VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                    <TextBlock Text="{Binding DlText}" Style="{StaticResource Hint}" Margin="0,6,0,0" Visibility="{Binding DlText, Converter={x:Static core:Converters.NonEmptyVis}}"/>
+                                </StackPanel>
+                            </Border>
                             <StackPanel Visibility="{Binding HasImage, Converter={StaticResource BoolVis}}">
                                 <TextBlock Text="{Binding ImagePath}" Foreground="{DynamicResource TextBrush}" TextTrimming="CharacterEllipsis"/>
                                 <DockPanel Margin="0,8,0,0">

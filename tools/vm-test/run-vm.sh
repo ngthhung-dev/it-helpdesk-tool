@@ -44,12 +44,13 @@ t = t.replace('__DISKCONFIG__', '''$DISK''').replace('__INSTALLTO__', sys.argv[3
 open(sys.argv[2], 'w', encoding='utf-8', newline='\r\n').write(t)
 PY
 EXTRA=""; [ "$SCEN" = safe ] && EXTRA="--test-fail-before-format"
+ESD=0; [ "$SCEN" = esd ] && ESD=1
 case "$SCEN" in
-  happy|safe) STAGING='S:\\ITH'; MKDISK=1 ;;
+  happy|safe|esd) STAGING='S:\\ITH'; MKDISK=1 ;;
   auto) STAGING=auto; MKDISK=0 ;;
   samedrive) STAGING='C:\\ITH'; MKDISK=0 ;;
 esac
-sed -e "s/__EXTRA__/$EXTRA/" -e "s/__STAGING__/$STAGING/g" -e "s/__MKDISK__/$MKDISK/g" "$HERE/run-test.cmd" | sed 's/$/\r/' > tools/run-test.cmd
+sed -e "s/__EXTRA__/$EXTRA/" -e "s/__ESD__/$ESD/g" -e "s/__STAGING__/$STAGING/g" -e "s/__MKDISK__/$MKDISK/g" "$HERE/run-test.cmd" | sed 's/$/\r/' > tools/run-test.cmd
 grep -n "prepare" tools/run-test.cmd | head -2
 genisoimage -quiet -J -joliet-long -r -V ITHTEST -o tools.iso tools
 
@@ -137,7 +138,7 @@ check() { if [ -e "$1" ]; then echo "OK   $2"; else echo "FAIL $2 ($1)"; FAIL=1;
 FAIL=0
 echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
 {
-  if [ "$SCEN" = happy ] || [ "$SCEN" = safe ]; then
+  if [ "$SCEN" = happy ] || [ "$SCEN" = safe ] || [ "$SCEN" = esd ]; then
     check /mnt/stg/ITH/logs/prepare.log "ithreinstall prepare đã chạy"
     check /mnt/stg/ITH/logs/winpe.log "môi trường cài (WinPE) đã chạy"
   fi
@@ -157,7 +158,8 @@ echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
     check /mnt/win/Users/itadmin/Desktop/ith-backup-test.txt "Desktop cũ đã tự chép lại vào tài khoản mới"
     check "/mnt/win/Users/itadmin/Documents/Ke toan/bao-cao.txt" "Documents cũ đã tự chép lại"
     [ -e /mnt/win/Users/olduser ] && { echo "FAIL tài khoản cũ olduser vẫn còn"; FAIL=1; } || echo "OK   Windows cũ đã được thay"
-  elif [ "$SCEN" = happy ]; then
+  elif [ "$SCEN" = happy ] || [ "$SCEN" = esd ]; then
+    if [ "$SCEN" = esd ]; then ls /mnt/stg/ITH-Windows/*/ith-media.done >/dev/null 2>&1 && echo "OK   đã tự tải bộ cài gốc từ Microsoft (SHA1 khớp) và dựng bộ cài" || { echo "FAIL không thấy bộ cài tải về (/mnt/stg/ITH-Windows/*/ith-media.done)"; FAIL=1; }; fi
     check /mnt/stg/ITH/logs/winpe.done "WinPE cài xong"
     check /mnt/stg/ITH/logs/post/firstlogon.done "Windows mới vào Desktop, chạy FirstLogon.ps1"
     check /mnt/win/ProgramData/ITHReinstall/logs/firstlogon.done "log sau cài nằm trên ổ Windows mới"
