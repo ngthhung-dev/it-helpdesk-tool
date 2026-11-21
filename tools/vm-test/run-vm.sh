@@ -213,6 +213,7 @@ echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
   [ -f /mnt/stg/ITH/logs/post/software.json ] && { echo "### Phần mềm"; cat /mnt/stg/ITH/logs/post/software.json; } || true
 } | tee -a "$OUT/result.txt"
 grep -q '^FAIL' "$OUT/result.txt" && FAIL=1
+[ -f /mnt/win/ITH-winpe-khong-thay-o-dem.txt ] && { echo "### WinPE không thấy ổ đệm"; sudo cat /mnt/win/ITH-winpe-khong-thay-o-dem.txt | tr -d ""; } >> "$OUT/result.txt" || true
 { echo "### ith-test.log (máy ảo)"; sudo tail -40 /mnt/win/ith-test.log 2>/dev/null | tr -d ''; } >> "$OUT/result.txt" || true
 sudo umount /mnt/stg /mnt/win 2>/dev/null || true
 sudo qemu-nbd -d /dev/nbd0 > /dev/null; sudo qemu-nbd -d /dev/nbd1 > /dev/null || true
