@@ -50,7 +50,7 @@ MULTI=0; [ "$SCEN" = multi ] && MULTI=1
 case "$SCEN" in
   happy|safe|esd) STAGING='S:\\ITH'; MKDISK=1 ;;
   auto) STAGING=auto; MKDISK=0 ;;
-  multi) STAGING='D:\\ITH'; MKDISK=0 ;;
+  multi) STAGING='K:\\ITH'; MKDISK=0 ;;
   samedrive) STAGING='C:\\ITH'; MKDISK=0 ;;
 esac
 sed -e "s/__EXTRA__/$EXTRA/" -e "s/__ESD__/$ESD/g" -e "s/__MULTI__/$MULTI/g" -e "s/__STAGING__/$STAGING/g" -e "s/__MKDISK__/$MKDISK/g" "$HERE/run-test.cmd" | sed 's/$/\r/' > tools/run-test.cmd
@@ -179,7 +179,7 @@ echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
     L=/mnt/lbl/DATA-D/ITH/logs
     check $L/winpe.done "WinPE cài xong (ổ đệm D: cùng ổ cứng với C:)"
     check $L/post/firstlogon.done "Windows mới vào Desktop, chạy FirstLogon.ps1"
-    grep -q "System partition: disk" "$OUT/logs/winpe.log" 2>/dev/null && echo "OK   ghi file khởi động vào đúng phân vùng EFI đã ghi nhận" || { echo "FAIL không dùng phân vùng khởi động đã ghi nhận"; FAIL=1; }
+    grep -q "Boot EFI partition mounted" "$OUT/logs/winpe.log" 2>/dev/null && echo "OK   ghi file khởi động vào phân vùng EFI vừa khởi động (mountvol /s)" || { echo "FAIL không gắn được phân vùng EFI vừa khởi động"; FAIL=1; }
     check /mnt/lbl/DATA-D/data-d.txt "dữ liệu phân vùng D: (cùng ổ cứng Windows) còn nguyên"
     check /mnt/lbl/DATA-E/data-e.txt "dữ liệu E: (ổ cứng thứ hai) còn nguyên"
     check /mnt/lbl/DATA-F/data-f.txt "dữ liệu F: (ổ cứng thứ hai) còn nguyên"

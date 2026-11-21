@@ -186,8 +186,6 @@ public class TemplateTests
         ["IMAGE"] = "install.esd",
         ["INDEX"] = "6",
         ["FIRMWARE"] = "UEFI",
-        ["SYS_DISKID"] = "0AC75BD3-1C5E-4F07-9A5E-3C1E7F2B9D10",
-        ["SYS_PART"] = "1",
         ["STAGING_CHECK"] = Stager.ApplyOtherDriveCheck,
         ["WIPE"] = Stager.ApplyFormat,
         ["TEST_FAIL_BEFORE_FORMAT"] = testFail ? "call :log \"TEST\"\r\ngoto safe" : "",
@@ -204,11 +202,11 @@ public class TemplateTests
         Assert.Contains("bcdboot %TGT%\\Windows >>", s);
         Assert.Contains("bcdboot %TGT%\\Windows /s Y: /f UEFI", s);
         Assert.DoesNotContain("Windows /f UEFI", s);
-        // Máy nhiều ổ cứng: ưu tiên đúng phân vùng khởi động cũ, tìm ổ theo mã (uniqueid)
-        Assert.Contains("set \"SYSID=0AC75BD3-1C5E-4F07-9A5E-3C1E7F2B9D10\"", s);
-        Assert.Contains("echo select partition 1", s);
+        // Máy UEFI nhiều ổ cứng: gắn đúng phân vùng EFI vừa khởi động (mountvol /s) trước, lỗi mới để bcdboot tự tìm
+        Assert.Contains("mountvol %SL%: /s", s);
         Assert.Contains("bcdboot %TGT%\\Windows /s %SL%: /f UEFI", s);
-        Assert.True(s.IndexOf("call :bootsys", StringComparison.Ordinal) < s.IndexOf("bcdboot %TGT%\\Windows >>", StringComparison.Ordinal));
+        Assert.True(s.IndexOf("mountvol", StringComparison.Ordinal) < s.IndexOf("bcdboot %TGT%\\Windows >>", StringComparison.Ordinal));
+        Assert.DoesNotContain("->", s);   // cmd hiểu "->" trong echo là chuyển hướng ra file
         // Mọi kiểm tra (tìm ổ, đọc file cài) nằm TRƯỚC bước format; lỗi trước format → nhãn safe (về Windows cũ)
         var format = s.IndexOf("format fs=ntfs", StringComparison.Ordinal);
         Assert.True(s.IndexOf("Get-WimInfo", StringComparison.Ordinal) < format);

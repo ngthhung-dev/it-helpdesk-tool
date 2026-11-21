@@ -48,8 +48,8 @@ echo [%DATE% %TIME%] decrypt exit %ERRORLEVEL% >> "%LOG%"
 rem Kich ban multi: 2 o cung, nhieu phan vung du lieu, o thu hai con phan vung EFI cu
 if "__MULTI__"=="1" (
   powershell -NoProfile -ExecutionPolicy Bypass -File "%T%make-multi.ps1" >> "%LOG%" 2>&1
-  for %%v in (D E F) do "%T%cli\ithreinstall.exe" decrypt --drive %%v: --wait >> "%LOG%" 2>&1
-  mkdir D:\ITH\logs 2>nul
+  for %%v in (K L N) do "%T%cli\ithreinstall.exe" decrypt --drive %%v: --wait >> "%LOG%" 2>&1
+  mkdir K:\ITH\logs 2>nul
 )
 
 "%T%cli\ithreinstall.exe" info --image "%SRC%" >> "%LOG%" 2>&1
@@ -61,7 +61,7 @@ echo [%DATE% %TIME%] prepare exit %RC% >> "%LOG%"
 rem ---- Chep log vao thu muc dem (S:\ITH, phan vung ITH-STAGING hoac C:\ITH) ----
 set "STG="
 if exist S:\ITH\ set "STG=S:\ITH"
-if "__MULTI__"=="1" set "STG=D:\ITH"
+if "__MULTI__"=="1" set "STG=K:\ITH"
 for %%d in (D E F G H I J K L M N O P Q R T U V W Y Z) do if not defined STG if exist "%%d:\ITH-AUTOPART.tag" set "STG=%%d:\ITH"
 if not defined STG if exist C:\ITH\ set "STG=C:\ITH"
 if defined STG (

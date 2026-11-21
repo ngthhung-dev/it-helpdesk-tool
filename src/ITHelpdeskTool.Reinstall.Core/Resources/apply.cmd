@@ -67,14 +67,19 @@ rem ---- 7. File khoi dong ----
 rem bcdboot khong /s: tu tim phan vung he thong (ESP voi UEFI, phan vung Active voi BIOS) theo kieu khoi dong hien tai
 rem (/f bat buoc di kem /s nen khong dung o lan dau).
 call :log "bcdboot ({{FIRMWARE}}) ..."
-rem Uu tien phan vung khoi dong ma Windows cu dang dung (ghi luc chuan bi): may nhieu o cung
-rem (o du lieu con phan vung EFI cu) khong bi ghi nham sang o khac. Tim o cung theo ma (uniqueid), khong theo so thu tu.
-set "SYSDISK="
-set "BOOTED="
-set "SYSID={{SYS_DISKID}}"
-if defined SYSID for /l %%i in (0,1,31) do if not defined SYSDISK call :finddisk %%i
-if defined SYSDISK call :bootsys
-if defined BOOTED goto bootok
+rem May UEFI: mountvol /s gan ky tu cho DUNG phan vung EFI ma firmware vua dung de khoi dong (cua Windows cu)
+rem -> may nhieu o cung (o du lieu con phan vung EFI cu) khong bi ghi nham sang o khac. Loi thi bcdboot tu dong nhu cu.
+if /i not "{{FIRMWARE}}"=="UEFI" goto bootauto
+set "SL="
+for %%l in (W V U T R Q P O N M) do if not defined SL if not exist %%l:\ set "SL=%%l"
+if not defined SL goto bootauto
+mountvol %SL%: /s >>"%LOG%" 2>&1
+if not exist %SL%:\ goto bootauto
+call :log "Boot EFI partition mounted as %SL%: by mountvol /s"
+bcdboot %TGT%\Windows /s %SL%: /f UEFI >>"%LOG%" 2>&1
+if not errorlevel 1 goto bootok
+call :log "WARN: bcdboot to the boot EFI partition failed - trying automatic"
+:bootauto
 bcdboot %TGT%\Windows >>"%LOG%" 2>&1
 if not errorlevel 1 goto bootok
 rem Du phong: gan ky tu cho phan vung he thong (diskpart danh dau "System") roi chi ro /s /f
@@ -129,35 +134,6 @@ echo [ITH] Nhat ky: %LOG%
 echo [ITH] Go: notepad "%LOG%"  de xem.  Go: wpeutil reboot  de khoi dong lai.
 cmd /k
 exit /b 2
-
-:finddisk
-> "%TEMP%\ith-ud.txt" echo select disk %1
->>"%TEMP%\ith-ud.txt" echo uniqueid disk
-diskpart /s "%TEMP%\ith-ud.txt" 2>nul | findstr /i /c:"%SYSID%" >nul
-if not errorlevel 1 set "SYSDISK=%1"
-exit /b 0
-
-:bootsys
-rem Gan ky tu tam cho phan vung khoi dong (chon ky tu chua dung) roi bcdboot /s /f
-set "SL="
-for %%l in (W V U T R Q P O N M) do if not defined SL if not exist %%l:\ set "SL=%%l"
-if not defined SL exit /b 0
-call :log "System partition: disk %SYSDISK% partition {{SYS_PART}} (id %SYSID%) -> %SL%:"
-> "%TEMP%\ith-sp.txt" echo select disk %SYSDISK%
->>"%TEMP%\ith-sp.txt" echo select partition {{SYS_PART}}
->>"%TEMP%\ith-sp.txt" echo assign letter=%SL%
-diskpart /s "%TEMP%\ith-sp.txt" >>"%LOG%" 2>&1
-if not exist %SL%:\ (
-  call :log "WARN: could not mount the system partition - using automatic bcdboot"
-  exit /b 0
-)
-bcdboot %TGT%\Windows /s %SL%: /f {{FIRMWARE}} >>"%LOG%" 2>&1
-if errorlevel 1 (
-  call :log "WARN: bcdboot to the system partition failed - using automatic bcdboot"
-  exit /b 0
-)
-set "BOOTED=1"
-exit /b 0
 
 :removeentries
 if defined ITH_ENTRY bcdedit /delete %ITH_ENTRY% /cleanup >>"%LOG%" 2>&1

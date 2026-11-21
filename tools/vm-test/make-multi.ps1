@@ -1,12 +1,12 @@
 # Kịch bản multi: dựng máy "nhiều ổ cứng, nhiều phân vùng" trước khi cài lại.
-#   Ổ cứng 1: EFI + MSR + C: (Windows) + D: DATA-D (dữ liệu, dùng làm ổ đệm D:\ITH)
-#   Ổ cứng 2: phân vùng EFI CŨ (OLDEFI, không có file khởi động) + E: DATA-E + F: DATA-F
-# Sau khi cài lại phải: dữ liệu D/E/F còn nguyên, file khởi động ghi vào EFI của ổ cứng 1 — KHÔNG ghi sang OLDEFI.
+#   Ổ cứng 1: EFI + MSR + C: (Windows) + K: DATA-D (dữ liệu, dùng làm ổ đệm K:\ITH) — D: là ổ CD cài Windows
+#   Ổ cứng 2: phân vùng EFI CŨ (OLDEFI, không có file khởi động) + L: DATA-E + N: DATA-F
+# Sau khi cài lại phải: dữ liệu K/L/N còn nguyên, file khởi động ghi vào EFI của ổ cứng 1 — KHÔNG ghi sang OLDEFI.
 $ErrorActionPreference = 'Stop'
 $c = Get-Partition -DriveLetter C
 Resize-Partition -DriveLetter C -Size ($c.Size - 20GB)
-New-Partition -DiskNumber $c.DiskNumber -UseMaximumSize -DriveLetter D | Format-Volume -FileSystem NTFS -NewFileSystemLabel DATA-D -Confirm:$false | Out-Null
-'du lieu o D' | Set-Content D:\data-d.txt
+New-Partition -DiskNumber $c.DiskNumber -UseMaximumSize -DriveLetter K | Format-Volume -FileSystem NTFS -NewFileSystemLabel DATA-D -Confirm:$false | Out-Null
+'du lieu phan vung du lieu tren o cung 1' | Set-Content K:\data-d.txt
 
 $d = Get-Disk | Where-Object { $_.PartitionStyle -eq 'RAW' } | Select-Object -First 1
 Initialize-Disk -Number $d.Number -PartitionStyle GPT
@@ -19,9 +19,9 @@ Remove-PartitionAccessPath -DiskNumber $d.Number -PartitionNumber $z.PartitionNu
     Set-Content "$env:TEMP\ith-esp.txt" -Encoding ascii
 diskpart /s "$env:TEMP\ith-esp.txt"
 
-New-Partition -DiskNumber $d.Number -Size 15GB -DriveLetter E | Format-Volume -FileSystem NTFS -NewFileSystemLabel DATA-E -Confirm:$false | Out-Null
-New-Partition -DiskNumber $d.Number -UseMaximumSize -DriveLetter F | Format-Volume -FileSystem NTFS -NewFileSystemLabel DATA-F -Confirm:$false | Out-Null
-'du lieu o E' | Set-Content E:\data-e.txt
-'du lieu o F' | Set-Content F:\data-f.txt
+New-Partition -DiskNumber $d.Number -Size 15GB -DriveLetter L | Format-Volume -FileSystem NTFS -NewFileSystemLabel DATA-E -Confirm:$false | Out-Null
+New-Partition -DiskNumber $d.Number -UseMaximumSize -DriveLetter N | Format-Volume -FileSystem NTFS -NewFileSystemLabel DATA-F -Confirm:$false | Out-Null
+'du lieu o cung 2, phan vung 1' | Set-Content L:\data-e.txt
+'du lieu o cung 2, phan vung 2' | Set-Content N:\data-f.txt
 
 Get-Partition | Format-Table DiskNumber, PartitionNumber, DriveLetter, Size, GptType, IsSystem -AutoSize | Out-String -Width 200
