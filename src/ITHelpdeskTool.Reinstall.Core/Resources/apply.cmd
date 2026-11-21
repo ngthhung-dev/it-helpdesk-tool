@@ -68,7 +68,7 @@ rem bcdboot khong /s: tu tim phan vung he thong (ESP voi UEFI, phan vung Active 
 rem (/f bat buoc di kem /s nen khong dung o lan dau).
 call :log "bcdboot ({{FIRMWARE}}) ..."
 rem May UEFI: mountvol /s gan ky tu cho DUNG phan vung EFI ma firmware vua dung de khoi dong (cua Windows cu)
-rem -> may nhieu o cung (o du lieu con phan vung EFI cu) khong bi ghi nham sang o khac. Loi thi bcdboot tu dong nhu cu.
+rem nen may nhieu o cung (o du lieu con phan vung EFI cu) khong bi ghi nham sang o khac. Loi thi bcdboot tu dong nhu cu.
 if /i not "{{FIRMWARE}}"=="UEFI" goto bootauto
 set "SL="
 for %%l in (W V U T R Q P O N M) do if not defined SL if not exist %%l:\ set "SL=%%l"
