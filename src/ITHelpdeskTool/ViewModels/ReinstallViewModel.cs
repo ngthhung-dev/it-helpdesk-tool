@@ -140,6 +140,8 @@ public sealed partial class ReinstallViewModel : PageViewModel
         _ = RefreshEncryptionAsync();
         _armedStaging = FindArmed();
         Armed = _armedStaging.Length > 0;
+        // --page reinstall/download: mở sẵn phần tải bộ cài (chụp màn hình kiểm thử)
+        if (string.Equals(ShellViewModel.StartSubPage, "download", StringComparison.OrdinalIgnoreCase)) _ = OpenDownloadAsync();
     }
 
     public override void OnNavigatedFrom() => _timer?.Stop();
