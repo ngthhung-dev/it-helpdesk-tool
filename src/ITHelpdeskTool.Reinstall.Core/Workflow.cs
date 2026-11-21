@@ -86,7 +86,8 @@ namespace ITHelpdeskTool.Reinstall
                     iso = IsoMount.Mount(run, image);
                     image = MediaFiles.FromRoot(iso.Root).InstallImage;
                 }
-                return ImageInfo.Read(run, image, details: true);
+                // File .esd của Media Creation Tool có thêm ảnh thư mục bộ cài / WinPE / trình cài đặt — không phải bản để cài
+                return ImageInfo.Read(run, image, details: true).Where(e => !MediaBuilder.IsSetupImage(e)).ToList();
             }
             finally { iso?.Dispose(); }
         }
