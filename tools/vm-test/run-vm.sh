@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Thử "Cài lại Windows" trên máy ảo QEMU/KVM (runner Linux của GitHub).
-#   run-vm.sh <uefi|bios> <happy|safe|auto|samedrive> <win.iso> <thư mục ithreinstall> <thư mục kết quả>
+#   run-vm.sh <uefi|bios> <happy|safe|auto|samedrive|esd|multi> <win.iso> <thư mục ithreinstall> <thư mục kết quả>
 # happy: cài Windows "máy cũ" → ithreinstall prepare --arm --reboot → WinPE cài lại → Windows mới cài phần mềm → tắt máy.
 # safe : như trên nhưng WinPE dừng trước bước format → phải quay về Windows cũ, không mất gì.
 # auto : máy chỉ có một ổ, --staging auto (thu nhỏ C: tạo phân vùng đệm, không được thì đệm ngay trên C:).
@@ -15,6 +15,7 @@ cd "$WORK"
 # ---- Đĩa công cụ: autounattend.xml + run-test.cmd + ithreinstall ----
 mkdir -p tools/cli
 cp -r "$CLI"/. tools/cli/
+cp "$HERE/make-multi.ps1" tools/
 if [ "$FW" = uefi ]; then
   DISK='          <CreatePartitions>
             <CreatePartition wcm:action="add"><Order>1</Order><Type>EFI</Type><Size>300</Size></CreatePartition>
@@ -45,12 +46,14 @@ open(sys.argv[2], 'w', encoding='utf-8', newline='\r\n').write(t)
 PY
 EXTRA=""; [ "$SCEN" = safe ] && EXTRA="--test-fail-before-format"
 ESD=0; [ "$SCEN" = esd ] && ESD=1
+MULTI=0; [ "$SCEN" = multi ] && MULTI=1
 case "$SCEN" in
   happy|safe|esd) STAGING='S:\\ITH'; MKDISK=1 ;;
   auto) STAGING=auto; MKDISK=0 ;;
+  multi) STAGING='D:\\ITH'; MKDISK=0 ;;
   samedrive) STAGING='C:\\ITH'; MKDISK=0 ;;
 esac
-sed -e "s/__EXTRA__/$EXTRA/" -e "s/__ESD__/$ESD/g" -e "s/__STAGING__/$STAGING/g" -e "s/__MKDISK__/$MKDISK/g" "$HERE/run-test.cmd" | sed 's/$/\r/' > tools/run-test.cmd
+sed -e "s/__EXTRA__/$EXTRA/" -e "s/__ESD__/$ESD/g" -e "s/__MULTI__/$MULTI/g" -e "s/__STAGING__/$STAGING/g" -e "s/__MKDISK__/$MKDISK/g" "$HERE/run-test.cmd" | sed 's/$/\r/' > tools/run-test.cmd
 grep -n "prepare" tools/run-test.cmd | head -2
 genisoimage -quiet -J -joliet-long -r -V ITHTEST -o tools.iso tools
 
@@ -134,6 +137,20 @@ sudo blkid /dev/nbd1p* > "$OUT/partitions.txt" 2>/dev/null || true
 mkdir -p "$OUT/logs"; sudo cp /mnt/win/ith-test.log "$OUT/logs/" 2>/dev/null || true
 sudo chown -R "$USER" "$OUT"
 
+# multi: mount mọi phân vùng theo nhãn (DATA-D, DATA-E, DATA-F, OLDEFI) để kiểm tra dữ liệu còn nguyên
+if [ "$SCEN" = multi ]; then
+  for p in /dev/nbd0p* /dev/nbd1p*; do
+    l=$(sudo blkid -o value -s LABEL "$p" 2>/dev/null || true); [ -n "$l" ] || continue
+    m=$(findmnt -n -o TARGET "$p" 2>/dev/null || true)
+    if [ -n "$m" ]; then sudo mkdir -p /mnt/lbl; sudo ln -sfn "$m" "/mnt/lbl/$l"; continue; fi
+    sudo mkdir -p "/mnt/lbl/$l"
+    sudo mount -o ro "$p" "/mnt/lbl/$l" 2>/dev/null || sudo mount -t ntfs3 -o ro,force "$p" "/mnt/lbl/$l" 2>/dev/null || true
+  done
+  ls -la /mnt/lbl/ || true
+  sudo cp -r /mnt/lbl/DATA-D/ITH/logs/. "$OUT/logs/" 2>/dev/null || true
+  sudo blkid /dev/nbd0p* /dev/nbd1p* > "$OUT/partitions.txt" 2>/dev/null || true
+  sudo chown -R "$USER" "$OUT"
+fi
 check() { if [ -e "$1" ]; then echo "OK   $2"; else echo "FAIL $2 ($1)"; FAIL=1; fi; }
 FAIL=0
 echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
@@ -157,6 +174,19 @@ echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
     check "/mnt/win/Program Files/7-Zip/7z.exe" "7-Zip (winget) đã cài"
     check /mnt/win/Users/itadmin/Desktop/ith-backup-test.txt "Desktop cũ đã tự chép lại vào tài khoản mới"
     check "/mnt/win/Users/itadmin/Documents/Ke toan/bao-cao.txt" "Documents cũ đã tự chép lại"
+    [ -e /mnt/win/Users/olduser ] && { echo "FAIL tài khoản cũ olduser vẫn còn"; FAIL=1; } || echo "OK   Windows cũ đã được thay"
+  elif [ "$SCEN" = multi ]; then
+    L=/mnt/lbl/DATA-D/ITH/logs
+    check $L/winpe.done "WinPE cài xong (ổ đệm D: cùng ổ cứng với C:)"
+    check $L/post/firstlogon.done "Windows mới vào Desktop, chạy FirstLogon.ps1"
+    grep -q "System partition: disk" "$OUT/logs/winpe.log" 2>/dev/null && echo "OK   ghi file khởi động vào đúng phân vùng EFI đã ghi nhận" || { echo "FAIL không dùng phân vùng khởi động đã ghi nhận"; FAIL=1; }
+    check /mnt/lbl/DATA-D/data-d.txt "dữ liệu phân vùng D: (cùng ổ cứng Windows) còn nguyên"
+    check /mnt/lbl/DATA-E/data-e.txt "dữ liệu E: (ổ cứng thứ hai) còn nguyên"
+    check /mnt/lbl/DATA-F/data-f.txt "dữ liệu F: (ổ cứng thứ hai) còn nguyên"
+    check /mnt/lbl/OLDEFI/old-efi.txt "phân vùng EFI cũ trên ổ cứng thứ hai còn nguyên"
+    [ -e /mnt/lbl/OLDEFI/EFI/Microsoft/Boot/BCD ] && { echo "FAIL file khởi động bị ghi nhầm sang EFI của ổ cứng thứ hai"; FAIL=1; } || echo "OK   không ghi file khởi động sang ổ cứng thứ hai"
+    check "/mnt/win/Program Files/7-Zip/7z.exe" "7-Zip (winget) đã cài"
+    check /mnt/win/Users/itadmin/Desktop/ith-backup-test.txt "Desktop cũ đã tự chép lại vào tài khoản mới"
     [ -e /mnt/win/Users/olduser ] && { echo "FAIL tài khoản cũ olduser vẫn còn"; FAIL=1; } || echo "OK   Windows cũ đã được thay"
   elif [ "$SCEN" = happy ] || [ "$SCEN" = esd ]; then
     if [ "$SCEN" = esd ]; then ls /mnt/stg/ITH-Windows/*/ith-media.done >/dev/null 2>&1 && echo "OK   đã tự tải bộ cài gốc từ Microsoft (SHA1 khớp) và dựng bộ cài" || { echo "FAIL không thấy bộ cài tải về (/mnt/stg/ITH-Windows/*/ith-media.done)"; FAIL=1; }; fi

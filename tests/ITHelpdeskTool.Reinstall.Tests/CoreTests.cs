@@ -186,6 +186,8 @@ public class TemplateTests
         ["IMAGE"] = "install.esd",
         ["INDEX"] = "6",
         ["FIRMWARE"] = "UEFI",
+        ["SYS_DISKID"] = "0AC75BD3-1C5E-4F07-9A5E-3C1E7F2B9D10",
+        ["SYS_PART"] = "1",
         ["STAGING_CHECK"] = Stager.ApplyOtherDriveCheck,
         ["WIPE"] = Stager.ApplyFormat,
         ["TEST_FAIL_BEFORE_FORMAT"] = testFail ? "call :log \"TEST\"\r\ngoto safe" : "",
@@ -202,11 +204,32 @@ public class TemplateTests
         Assert.Contains("bcdboot %TGT%\\Windows >>", s);
         Assert.Contains("bcdboot %TGT%\\Windows /s Y: /f UEFI", s);
         Assert.DoesNotContain("Windows /f UEFI", s);
+        // Máy nhiều ổ cứng: ưu tiên đúng phân vùng khởi động cũ, tìm ổ theo mã (uniqueid)
+        Assert.Contains("set \"SYSID=0AC75BD3-1C5E-4F07-9A5E-3C1E7F2B9D10\"", s);
+        Assert.Contains("echo select partition 1", s);
+        Assert.Contains("bcdboot %TGT%\\Windows /s %SL%: /f UEFI", s);
+        Assert.True(s.IndexOf("call :bootsys", StringComparison.Ordinal) < s.IndexOf("bcdboot %TGT%\\Windows >>", StringComparison.Ordinal));
         // Mọi kiểm tra (tìm ổ, đọc file cài) nằm TRƯỚC bước format; lỗi trước format → nhãn safe (về Windows cũ)
         var format = s.IndexOf("format fs=ntfs", StringComparison.Ordinal);
         Assert.True(s.IndexOf("Get-WimInfo", StringComparison.Ordinal) < format);
         Assert.True(s.IndexOf("ITH-TARGET-abc123.tag", StringComparison.Ordinal) < format);
         Assert.Contains(":safe", s);
+    }
+
+    [Theory]
+    [InlineData("SYSPART=0|1|{0ac75bd3-1c5e-4f07-9a5e-3c1e7f2b9d10}|0|3", 0, 1, "0AC75BD3-1C5E-4F07-9A5E-3C1E7F2B9D10", true, false)]
+    [InlineData("SYSPART=1|2|6E1D7B2A|0|2", 1, 2, "6E1D7B2A", true, true)]     // EFI/System Reserved trên ổ cứng khác
+    [InlineData("SYSPART=0|1|6E1D7B2A|0|1", 0, 1, "6E1D7B2A", false, false)]   // BIOS: khởi động ngay trên ổ C:
+    [InlineData("SYSPART=0|1|bad id|0|3", 0, 1, "", false, false)]
+    [InlineData("", -1, -1, "", false, false)]
+    public void Parses_system_partition(string output, int disk, int part, string id, bool found, bool otherDisk)
+    {
+        var s = SystemPartition.Parse(output);
+        Assert.Equal(disk, s.Disk);
+        Assert.Equal(part, s.Partition);
+        Assert.Equal(id, s.DiskId);
+        Assert.Equal(found, s.Found);
+        Assert.Equal(otherDisk, s.OnOtherDisk);
     }
 
     [Fact]

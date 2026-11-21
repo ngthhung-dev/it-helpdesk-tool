@@ -334,9 +334,26 @@ public sealed partial class ReinstallViewModel : PageViewModel
     }
 
     // ================= Ổ đệm =================
+    /// <summary>Ổ (C:) → số ổ cứng vật lý (Win32_LogicalDiskToPartition: "Disk #0, Partition #1" → "C:").</summary>
+    private static Dictionary<string, int> DiskOfDrives()
+    {
+        var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var r in Wmi.TryQuery("SELECT Antecedent, Dependent FROM Win32_LogicalDiskToPartition"))
+        {
+            var disk = System.Text.RegularExpressions.Regex.Match(r.Str("Antecedent"), @"Disk #(\d+)");
+            var drive = System.Text.RegularExpressions.Regex.Match(r.Str("Dependent"), @"DeviceID=""([A-Z]:)""", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (disk.Success && drive.Success) map[drive.Groups[1].Value.ToUpperInvariant()] = int.Parse(disk.Groups[1].Value);
+        }
+        return map;
+    }
+
     private void LoadStaging()
     {
         StagingOptions.Clear();
+        var diskOf = DiskOfDrives();
+        var targetDisk = diskOf.TryGetValue(Target, out var td) ? td : -1;
+        var sameDisk = new List<StagingOption>();
+        var otherDisk = new List<StagingOption>();
         StagingOptions.Add(new StagingOption("auto", $"Tự động — thu nhỏ {Target} tạo phân vùng đệm (cài xong tự gộp lại); không được thì dùng {Target}\\ITH", true));
         foreach (var d in DriveInfo.GetDrives())
         {
@@ -346,12 +363,21 @@ public sealed partial class ReinstallViewModel : PageViewModel
                 var root = d.Name.TrimEnd('\\').ToUpperInvariant();
                 if (root == Target || (d.DriveFormat != "NTFS" && !d.DriveFormat.StartsWith("FAT", StringComparison.OrdinalIgnoreCase))) continue;
                 var label = d.VolumeLabel.Length > 0 ? d.VolumeLabel + " " : "";
-                StagingOptions.Add(new StagingOption(root + "\\ITH", $"{root} {label}— trống {d.AvailableFreeSpace / 1073741824.0:0.#} GB (dùng thư mục {root}\\ITH, dữ liệu trên ổ này giữ nguyên)", false));
+                var other = targetDisk >= 0 && diskOf.TryGetValue(root, out var dk) && dk != targetDisk;
+                var opt = new StagingOption(root + "\\ITH",
+                    $"{root} {label}— trống {d.AvailableFreeSpace / 1073741824.0:0.#} GB (dùng thư mục {root}\\ITH, dữ liệu trên ổ này giữ nguyên)" +
+                    (other ? " · ổ cứng khác" : ""), false);
+                (other ? otherDisk : sameDisk).Add(opt);
             }
             catch { }
         }
-        // Ổ khác đủ chỗ (≥ 20 GB) thì dùng; không thì tự động
-        Staging = StagingOptions.Skip(1).FirstOrDefault(o => FreeGb(o.Value) >= 20) ?? StagingOptions[0];
+        // Cùng ổ cứng với Windows lên trước: máy UEFI bật Fast Boot có thể không thấy ổ cứng thứ hai lúc khởi động
+        foreach (var o in sameDisk.Concat(otherDisk)) StagingOptions.Add(o);
+        // Mặc định: phân vùng cùng ổ cứng đủ chỗ (≥ 20 GB) → tự động (thu nhỏ C:) → máy BIOS / không rõ ổ cứng thì ổ khác đủ chỗ
+        Staging = sameDisk.FirstOrDefault(o => FreeGb(o.Value) >= 20)
+                  ?? (RI.BootEntry.DetectFirmware(new RI.ProcessRunner()) == RI.FirmwareMode.Bios || targetDisk < 0
+                      ? otherDisk.FirstOrDefault(o => FreeGb(o.Value) >= 20) : null)
+                  ?? StagingOptions[0];
     }
 
     private static double FreeGb(string dir)
