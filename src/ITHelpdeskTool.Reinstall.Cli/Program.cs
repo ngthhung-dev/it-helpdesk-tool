@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -136,65 +136,27 @@ namespace ITHelpdeskTool.Reinstall.Cli
 
         private static int Info(IRunner run, Args a)
         {
-            var image = a.Get("image");
-            IsoMount? iso = null;
-            try
-            {
-                if (image.EndsWith(".iso", StringComparison.OrdinalIgnoreCase))
-                {
-                    iso = IsoMount.Mount(run, image);
-                    image = MediaFiles.FromRoot(iso.Root).InstallImage;
-                }
-                foreach (var e in ImageInfo.Read(run, image, details: true)) Console.WriteLine(e);
-                return 0;
-            }
-            finally { iso?.Dispose(); }
-        }
-
-        private static long ImageBytes(string image) => File.Exists(image) ? new FileInfo(image).Length : 0;
-
-        /// <summary>Đọc chi tiết bản Windows đã chọn (kiến trúc, build, mã bản) — mở ISO nếu cần.</summary>
-        private static ImageEdition ReadEdition(IRunner run, string image, int index)
-        {
-            IsoMount? iso = null;
-            try
-            {
-                if (image.EndsWith(".iso", StringComparison.OrdinalIgnoreCase))
-                {
-                    iso = IsoMount.Mount(run, image);
-                    image = MediaFiles.FromRoot(iso.Root).InstallImage;
-                }
-                var all = ImageInfo.Read(run, image, details: true);
-                return all.FirstOrDefault(e => e.Index == index)
-                       ?? throw new ReinstallException($"File cài không có bản số {index}. Có: {string.Join("; ", all)}");
-            }
-            finally { iso?.Dispose(); }
+            foreach (var e in Workflow.ReadEditions(run, a.Get("image"))) Console.WriteLine(e);
+            return 0;
         }
 
         private static HashSet<string> Confirmed(Args a) =>
             new HashSet<string>(a.Get("confirm", "").Split(',').Select(x => x.Trim()).Where(x => x.Length > 0), StringComparer.OrdinalIgnoreCase);
 
-        private static bool RunChecks(IRunner run, ReinstallPlan p, long backupBytes, ICollection<string> confirmed, out MachineFacts facts)
+        private static WorkflowOptions Options(Args a, List<BackupItem> items) => new WorkflowOptions
         {
-            facts = MachineFacts.Read(run);
-            var ed = ReadEdition(run, p.ImagePath, p.ImageIndex);
-            Log($"Bản sẽ cài: {ed} [{ed.Edition}]");
-            Log($"Máy: {facts.ProductName} ({facts.EditionId}) · {facts.CpuName} · RAM {facts.RamBytes / 1073741824.0:0.#} GB · {facts.Firmware} · TPM {facts.Tpm}");
-            Log($"Tài khoản: {(facts.Account.Source.Length > 0 ? facts.Account.Source : "?")}" +
-                (facts.Account.ManagedByOrganization ? " · quản lý bởi " + facts.Account.OrganizationText : "") +
-                " · BitLocker: " + (facts.BitLocker.Count > 0 ? string.Join(", ", facts.BitLocker.Values) : "không"));
-            var checks = Preflight.Run(p, facts, ImageBytes(p.ImagePath) + backupBytes, null, confirmed);
-            long targetBytes = 0;
-            try { targetBytes = new DriveInfo(p.TargetDrive).TotalSize; } catch { }
-            checks.AddRange(Compatibility.Evaluate(facts, ed, targetBytes));
-            foreach (var c in checks) Log(c.ToString());
-            return checks.All(c => c.Level != CheckLevel.Block);
-        }
+            Backup = items,
+            Confirmed = Confirmed(a),
+            IgnoreBackupErrors = a.Has("ignore-backup-errors"),
+            NoRestore = a.Has("no-restore"),
+            TestFailBeforeFormat = a.Has("test-fail-before-format"),
+            Arm = a.Has("arm"),
+        };
 
         private static int CheckCmd(IRunner run, Args a)
         {
-            var items = BackupItems(a);
-            return RunChecks(run, Plan(run, a), items.Sum(i => i.Bytes), Confirmed(a), out _) ? 0 : 3;
+            var r = new Workflow(run, Log).Inspect(Plan(run, a), Options(a, BackupItems(a)));
+            return r.Ok ? 0 : (int)r.Stop;
         }
 
         // ---- Sao lưu ----
@@ -229,19 +191,7 @@ namespace ITHelpdeskTool.Reinstall.Cli
             return all.Where(b => ids.Contains(b.Id, StringComparer.OrdinalIgnoreCase)).ToList();
         }
 
-        private static string Size(long b) => b >= 1073741824 ? $"{b / 1073741824.0:0.0} GB" : $"{b / 1048576.0:0} MB";
-
-        private static BackupResult? DoBackup(IRunner run, Args a, List<BackupItem> items, string staging, string target)
-        {
-            if (items.Count == 0) { Log("Không sao lưu (--backup none)."); return null; }
-            foreach (var b in items) Log($"Sao lưu: {b.Title} {(b.Bytes > 0 ? Size(b.Bytes) : "")} {(b.Source.Length > 0 ? "← " + b.Source : "")}");
-            // Thư mục đệm ngay trên ổ Windows được giữ lại khi xoá ổ → cho sao lưu vào đó
-            var sameDrive = string.Equals(Path.GetPathRoot(Path.GetFullPath(staging))?.TrimEnd('\\'), target.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase);
-            var res = BackupRunner.Run(run, items, Path.Combine(staging, "backup"), target, Log, sameDrive ? staging : null);
-            foreach (var e in res.Errors) Log("LỖI sao lưu: " + e);
-            Log($"Sao lưu xong {res.Done.Count}/{items.Count} mục vào {res.Dir}");
-            return res;
-        }
+        private static string Size(long b) => Workflow.Size(b);
 
         private static int BackupCmd(IRunner run, Args a)
         {
@@ -256,121 +206,28 @@ namespace ITHelpdeskTool.Reinstall.Cli
             }
             Directory.CreateDirectory(staging);
             OpenLog(staging);
-            var res = DoBackup(run, a, items, staging, target);
-            return res == null || res.Ok ? 0 : 4;
+            if (items.Count == 0) { Log("Không sao lưu (--backup none)."); return 0; }
+            var sameDrive = string.Equals(Path.GetPathRoot(Path.GetFullPath(staging))?.TrimEnd('\\'), target.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase);
+            var res = BackupRunner.Run(run, items, Path.Combine(staging, "backup"), target, Log, sameDrive ? staging : null);
+            foreach (var e in res.Errors) Log("LỖI sao lưu: " + e);
+            Log($"Sao lưu xong {res.Done.Count}/{items.Count} mục vào {res.Dir}");
+            return res.Ok ? 0 : 4;
         }
 
         private static int Prepare(IRunner run, Args a)
         {
             var p = Plan(run, a);
-            var existing = p.AutoStaging ? StagingPartition.FindExisting() : null;
-            if (existing != null) p.StagingDir = existing + "\\ITH";        // chạy lại: dùng phân vùng đệm đã tạo
-            if (p.AutoStaging && existing == null) OpenLog(Path.Combine(Path.GetTempPath(), "ithreinstall"));
-            else { Directory.CreateDirectory(p.StagingDir); OpenLog(p.StagingDir); }
-            Log($"=== Chuẩn bị cài lại Windows: {p.ImagePath} bản {p.ImageIndex} → {p.TargetDrive} (đệm {(p.AutoStaging && existing == null ? "tự tạo bằng cách thu nhỏ " + p.TargetDrive : p.StagingDir)}, {p.Firmware})");
-
-            // 1. Kiểm tra máy + tương thích
-            var items = BackupItems(a);
-            var confirmed = Confirmed(a);
-            if (!RunChecks(run, p, items.Sum(i => i.Bytes), confirmed, out var facts))
-            {
-                Log("Dừng: còn mục chặn (Block) ở trên.");
-                return 3;
-            }
-
-            // 1a. Máy chỉ có ổ C:: thu nhỏ C: tạo phân vùng đệm (lần chạy lại dùng phân vùng đã tạo)
-            if (p.AutoStaging && existing == null)
-            {
-                var needed = StagingPartition.NeededBytes(ImageBytes(p.ImagePath), items.Sum(i => i.Bytes));
-                var info = StagingPartition.Probe(run, p.TargetDrive);
-                var shrink = StagingPartition.Check(info, needed);
-                foreach (var c in shrink) Log(c.ToString());
-                if (!shrink.Any(c => c.Level == CheckLevel.Block))
-                {
-                    Log($"Đang thu nhỏ {p.TargetDrive} {needed / 1073741824} GB để tạo phân vùng đệm…");
-                    var drive = StagingPartition.Create(run, info, needed);
-                    p.StagingDir = drive + "\\ITH";
-                    Log($"Đã tạo phân vùng đệm {drive} ({StagingPartition.Label}). Huỷ: ithreinstall cancel --staging {p.StagingDir} --remove");
-                    // Windows 11 24H2 tự mã hoá ổ mới khi có mã hoá thiết bị → tắt ngay (ổ còn trống nên giải mã gần như tức thì)
-                    var enc = Encryption.Status(run, drive);
-                    if (enc != null && enc.Encrypted)
-                    {
-                        Log($"Windows vừa tự mã hoá {drive} — đang tắt…");
-                        Encryption.TurnOff(run, drive);
-                    }
-                }
-                else if (info.Free >= needed + (2L << 30))
-                {
-                    // Không thu nhỏ được (file hệ thống nằm cuối ổ) → để thư mục đệm ngay trên ổ Windows, môi trường cài xoá mọi thứ trừ nó
-                    p.StagingDir = p.TargetDrive.TrimEnd('\\') + "\\ITH";
-                    Log($"Không thu nhỏ được {p.TargetDrive} — dùng thư mục đệm ngay trên ổ Windows: {p.StagingDir} (không format, xoá mọi thứ trừ thư mục này).");
-                }
-                else
-                {
-                    Log($"Dừng: {p.TargetDrive} không đủ chỗ trống cho thư mục đệm (~{needed / 1073741824} GB). Bớt mục sao lưu hoặc dọn ổ.");
-                    return 3;
-                }
-                Directory.CreateDirectory(p.StagingDir);
-                OpenLog(p.StagingDir);
-            }
-
-            // 1b. Ổ dữ liệu mã hoá BitLocker: lưu khoá khôi phục, bắt xác nhận đã chép trước khi đi tiếp
-            var encrypted = Preflight.EncryptedDataDrives(p, facts);
-            if (encrypted.Count > 0)
-            {
-                var keys = new List<RecoveryKey>();
-                foreach (var v in encrypted)
-                {
-                    var k = Encryption.RecoveryKeys(run, v.Drive);
-                    if (k.Count == 0)
-                    {
-                        Log($"Dừng: ổ {v.Drive} mã hoá nhưng không có khoá khôi phục dạng 48 số — Windows mới sẽ không mở được ổ này. " +
-                            $"Thêm khoá: manage-bde -protectors -add {v.Drive} -RecoveryPassword (rồi chạy lại).");
-                        return 5;
-                    }
-                    keys.AddRange(k);
-                }
-                var keyDir = Path.Combine(p.StagingDir, "backup", "bitlocker");
-                Directory.CreateDirectory(keyDir);
-                var keyFile = Path.Combine(keyDir, "khoa-khoi-phuc-bitlocker.txt");
-                File.WriteAllText(keyFile, Encryption.KeysText(keys), new UTF8Encoding(true));
-                foreach (var k in keys) Console.WriteLine($"  Ổ {k.Drive}  khoá khôi phục: {k.Key}");
-                Log($"Đã lưu khoá khôi phục BitLocker của {string.Join(", ", encrypted.Select(v => v.Drive))} vào {keyFile}");
-                if (!confirmed.Contains(ConfirmKeys.BitLockerKeys))
-                {
-                    Log($"Dừng: chép các khoá trên ra giấy / nơi khác ngoài máy, rồi chạy lại với --confirm {ConfirmKeys.BitLockerKeys}.");
-                    return 6;
-                }
-            }
-
-            // 2. Sao lưu — chưa xong thì không đi tiếp
-            var backup = DoBackup(run, a, items, p.StagingDir, p.TargetDrive);
-            if (backup != null && !backup.Ok && !a.Has("ignore-backup-errors"))
-            {
-                Log("Dừng: sao lưu có lỗi. Sửa lỗi rồi chạy lại, hoặc thêm --ignore-backup-errors nếu chấp nhận thiếu các file trên.");
-                return 4;
-            }
-            if (backup != null && !a.Has("no-restore")) p.Restore = backup.Done;
-
-            // 3. Chuẩn bị
-            var stager = new Stager(run, Log) { TestFailBeforeFormat = a.Has("test-fail-before-format") };
-            var r = stager.Prepare(p);
-            Log($"Đã chuẩn bị: {r.Edition} · mã {r.Id} · driver ổ cứng: {r.StorageDrivers.Count} · tự chép lại: {p.Restore.Count} mục");
-            if (!a.Has("arm")) return 0;
-
-            // 4. Đặt khởi động một lần — trước đó kiểm tra lại ổ đệm: Windows 11 24H2 có thể tự mã hoá ổ mới,
-            //    trình khởi động không đọc được ổ mã hoá → máy sẽ dừng ở màn hình lỗi khởi động
-            var stagingDrive = Path.GetPathRoot(Path.GetFullPath(p.StagingDir))!.TrimEnd('\\');
-            var st = Encryption.Status(run, stagingDrive);
-            if (st != null && st.Encrypted)
-            {
-                Log($"Dừng: ổ đệm {stagingDrive} đang mã hoá BitLocker ({st}) — chưa đặt khởi động. " +
-                    $"Tắt mã hoá: ithreinstall decrypt --drive {stagingDrive} --wait, rồi chạy: ithreinstall arm --staging {p.StagingDir}");
-                return 7;
-            }
-            var e = stager.Arm(p);
-            Log($"Đã đặt khởi động một lần vào môi trường cài ({e.EntryId}). Khởi động lại máy để bắt đầu; huỷ: ithreinstall cancel --staging {p.StagingDir}");
-            if (a.Has("reboot"))
+            // Máy một ổ chưa có phân vùng đệm: ghi log tạm, có thư mục đệm thật thì chuyển sang đó
+            if (p.AutoStaging && StagingPartition.FindExisting() == null) OpenLog(Path.Combine(Path.GetTempPath(), "ithreinstall"));
+            var wf = new Workflow(run, Log) { StagingReady = OpenLog };
+            var r = wf.Prepare(p, Options(a, BackupItems(a)));
+            foreach (var k in r.Keys) Console.WriteLine($"  Ổ {k.Drive}  khoá khôi phục: {k.Key}");
+            if (r.Stop == WorkflowStop.NeedKeyConfirm)
+                Log($"Chạy lại với --confirm {ConfirmKeys.BitLockerKeys} sau khi đã chép khoá.");
+            if (r.Stop == WorkflowStop.StagingEncrypted)
+                Log($"Tắt mã hoá: ithreinstall decrypt --drive {Path.GetPathRoot(Path.GetFullPath(p.StagingDir))!.TrimEnd('\\')} --wait, rồi chạy: ithreinstall arm --staging {p.StagingDir}");
+            if (!r.Ok) return (int)r.Stop;
+            if (r.Entry != null && a.Has("reboot"))
             {
                 Log("Khởi động lại sau 10 giây…");
                 Process.Start(new ProcessStartInfo("shutdown.exe", "/r /t 10 /c \"IT Helpdesk Tool - cai lai Windows\"") { UseShellExecute = false, CreateNoWindow = true });
