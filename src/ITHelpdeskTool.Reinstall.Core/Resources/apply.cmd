@@ -64,12 +64,29 @@ if errorlevel 1 (
 xcopy "%STG%\post" "%TGT%\ProgramData\ITHReinstall\" /E /I /Y /Q >>"%LOG%" 2>&1
 
 rem ---- 7. File khoi dong ----
-call :log "bcdboot {{FIRMWARE}} ..."
-bcdboot %TGT%\Windows /f {{FIRMWARE}} >>"%LOG%" 2>&1
+rem bcdboot khong /s: tu tim phan vung he thong (ESP voi UEFI, phan vung Active voi BIOS) theo kieu khoi dong hien tai
+rem (/f bat buoc di kem /s nen khong dung o lan dau).
+call :log "bcdboot ({{FIRMWARE}}) ..."
+bcdboot %TGT%\Windows >>"%LOG%" 2>&1
+if not errorlevel 1 goto bootok
+rem Du phong: gan ky tu cho phan vung he thong (diskpart danh dau "System") roi chi ro /s /f
+call :log "bcdboot auto failed - assigning a letter to the system partition"
+> "%TEMP%\ith-lv.txt" echo list volume
+set "SYSVOL="
+for /f "tokens=2" %%v in ('diskpart /s "%TEMP%\ith-lv.txt" ^| findstr /i /r /c:"Volume [0-9].*System"') do if not defined SYSVOL set "SYSVOL=%%v"
+if not defined SYSVOL (
+  call :log "ERROR: system partition not found"
+  goto hard
+)
+> "%TEMP%\ith-as.txt" echo select volume %SYSVOL%
+>>"%TEMP%\ith-as.txt" echo assign letter=Y
+diskpart /s "%TEMP%\ith-as.txt" >>"%LOG%" 2>&1
+bcdboot %TGT%\Windows /s Y: /f {{FIRMWARE}} >>"%LOG%" 2>&1
 if errorlevel 1 (
   call :log "ERROR: bcdboot failed"
   goto hard
 )
+:bootok
 call :removeentries
 
 > "%STG%\logs\winpe.done" echo %DATE% %TIME%

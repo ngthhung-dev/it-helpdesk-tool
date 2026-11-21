@@ -84,9 +84,10 @@ mon() { echo "$1" | socat - unix-connect:$MON > /dev/null 2>&1 || true; }
 shot() { mon "screendump $WORK/s.ppm"; sleep 1; convert "$WORK/s.ppm" -resize 800x "$OUT/shots/$1.png" 2>/dev/null || true; }
 
 # "Press any key to boot from CD" ở lần bật đầu
-# Chỉ trong ~25 giây đầu (sau đó Setup đã chạy — Enter có thể bấm nhầm nút Cancel); các lần khởi động sau vào thẳng ổ cứng
-sleep 4
-for i in $(seq 1 22); do mon "sendkey ret"; sleep 1; done
+# Trong ~50 giây đầu (máy runner bận thì firmware chậm; sau đó Setup đã chạy — Enter có thể bấm nhầm nút Cancel);
+# các lần khởi động sau vào thẳng ổ cứng
+sleep 2
+for i in $(seq 1 48); do mon "sendkey ret"; sleep 1; done
 
 # ---- Chờ máy ảo tự tắt (run-test / FirstLogon.ps1 tắt máy khi xong), chụp màn hình mỗi phút ----
 START=$(date +%s); LIMIT=$((230 * 60)); n=0
@@ -135,8 +136,11 @@ check() { if [ -e "$1" ]; then echo "OK   $2"; else echo "FAIL $2 ($1)"; FAIL=1;
 FAIL=0
 echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
 {
-  check /mnt/stg/ITH/logs/prepare.log "ithreinstall prepare đã chạy"
-  check /mnt/stg/ITH/logs/winpe.log "môi trường cài (WinPE) đã chạy"
+  if [ "$SCEN" = happy ] || [ "$SCEN" = safe ]; then
+    check /mnt/stg/ITH/logs/prepare.log "ithreinstall prepare đã chạy"
+    check /mnt/stg/ITH/logs/winpe.log "môi trường cài (WinPE) đã chạy"
+  fi
+  [ -f "$OUT/logs/winpe.log" ] && { echo "### winpe.log (20 dòng cuối)"; tail -20 "$OUT/logs/winpe.log" | tr -d ''; } || true
   if [ "$SCEN" = auto ] || [ "$SCEN" = samedrive ]; then
     if [ -d /mnt/win/ITH-Backup ]; then L=/mnt/win/ITH-Backup/logs; B=/mnt/win/ITH-Backup; echo "Chế độ: phân vùng đệm riêng (thu nhỏ C:) → đã gộp"
       check $L/merged.done "phân vùng đệm đã gộp lại vào C:"

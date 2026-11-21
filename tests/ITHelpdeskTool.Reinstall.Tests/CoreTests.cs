@@ -198,7 +198,10 @@ public class TemplateTests
         Assert.DoesNotContain("{{", s);
         Assert.Contains("ITH-TARGET-abc123.tag", s);
         Assert.Contains("/Index:6", s);
-        Assert.Contains("bcdboot %TGT%\\Windows /f UEFI", s);
+        // bcdboot: /f bắt buộc đi kèm /s → lần đầu không /f, dự phòng mới gán ổ hệ thống và chỉ rõ /s /f
+        Assert.Contains("bcdboot %TGT%\\Windows >>", s);
+        Assert.Contains("bcdboot %TGT%\\Windows /s Y: /f UEFI", s);
+        Assert.DoesNotContain("Windows /f UEFI", s);
         // Mọi kiểm tra (tìm ổ, đọc file cài) nằm TRƯỚC bước format; lỗi trước format → nhãn safe (về Windows cũ)
         var format = s.IndexOf("format fs=ntfs", StringComparison.Ordinal);
         Assert.True(s.IndexOf("Get-WimInfo", StringComparison.Ordinal) < format);
