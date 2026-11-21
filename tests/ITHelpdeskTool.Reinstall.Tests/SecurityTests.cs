@@ -48,6 +48,18 @@ public class SecurityTests
     }
 
     [Fact]
+    public void Uefi_staging_on_other_disk_warns()
+    {
+        var f = Facts();
+        MachineFacts.Parse(f, "DISK=" + Sys + "|0\nDISK=S:|1\n");
+        Assert.Equal(1, f.DiskOf["S:"]);
+        var c = Assert.Single(Preflight.Run(Plan(), f, 0), x => x.Title.Contains("ổ cứng khác"));
+        Assert.Equal(CheckLevel.Warn, c.Level);
+        f.DiskOf["S:"] = 0;
+        Assert.DoesNotContain(Preflight.Run(Plan(), f, 0), x => x.Title.Contains("ổ cứng khác"));
+    }
+
+    [Fact]
     public void Microsoft_account_is_informational()
     {
         var f = Facts();

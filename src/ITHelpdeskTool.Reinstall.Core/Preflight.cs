@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -60,6 +60,8 @@ namespace ITHelpdeskTool.Reinstall
         /// <summary>Ổ (C:) → tình trạng BitLocker.</summary>
         public Dictionary<string, BitLockerVolume> BitLocker { get; set; } = new Dictionary<string, BitLockerVolume>(StringComparer.OrdinalIgnoreCase);
         public AccountFacts Account { get; set; } = new AccountFacts();
+        /// <summary>Ổ (C:) → số ổ cứng vật lý (Get-Partition; trống trên Windows 7).</summary>
+        public Dictionary<string, int> DiskOf { get; set; } = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
         public bool HasRaid => StorageControllers.Any(c => Regex.IsMatch(c, @"RAID|RST|Rapid Storage|VMD|Optane", RegexOptions.IgnoreCase));
 
@@ -82,6 +84,7 @@ namespace ITHelpdeskTool.Reinstall
             "Get-WmiObject Win32_IDEController | %{ 'STORAGE=' + $_.Name };" +
             "try { 'ACCOUNT=' + (Get-LocalUser -Name '{{USER}}').PrincipalSource } catch { 'ACCOUNT=' };" +
             "dsregcmd /status | Select-String 'AzureAdJoined|WorkplaceJoined' | %{ 'JOIN=' + ($_.Line -replace '\\s','') };" +
+            "Get-Partition | ?{ $_.DriveLetter } | %{ 'DISK=' + $_.DriveLetter + ':|' + $_.DiskNumber };" +
             "'MDM=' + @(Get-ChildItem HKLM:\\SOFTWARE\\Microsoft\\Enrollments | ?{ (Get-ItemProperty $_.PSPath).ProviderID -eq 'MS DM Server' }).Count;";
 
         /// <param name="userName">Tài khoản cần xét (người đang đăng nhập); mặc định là tài khoản chạy chương trình.</param>
@@ -125,6 +128,10 @@ namespace ITHelpdeskTool.Reinstall
                     case "JOIN":
                         if (v.StartsWith("AzureAdJoined:YES", StringComparison.OrdinalIgnoreCase)) f.Account.AzureAdJoined = true;
                         if (v.StartsWith("WorkplaceJoined:YES", StringComparison.OrdinalIgnoreCase)) f.Account.WorkplaceJoined = true;
+                        break;
+                    case "DISK":
+                        var dk = v.Split('|');
+                        if (dk.Length == 2 && int.TryParse(dk[1], out var dn)) f.DiskOf[dk[0].ToUpperInvariant()] = dn;
                         break;
                     case "MDM": f.Account.MdmEnrolled = v.Length > 0 && v != "0"; break;
                 }
@@ -194,6 +201,14 @@ namespace ITHelpdeskTool.Reinstall
                         $"Cần ~{need / 1073741824.0:0.0} GB (file cài + sao lưu), còn {d.AvailableFreeSpace / 1073741824.0:0.0} GB."));
                 else list.Add(new Check(CheckLevel.Ok, $"Ổ đệm {stagingRoot} đủ chỗ ({d.AvailableFreeSpace / 1073741824.0:0.0} GB trống)"));
             }
+
+            // ---- UEFI: ổ đệm trên ổ cứng khác ----
+            // Firmware bật Fast Boot (và OVMF) chỉ kết nối ổ cứng khởi động → trình khởi động báo 0xc000000e, không vào được môi trường cài.
+            if (!p.AutoStaging && f.Firmware == FirmwareMode.Uefi
+                && f.DiskOf.TryGetValue(target, out var tDisk) && f.DiskOf.TryGetValue(stagingRoot, out var sDisk) && tDisk != sDisk)
+                list.Add(new Check(CheckLevel.Warn, $"Ổ đệm {stagingRoot} nằm trên ổ cứng khác với {target}",
+                    "Một số máy UEFI (bật Fast Boot) không thấy ổ cứng thứ hai lúc khởi động: máy báo lỗi 0xc000000e, bấm Enter để về Windows cũ (chưa xoá gì). " +
+                    "Nên chọn phân vùng cùng ổ cứng với " + target + " hoặc để app tự tạo (--staging auto); hoặc tắt Fast Boot trong BIOS."));
 
             // ---- BitLocker / mã hoá thiết bị ----
             if (f.BitLocker.TryGetValue(target, out var tv) && tv.Encrypted)

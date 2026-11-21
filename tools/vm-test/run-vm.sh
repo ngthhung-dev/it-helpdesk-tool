@@ -71,10 +71,10 @@ if [ "$FW" = uefi ]; then
     -drive if=pflash,format=raw,unit=0,file=/usr/share/OVMF/OVMF_CODE_4M.ms.fd,readonly=on
     -drive if=pflash,format=raw,unit=1,file=vars.fd
     -chardev socket,id=chrtpm,path=$WORK/tpm/sock -tpmdev emulator,id=tpm0,chardev=chrtpm -device tpm-tis,tpmdev=tpm0
-    -device ahci,id=ahci -device ide-hd,drive=d0,bus=ahci.0,bootindex=0 -device ide-hd,drive=d1,bus=ahci.1
+    -device ahci,id=ahci -device ide-hd,drive=d0,bus=ahci.0,bootindex=0 -device ide-hd,drive=d1,bus=ahci.1,bootindex=2
     -device ide-cd,drive=cd0,bus=ahci.2,bootindex=1 -device ide-cd,drive=cd1,bus=ahci.3)
 else
-  ARGS=(-machine q35 -device ahci,id=ahci -device ide-hd,drive=d0,bus=ahci.0,bootindex=0 -device ide-hd,drive=d1,bus=ahci.1
+  ARGS=(-machine q35 -device ahci,id=ahci -device ide-hd,drive=d0,bus=ahci.0,bootindex=0 -device ide-hd,drive=d1,bus=ahci.1,bootindex=2
     -device ide-cd,drive=cd0,bus=ahci.2,bootindex=1 -device ide-cd,drive=cd1,bus=ahci.3)
 fi
 
