@@ -168,12 +168,12 @@
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 <TextBlock Text="Tài khoản" Style="{StaticResource Label}"/>
-                                <TextBox Grid.Column="1" Text="{Binding AccountName, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding MicrosoftAccount, Converter={x:Static core:Converters.Not}}"/>
+                                <TextBox Style="{StaticResource InputBox}" Tag="Admin" Grid.Column="1" Text="{Binding AccountName, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding MicrosoftAccount, Converter={x:Static core:Converters.Not}}"/>
                                 <TextBlock Grid.Column="3" Text="Mật khẩu" Style="{StaticResource Label}"/>
-                                <TextBox Grid.Column="4" Text="{Binding Password, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding MicrosoftAccount, Converter={x:Static core:Converters.Not}}"
+                                <TextBox Style="{StaticResource InputBox}" Tag="Để trống = không mật khẩu" Grid.Column="4" Text="{Binding Password, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding MicrosoftAccount, Converter={x:Static core:Converters.Not}}"
                                          ToolTip="Để trống = không đặt mật khẩu. Mật khẩu ghi dạng mã hoá base64 trong unattend.xml, bị xoá sau khi cài xong."/>
                                 <TextBlock Grid.Row="2" Text="Tên máy" Style="{StaticResource Label}"/>
-                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ComputerName, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBox Style="{StaticResource InputBox}" Tag="Để trống = tên ngẫu nhiên" Grid.Row="2" Grid.Column="1" Text="{Binding ComputerName, UpdateSourceTrigger=PropertyChanged}"/>
                             </Grid>
                             <CheckBox IsChecked="{Binding MicrosoftAccount}" Margin="0,10,0,0"
                                       Content="Đăng nhập tài khoản Microsoft lúc cài (cần mạng; không tạo tài khoản ở trên)"/>
@@ -276,7 +276,7 @@
                                     </Style>
                                 </TextBlock.Style>
                             </TextBlock>
-                            <TextBox Text="{Binding LogText, Mode=OneWay}" IsReadOnly="True" Margin="0,10,0,0" Height="220" FontFamily="{StaticResource MonoFont}" FontSize="11"
+                            <TextBox Text="{Binding LogText, Mode=OneWay}" IsReadOnly="True" Background="{DynamicResource Surface2Brush}" Foreground="{DynamicResource TextBrush}" BorderBrush="{DynamicResource BorderBrush}" Padding="8,6" Margin="0,10,0,0" Height="220" FontFamily="{StaticResource MonoFont}" FontSize="11"
                                      TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextChanged="LogChanged"
                                      Visibility="{Binding LogText, Converter={x:Static core:Converters.NonEmptyVis}}"/>
                         </StackPanel>
