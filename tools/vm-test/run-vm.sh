@@ -84,10 +84,11 @@ mon() { echo "$1" | socat - unix-connect:$MON > /dev/null 2>&1 || true; }
 shot() { mon "screendump $WORK/s.ppm"; sleep 1; convert "$WORK/s.ppm" -resize 800x "$OUT/shots/$1.png" 2>/dev/null || true; }
 
 # "Press any key to boot from CD" ở lần bật đầu
-# Trong ~50 giây đầu (máy runner bận thì firmware chậm; sau đó Setup đã chạy — Enter có thể bấm nhầm nút Cancel);
-# các lần khởi động sau vào thẳng ổ cứng
+# Trong ~50 giây đầu (máy runner bận thì firmware chậm). Dùng Tab, KHÔNG dùng Enter/Space:
+# runner nhanh thì Setup đã hiện trong 50 giây và Enter bấm nhầm nút Cancel (lượt 6); Tab chỉ chuyển ô chọn.
+# Các lần khởi động sau vào thẳng ổ cứng
 sleep 2
-for i in $(seq 1 48); do mon "sendkey ret"; sleep 1; done
+for i in $(seq 1 48); do mon "sendkey tab"; sleep 1; done
 
 # ---- Chờ máy ảo tự tắt (run-test / FirstLogon.ps1 tắt máy khi xong), chụp màn hình mỗi phút ----
 START=$(date +%s); LIMIT=$((230 * 60)); n=0
