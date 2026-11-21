@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Lõi tính năng "Cài lại Windows" dùng chung cho app chính (.NET 10) và bản nhẹ cho Win 7 (.NET Framework 4.8).
+    Chỉ dùng API của netstandard2.0 và gọi công cụ có sẵn của Windows (dism, bcdedit, powershell) — không P/Invoke, không WPF.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ITHelpdeskTool.Reinstall</RootNamespace>
+    <AssemblyName>ITHelpdeskTool.Reinstall.Core</AssemblyName>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ITHelpdeskTool.Reinstall.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\**\*" LogicalName="ITH.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>
