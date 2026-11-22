@@ -161,7 +161,9 @@ FAIL=0
 echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
 {
   # Không có log của app ở đâu cả → máy ảo hỏng trước khi app chạy (vd màn hình xanh lúc cài Windows gốc): lỗi hạ tầng, không phải app
-  if [ ! -e /mnt/stg/ITH/logs/prepare.log ] && [ ! -e /mnt/win/ITH/logs/prepare.log ] && [ ! -e /mnt/win/ith-test.log ]; then
+  # (auto/multi: ổ đệm đã gộp lại / nằm ở K: → dấu vết app là ProgramData\ITHReinstall hoặc ITH-Backup trên Windows mới)
+  if [ ! -e /mnt/stg/ITH/logs/prepare.log ] && [ ! -e /mnt/win/ITH/logs/prepare.log ] && [ ! -e /mnt/win/ith-test.log ] \
+     && [ ! -e /mnt/win/ProgramData/ITHReinstall ] && [ ! -e /mnt/win/ITH-Backup ]; then
     echo "HẠ TẦNG: app chưa từng chạy — máy ảo hỏng trước đó (xem ảnh chụp cuối: màn hình xanh / kẹt cài Windows gốc)"
   fi
   if [ "$SCEN" = happy ] || [ "$SCEN" = safe ] || [ "$SCEN" = esd ]; then
