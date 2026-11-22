@@ -51,8 +51,8 @@ t = open(sys.argv[1], encoding='utf-8').read()
 t = t.replace('__DISKCONFIG__', '''$DISK''').replace('__INSTALLTO__', sys.argv[3])
 open(sys.argv[2], 'w', encoding='utf-8', newline='\r\n').write(t)
 PY
-# Phần mềm cài sẵn: uefi/happy cài thử TẤT CẢ phần mềm trong danh mục (kiểm nguồn tải: winget, GitHub, msstore…)
-SOFTWARE="7zip.7zip,unikey"; [ "$FW" = uefi ] && [ "$SCEN" = happy ] && SOFTWARE="all"
+# uefi/happy cài mọi phần mềm trong danh mục trừ WhatsApp (Microsoft Store lỗi chứng chỉ trên Windows mới cài, mặc định không chọn)
+SOFTWARE="7zip.7zip,unikey"; ALLSW=0; [ "$FW" = uefi ] && [ "$SCEN" = happy ] && ALLSW=1 && SOFTWARE="7zip.7zip,CocCoc.CocCoc,evkey,Google.Chrome,it-helpdesk-tool,CodecGuide.K-LiteCodecPack.Standard,mail-lite,Mozilla.Firefox,pdf-editor-lite,rustdesk,DucFabulous.UltraViewer,Foxit.FoxitReader,Telegram.TelegramDesktop,unikey,VideoLAN.VLC,Tencent.WeChat.Universal,RARLab.WinRAR,Zoom.Zoom"
 EXTRA=""; [ "$BASE" = safe ] && EXTRA="--test-fail-before-format"
 ESD=0; [ "$BASE" = esd ] && ESD=1
 MULTI=0; [ "$BASE" = multi ] && MULTI=1
@@ -264,7 +264,7 @@ echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
       echo "FAIL mục khởi động tạm vẫn còn"; FAIL=1
     else echo "OK   mục khởi động tạm đã được xoá"; fi
   fi
-  if [ "$SOFTWARE" = all ] && [ -f /mnt/stg/ITH/logs/post/software.json ]; then
+  if [ "$ALLSW" = 1 ] && [ -f /mnt/stg/ITH/logs/post/software.json ]; then
     # Mỗi phần mềm một dòng OK / FAIL
     python3 -c 'import json,sys; d=json.load(open(sys.argv[1],encoding="utf-8-sig")); d=d if isinstance(d,list) else [d]; [print(("OK   " if x["ok"] else "FAIL") + " cài phần mềm " + x["name"]) for x in d]' /mnt/stg/ITH/logs/post/software.json
   fi
