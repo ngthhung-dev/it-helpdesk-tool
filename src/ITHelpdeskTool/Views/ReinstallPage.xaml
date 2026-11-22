@@ -170,7 +170,18 @@
                                     <TextBlock Text="{Binding BackupTotal}" Style="{StaticResource Hint}"/>
                                 </StackPanel>
                             </DockPanel>
-                            <ItemsControl ItemsSource="{Binding BackupItems}" ItemTemplate="{StaticResource ChoiceTemplate}"/>
+                            <ItemsControl ItemsSource="{Binding BackupView}" ItemTemplate="{StaticResource ChoiceTemplate}">
+                                <ItemsControl.GroupStyle>
+                                    <GroupStyle>
+                                        <GroupStyle.HeaderTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" Margin="0,14,0,2"
+                                                           Foreground="{DynamicResource AccentBrush}"/>
+                                            </DataTemplate>
+                                        </GroupStyle.HeaderTemplate>
+                                    </GroupStyle>
+                                </ItemsControl.GroupStyle>
+                            </ItemsControl>
                             <CheckBox IsChecked="{Binding RestoreAfter}" Margin="0,8,0,0" Content="Cài xong tự chép lại vào tài khoản mới (Desktop, Documents, Wi-Fi, bookmark…)"/>
                             <CheckBox IsChecked="{Binding IgnoreBackupErrors}" Margin="0,4,0,0" Content="Vẫn cài tiếp nếu có file không sao lưu được (file đang mở, đường dẫn lỗi)"/>
                         </StackPanel>
@@ -214,7 +225,20 @@
                                       Content="Chép driver của máy này sang Windows mới (khuyên dùng; bắt buộc với máy RAID / Intel RST)"/>
 
                             <TextBlock Text="Phần mềm cài sẵn" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" Margin="0,14,0,0"/>
-                            <ItemsControl ItemsSource="{Binding Software}" ItemTemplate="{StaticResource ChoiceTemplate}"/>
+                            <TextBlock Style="{StaticResource Hint}" Text="Cài tự động ở lần đăng nhập đầu tiên (cần mạng), bản mới nhất từ trang hãng / winget / GitHub."/>
+                            <!-- 2 cột cho đỡ trống; mỗi ô cách nhau 16px -->
+                            <ItemsControl ItemsSource="{Binding Software}" Margin="0,0,-16,0">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="2"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ChoiceTemplate}" Margin="0,0,16,0" Focusable="False"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                             <TextBlock Text="Tinh chỉnh" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" Margin="0,14,0,0"/>
                             <TextBlock Style="{StaticResource Hint}" Text="Mục chữ đỏ làm giảm an toàn của máy — mặc định không chọn, chỉ bật khi thật sự cần."/>
                             <ItemsControl ItemsSource="{Binding Tweaks}" ItemTemplate="{StaticResource ChoiceTemplate}"/>

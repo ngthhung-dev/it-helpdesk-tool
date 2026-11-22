@@ -78,7 +78,9 @@ foreach ($s in @($cfg.software)) {
       'Winget' {
         if (-not $wg) { throw 'khong co winget' }
         Log "winget install $($s.id)"
-        $out = & $wg install --id $s.id --exact --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity 2>&1
+        # Id dang 9NKSQGP7F2NH (12 ky tu) = app Microsoft Store (vd WhatsApp) -> nguon msstore
+        $src = if ($s.id -cmatch '^[0-9A-Z]{12}$') { 'msstore' } else { 'winget' }
+        $out = & $wg install --id $s.id --exact --source $src --silent --accept-package-agreements --accept-source-agreements --disable-interactivity 2>&1
         Add-Content -Path $log -Value ($out | Out-String) -Encoding UTF8
         $ok = ($LASTEXITCODE -eq 0) -or ($LASTEXITCODE -eq -1978335189)   # 0x8A15002B = da co ban moi nhat
       }

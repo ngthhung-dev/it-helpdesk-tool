@@ -168,3 +168,38 @@ public class ExtraDataTests
         Directory.Delete(root, true);
     }
 }
+
+public class CatalogAndOrderTests
+{
+    [Fact]
+    public void Software_catalog_matches_requested_defaults_sorted_a_to_z()
+    {
+        var names = Catalog.Software.Select(s => s.Name).ToList();
+        Assert.Equal(names.OrderBy(n => n, StringComparer.InvariantCultureIgnoreCase), names);
+        var on = Catalog.Software.Where(s => s.Default).Select(s => s.Name).OrderBy(n => n).ToList();
+        Assert.Equal(new[] { "7-Zip", "Cốc Cốc", "EVKey", "Google Chrome", "IT Helpdesk Tool", "K-Lite Codec Pack", "Mail Lite",
+                             "Mozilla Firefox", "PDF Editor Lite", "RustDesk", "UltraViewer" }.OrderBy(n => n), on);
+        var off = Catalog.Software.Where(s => !s.Default).Select(s => s.Name).OrderBy(n => n).ToList();
+        Assert.Equal(new[] { "Foxit PDF Reader", "Telegram", "UniKey", "VLC", "WeChat", "WhatsApp", "WinRAR", "Zoom" }.OrderBy(n => n), off);
+        Assert.All(Catalog.Software, s => Assert.False(string.IsNullOrEmpty(s.Description)));
+        Assert.All(Catalog.Software.Where(s => s.Kind == SoftwareKind.Installer && !s.Url.EndsWith("msi$")), s => Assert.NotEqual("", s.Args));
+    }
+
+    [Fact]
+    public void Backup_list_is_grouped_in_order()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "ith-order-" + Guid.NewGuid().ToString("N"));
+        var desk = Directory.CreateDirectory(Path.Combine(root, "Desktop")).FullName;
+        var roaming = Directory.CreateDirectory(Path.Combine(root, "Roaming")).FullName;
+        Directory.CreateDirectory(Path.Combine(roaming, "ZaloData"));
+        var local = Directory.CreateDirectory(Path.Combine(root, "Local")).FullName;
+        Directory.CreateDirectory(Path.Combine(local, "Google", "Chrome", "User Data"));
+        var u = new UserPaths { Profile = root, Desktop = desk, Roaming = roaming, Local = local };
+        var groups = BackupScanner.Scan(u, measure: false, targetDrive: root.Substring(0, 2)).Select(b => b.Group).Distinct().ToList();
+        var expected = BackupScanner.Groups.Where(groups.Contains).ToList();
+        Assert.Equal(expected, groups);                 // nhóm liền nhau, đúng thứ tự
+        Assert.Equal(BackupScanner.GroupPersonal, groups[0]);
+        Assert.Equal(BackupScanner.GroupSettings, groups[^1]);
+        Directory.Delete(root, true);
+    }
+}

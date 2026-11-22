@@ -97,6 +97,42 @@ namespace ITHelpdeskTool.Reinstall
         private static readonly string[] BrowserCache =
             { "Cache", "Code Cache", "GPUCache", "Service Worker", "ShaderCache", "GrShaderCache", "DawnCache", "Crashpad", "component_crx_cache", "optimization_guide_model_store" };
 
+        // Nhóm hiển thị (theo thứ tự): dữ liệu cá nhân → thư / chat → phần mềm kế toán → trình duyệt → cài đặt máy
+        public const string GroupPersonal = "Thư mục cá nhân";
+        public const string GroupMail = "Email & chat (Outlook, Zalo)";
+        public const string GroupBrowsers = "Trình duyệt";
+        public const string GroupSettings = "Cài đặt máy (Wi-Fi, font, máy in…)";
+        public static readonly string[] Groups = { GroupPersonal, GroupMail, AppData.Group, GroupBrowsers, GroupSettings };
+
+        private static int GroupRank(string g)
+        {
+            var i = Array.IndexOf(Groups, g);
+            return i < 0 ? Groups.Length : i;
+        }
+
+        /// <summary>Thứ tự trong nhóm: thứ quan trọng / hay cần lên trước.</summary>
+        private static int ItemRank(string id)
+        {
+            if (id.StartsWith("outlook-pst", StringComparison.Ordinal)) return 0;
+            if (id.StartsWith("outlook-ost", StringComparison.Ordinal)) return 3;
+            if (id.StartsWith("multizalo-", StringComparison.Ordinal)) return 5;
+            if (id.StartsWith(AppData.SqlPrefix, StringComparison.Ordinal)) return 0;
+            if (id.StartsWith("htkk-", StringComparison.Ordinal)) return 1;
+            switch (id)
+            {
+                case "outlook-signatures": return 1;
+                case "outlook-autocomplete": return 2;
+                case "zalo": return 4;
+                case "wifi": return 0;
+                case ExtraData.FontsId: return 1;
+                case "printers": return 2;
+                case ExtraData.PowerPlansId: return 3;
+                case "apps": return 4;
+                case "ithelpdesk": return 5;
+                default: return 0;
+            }
+        }
+
         /// <param name="targetDrive">Ổ sẽ bị xoá: mục nằm ở ổ khác (vd Downloads đã chuyển sang E:) vẫn còn sau khi cài lại → mặc định không sao lưu.</param>
         public static List<BackupItem> Scan(UserPaths u, bool measure = true, string targetDrive = "C:")
         {
@@ -104,7 +140,7 @@ namespace ITHelpdeskTool.Reinstall
             void Folder(string id, string title, string path, string restoreTo, bool def = true)
             {
                 if (path.Length == 0 || !Directory.Exists(path)) return;
-                list.Add(new BackupItem { Id = id, Title = title, Group = "Thư mục cá nhân", Source = path, Default = def, Restore = RestoreKind.UserFolder, RestoreTo = restoreTo });
+                list.Add(new BackupItem { Id = id, Title = title, Group = BackupScanner.GroupPersonal, Source = path, Default = def, Restore = RestoreKind.UserFolder, RestoreTo = restoreTo });
             }
             Folder("Desktop", "Desktop", u.Desktop, "Desktop");
             Folder("Documents", "Documents (Tài liệu)", u.Documents, "Documents");
@@ -130,7 +166,7 @@ namespace ITHelpdeskTool.Reinstall
                 if (!Directory.Exists(dir)) continue;
                 list.Add(new BackupItem
                 {
-                    Id = "browser-" + id, Title = $"{name} (dấu trang, lịch sử, tiện ích)", Group = "Trình duyệt", Source = dir,
+                    Id = "browser-" + id, Title = $"{name} (dấu trang, lịch sử, tiện ích)", Group = BackupScanner.GroupBrowsers, Source = dir,
                     ExcludeDirs = BrowserCache.ToList(), Default = true, Restore = RestoreKind.Bookmarks, RestoreTo = rel,
                     Note = "Dấu trang được chép lại tự động. Mật khẩu đã lưu KHÔNG dùng lại được trên Windows mới (bị mã hoá theo máy) — " +
                            "hãy bật đồng bộ tài khoản trình duyệt hoặc xuất mật khẩu bằng chính trình duyệt trước.",
@@ -138,14 +174,14 @@ namespace ITHelpdeskTool.Reinstall
             }
             var firefox = Path.Combine(u.Roaming, @"Mozilla\Firefox");
             if (Directory.Exists(firefox))
-                list.Add(new BackupItem { Id = "browser-firefox", Title = "Mozilla Firefox (hồ sơ)", Group = "Trình duyệt", Source = firefox, Default = true,
+                list.Add(new BackupItem { Id = "browser-firefox", Title = "Mozilla Firefox (hồ sơ)", Group = BackupScanner.GroupBrowsers, Source = firefox, Default = true,
                     ExcludeDirs = { "cache2", "startupCache", "crashes" }, Note = "Lấy lại bằng cách chép vào %APPDATA%\\Mozilla\\Firefox trước khi mở Firefox." });
             // Opera để hồ sơ trong Roaming, không có thư mục Default
             foreach (var (id, name, rel) in new[] { ("opera", "Opera", @"Opera Software\Opera Stable"), ("operagx", "Opera GX", @"Opera Software\Opera GX Stable") })
             {
                 var dir = Path.Combine(u.Roaming, rel);
                 if (Directory.Exists(dir))
-                    list.Add(new BackupItem { Id = "browser-" + id, Title = $"{name} (dấu trang, lịch sử, tiện ích)", Group = "Trình duyệt", Source = dir, Default = true,
+                    list.Add(new BackupItem { Id = "browser-" + id, Title = $"{name} (dấu trang, lịch sử, tiện ích)", Group = BackupScanner.GroupBrowsers, Source = dir, Default = true,
                         ExcludeDirs = BrowserCache.ToList(),
                         Note = $"Lấy lại: cài {name}, đóng trình duyệt, chép thư mục này đè vào %APPDATA%\\{rel}. Mật khẩu đã lưu không dùng lại được — bật đồng bộ tài khoản Opera." });
             }
@@ -154,22 +190,27 @@ namespace ITHelpdeskTool.Reinstall
             list.AddRange(ExtraData.Outlook(u));
             var zalo = Path.Combine(u.Roaming, "ZaloData");
             if (Directory.Exists(zalo))
-                list.Add(new BackupItem { Id = "zalo", Title = "Zalo PC (tin nhắn, file đã nhận)", Group = "Ứng dụng", Source = zalo, Default = true,
+                list.Add(new BackupItem { Id = "zalo", Title = "Zalo PC (tin nhắn, file đã nhận)", Group = BackupScanner.GroupMail, Source = zalo, Default = true,
                     Note = "Cài Zalo, đăng nhập rồi chép thư mục này đè vào %APPDATA%\\ZaloData (tắt Zalo trước)." });
             list.AddRange(ExtraData.MultiZalo());
 
             // ---- Cấu hình máy (chạy lệnh) ----
-            list.Add(new BackupItem { Id = "wifi", Title = "Mật khẩu Wi-Fi đã lưu", Group = "Cấu hình", Default = true, Restore = RestoreKind.WiFi,
+            list.Add(new BackupItem { Id = "wifi", Title = "Mật khẩu Wi-Fi đã lưu", Group = BackupScanner.GroupSettings, Default = true, Restore = RestoreKind.WiFi,
                 Note = "File xuất ra chứa mật khẩu Wi-Fi dạng chữ thường — giữ bản sao lưu cẩn thận." });
-            list.Add(new BackupItem { Id = "apps", Title = "Danh sách phần mềm đang cài (để đối chiếu cài lại)", Group = "Cấu hình", Default = true });
-            list.Add(new BackupItem { Id = "printers", Title = "Danh sách máy in và cổng in", Group = "Cấu hình", Default = true });
+            list.Add(new BackupItem { Id = "apps", Title = "Danh sách phần mềm đang cài (để đối chiếu cài lại)", Group = BackupScanner.GroupSettings, Default = true });
+            list.Add(new BackupItem { Id = "printers", Title = "Danh sách máy in và cổng in", Group = BackupScanner.GroupSettings, Default = true });
             list.AddRange(ExtraData.Config(u));
 
             if (measure) foreach (var b in list.Where(b => b.Source.Length > 0 && b.Bytes == 0)) b.Bytes = Measure(b);
 
             // ---- Phần mềm kế toán / thuế / BHXH: SQL Server (MISA, ECUS, FAST, Bravo…), HTKK, kê khai BHXH ----
-            try { list.InsertRange(list.FindIndex(b => b.Group == "Cấu hình") is var at && at >= 0 ? at : list.Count, AppData.Scan(u, measure)); }
+            try { list.AddRange(AppData.Scan(u, measure)); }
             catch (Exception) { /* không đọc được — vẫn sao lưu các mục khác */ }
+
+            // ---- Xếp theo nhóm (thứ tự người dùng hay cần) rồi theo mức quan trọng trong nhóm ----
+            list = list.Select((b, i) => (b, i))
+                .OrderBy(x => GroupRank(x.b.Group)).ThenBy(x => ItemRank(x.b.Id)).ThenBy(x => x.i)
+                .Select(x => x.b).ToList();
 
             // ---- Mục nằm ở ổ khác ổ sẽ bị xoá (vd Downloads đã chuyển sang E:, SQL để dữ liệu ở D:): vẫn còn sau khi cài lại ----
             var target = targetDrive.TrimEnd('\\', ':') + ":";

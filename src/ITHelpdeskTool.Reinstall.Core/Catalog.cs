@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -26,6 +27,8 @@ namespace ITHelpdeskTool.Reinstall
         /// <summary>File chạy chính (bản Portable) để tạo lối tắt.</summary>
         public string Exe { get; set; } = "";
         public bool Default { get; set; }
+        /// <summary>Mô tả ngắn hiện dưới tên trong danh sách chọn.</summary>
+        public string Description { get; set; } = "";
 
         public SoftwareItem Clone() => (SoftwareItem)MemberwiseClone();
     }
@@ -65,19 +68,41 @@ namespace ITHelpdeskTool.Reinstall
     {
         private const string Adv = @"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced";
 
+        // Bộ cài Inno Setup (IT Helpdesk Tool, PDF Editor Lite): cài im lặng
+        private const string InnoSilent = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-";
+
+        /// <summary>Phần mềm gợi ý cài sẵn (cùng nguồn với App Store của app), xếp A-Z.</summary>
         public static IReadOnlyList<SoftwareItem> Software { get; } = new List<SoftwareItem>
         {
-            new SoftwareItem { Id = "Google.Chrome", Name = "Google Chrome", Default = true },
-            new SoftwareItem { Id = "unikey", Name = "UniKey", Kind = SoftwareKind.Portable, Default = true,
-                Url = "https://www.unikey.org/assets/release/unikey46RC2-230919-win64.zip", Exe = "UniKeyNT.exe" },
-            new SoftwareItem { Id = "rustdesk", Name = "RustDesk", Kind = SoftwareKind.Installer, Default = true,
+            // ---- Mặc định chọn ----
+            new SoftwareItem { Id = "7zip.7zip", Name = "7-Zip", Default = true, Description = "Nén / giải nén zip, rar, 7z" },
+            new SoftwareItem { Id = "CocCoc.CocCoc", Name = "Cốc Cốc", Default = true, Description = "Trình duyệt Việt, tải video" },
+            new SoftwareItem { Id = "evkey", Name = "EVKey", Kind = SoftwareKind.Portable, Default = true, Description = "Bộ gõ tiếng Việt (bản chạy liền)",
+                Url = @"github:lamquangminh/EVKey|^EVKey\.zip$", Exe = "EVKey64.exe" },
+            new SoftwareItem { Id = "Google.Chrome", Name = "Google Chrome", Default = true, Description = "Trình duyệt" },
+            new SoftwareItem { Id = "it-helpdesk-tool", Name = "IT Helpdesk Tool", Kind = SoftwareKind.Installer, Default = true, Description = "Bộ công cụ IT này",
+                Url = @"github:ngthhung-dev/it-helpdesk-tool|Setup-[\d.]+\.exe$", Args = InnoSilent },
+            new SoftwareItem { Id = "CodecGuide.K-LiteCodecPack.Standard", Name = "K-Lite Codec Pack", Default = true, Description = "Bộ codec xem mọi định dạng video" },
+            new SoftwareItem { Id = "mail-lite", Name = "Mail Lite", Kind = SoftwareKind.Installer, Default = true, Description = "Đọc mail nhiều tài khoản, kiểu Outlook",
+                Url = @"github:ngthhung-dev/mail-lite|Setup\.exe$", Args = "/S" },
+            new SoftwareItem { Id = "Mozilla.Firefox", Name = "Mozilla Firefox", Default = true, Description = "Trình duyệt" },
+            new SoftwareItem { Id = "pdf-editor-lite", Name = "PDF Editor Lite", Kind = SoftwareKind.Installer, Default = true, Description = "Xem, sửa PDF tiếng Việt",
+                Url = @"github:ngthhung-dev/pdf-editor-lite|Setup\.exe$", Args = InnoSilent },
+            new SoftwareItem { Id = "rustdesk", Name = "RustDesk", Kind = SoftwareKind.Installer, Default = true, Description = "Điều khiển từ xa, miễn phí",
                 Url = @"github:rustdesk/rustdesk|x86_64\.msi$" },
-            new SoftwareItem { Id = "RARLab.WinRAR", Name = "WinRAR", Default = true },
-            new SoftwareItem { Id = "7zip.7zip", Name = "7-Zip" },
-            new SoftwareItem { Id = "Foxit.FoxitReader", Name = "Foxit PDF Reader" },
-            new SoftwareItem { Id = "Zoom.Zoom", Name = "Zoom" },
-            new SoftwareItem { Id = "VideoLAN.VLC", Name = "VLC" },
-        };
+            new SoftwareItem { Id = "DucFabulous.UltraViewer", Name = "UltraViewer", Default = true, Description = "Điều khiển từ xa" },
+
+            // ---- Không chọn sẵn ----
+            new SoftwareItem { Id = "Foxit.FoxitReader", Name = "Foxit PDF Reader", Description = "Đọc, ký, điền form PDF" },
+            new SoftwareItem { Id = "Telegram.TelegramDesktop", Name = "Telegram", Description = "Chat, gửi file lớn" },
+            new SoftwareItem { Id = "unikey", Name = "UniKey", Kind = SoftwareKind.Portable, Description = "Bộ gõ tiếng Việt (bản chạy liền)",
+                Url = "https://www.unikey.org/assets/release/unikey46RC2-230919-win64.zip", Exe = "UniKeyNT.exe" },
+            new SoftwareItem { Id = "VideoLAN.VLC", Name = "VLC", Description = "Xem video" },
+            new SoftwareItem { Id = "Tencent.WeChat.Universal", Name = "WeChat", Description = "Chat với đối tác Trung Quốc" },
+            new SoftwareItem { Id = "9NKSQGP7F2NH", Name = "WhatsApp", Description = "Chat (từ Microsoft Store)" },
+            new SoftwareItem { Id = "RARLab.WinRAR", Name = "WinRAR", Description = "Nén / giải nén rar" },
+            new SoftwareItem { Id = "Zoom.Zoom", Name = "Zoom", Description = "Họp trực tuyến" },
+        }.OrderBy(s => s.Name, StringComparer.InvariantCultureIgnoreCase).ToList();
 
         public static IReadOnlyList<TweakItem> Tweaks { get; } = new List<TweakItem>
         {
