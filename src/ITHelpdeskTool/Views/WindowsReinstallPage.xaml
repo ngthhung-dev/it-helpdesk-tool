@@ -51,7 +51,7 @@
                 </Grid.ColumnDefinitions>
                 <Button Style="{StaticResource ModeTile}" Command="{Binding SetModeCommand}" CommandParameter="keep" Tag="{Binding IsKeep}">
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Left" Text="&#xE90F;" FontFamily="{StaticResource Icon}" FontSize="20" Margin="0,2,12,0"
+                        <TextBlock DockPanel.Dock="Left" Text="&#xE90F;" FontFamily="{StaticResource IconFont}" FontSize="20" Margin="0,2,12,0"
                                    Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Top"/>
                         <StackPanel>
                             <TextBlock Text="Giữ dữ liệu — sửa lỗi Windows" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource TextBrush}"/>
@@ -62,7 +62,7 @@
                 </Button>
                 <Button Grid.Column="2" Style="{StaticResource ModeTile}" Command="{Binding SetModeCommand}" CommandParameter="clean" Tag="{Binding IsClean}">
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Left" Text="&#xE72C;" FontFamily="{StaticResource Icon}" FontSize="20" Margin="0,2,12,0"
+                        <TextBlock DockPanel.Dock="Left" Text="&#xE72C;" FontFamily="{StaticResource IconFont}" FontSize="20" Margin="0,2,12,0"
                                    Foreground="{DynamicResource BadBrush}" VerticalAlignment="Top"/>
                         <StackPanel>
                             <TextBlock Text="Cài lại sạch — xoá ổ C:" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource TextBrush}"/>
