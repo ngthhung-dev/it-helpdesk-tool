@@ -32,7 +32,12 @@ echo [%DATE% %TIME%] source=%SRC% %EDITION% >> "%LOG%"
 
 rem Neu may quay ve Windows cu (kich ban an toan, hoac WinPE loi truoc khi xoa): ghi dau hieu roi tat may.
 rem Cai lai thanh cong thi Windows cu (va tac vu nay) bi xoa nen khong chay.
-if "__MKDISK__"=="1" schtasks /create /tn ITHBackToOld /sc onstart /ru SYSTEM /rl HIGHEST /f /tr "cmd /c echo back>S:\ITH\logs\back-to-old.txt & bcdedit /enum all > S:\ITH\logs\bcd-after.txt & shutdown /s /t 20" >> "%LOG%" 2>&1
+rem Kem nhat ky su kien: tat may bat thuong (41/6008), man hinh xanh (1001), ai khoi dong lai (1074)
+> C:\ith-back.cmd echo echo back^>S:\ITH\logs\back-to-old.txt
+>>C:\ith-back.cmd echo bcdedit /enum all ^> S:\ITH\logs\bcd-after.txt
+>>C:\ith-back.cmd echo wevtutil qe System /c:60 /rd:true /f:text /q:"*[System[(EventID=41 or EventID=6008 or EventID=1001 or EventID=1074 or EventID=6005 or EventID=6006)]]" ^> S:\ITH\logs\events-after.txt
+>>C:\ith-back.cmd echo shutdown /s /t 20
+if "__MKDISK__"=="1" schtasks /create /tn ITHBackToOld /sc onstart /ru SYSTEM /rl HIGHEST /f /tr "cmd /c C:\ith-back.cmd" >> "%LOG%" 2>&1
 
 rem Du lieu "quan trong" cua tai khoan cu de kiem tra sao luu va tu chep lai vao tai khoan moi
 echo ITH backup test %DATE% %TIME%> "%USERPROFILE%\Desktop\ith-backup-test.txt"

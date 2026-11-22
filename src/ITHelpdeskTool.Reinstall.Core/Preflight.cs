@@ -207,8 +207,8 @@ namespace ITHelpdeskTool.Reinstall
             if (!p.AutoStaging && f.Firmware == FirmwareMode.Uefi
                 && f.DiskOf.TryGetValue(target, out var tDisk) && f.DiskOf.TryGetValue(stagingRoot, out var sDisk) && tDisk != sDisk)
                 list.Add(new Check(CheckLevel.Warn, $"Ổ đệm {stagingRoot} nằm trên ổ cứng khác với {target}",
-                    "Firmware UEFI (Fast Boot) có thể không đọc được ổ cứng thứ hai lúc khởi động, nên app sẽ chép riêng file khởi động (boot.wim, vài trăm MB) sang " + target + "\\" + Stager.BootCopyFolder + ". " +
-                    "Nếu vẫn không vào được môi trường cài, máy tự về Windows cũ (chưa xoá gì). Tốt nhất chọn phân vùng cùng ổ cứng với " + target + " hoặc để app tự tạo (--staging auto)."));
+                    "Một số máy UEFI (bật Fast Boot) không thấy ổ cứng thứ hai lúc khởi động: máy báo lỗi 0xc000000e, bấm Enter để về Windows cũ (chưa xoá gì). " +
+                    "Nên chọn phân vùng cùng ổ cứng với " + target + " hoặc để app tự tạo (--staging auto); hoặc tắt Fast Boot trong BIOS."));
 
             // ---- BitLocker / mã hoá thiết bị ----
             if (f.BitLocker.TryGetValue(target, out var tv) && tv.Encrypted)

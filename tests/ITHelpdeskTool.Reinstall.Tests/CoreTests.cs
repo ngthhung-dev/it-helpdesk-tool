@@ -290,4 +290,14 @@ public class PreflightTests
         Assert.Single(dirs);
         Assert.Equal(rst, dirs[0]);
     }
+
+    [Fact]
+    public void Flush_script_flushes_bcd_and_both_drives_once()
+    {
+        var s = Stager.FlushScript("S:\\", "C:");
+        Assert.Contains("OpenSubKey('BCD00000000')", s);
+        Assert.Contains("@('S','C')", s);
+        Assert.DoesNotContain("\"", s);
+        Assert.Contains("@('C')", Stager.FlushScript("C:\\", "C:"));
+    }
 }
