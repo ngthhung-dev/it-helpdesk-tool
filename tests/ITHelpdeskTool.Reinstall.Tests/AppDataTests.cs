@@ -93,3 +93,78 @@ public class AppDataTests
         Directory.Delete(root, true);
     }
 }
+
+public class ExtraDataTests
+{
+    [Theory]
+    [InlineData(@"C:\\Users\\a\\MultiZalo\\Ke toan", @"C:\Users\a\MultiZalo\Ke toan")]
+    [InlineData(@"K\u1ebf to\u00e1n", "Kế toán")]
+    [InlineData("a\\\"b", "a\"b")]
+    public void Unescapes_json_strings(string raw, string expected) => Assert.Equal(expected, ExtraData.Unescape(raw));
+
+    [Theory]
+    [InlineData("VNI-Times.TTF", true)]
+    [InlineData("arial.otf", true)]
+    [InlineData("font.ttc", true)]
+    [InlineData("readme.txt", false)]
+    public void Detects_font_files(string f, bool yes) => Assert.Equal(yes, ExtraData.IsFontFile(f));
+
+    private static UserPaths Temp(out string root)
+    {
+        root = Path.Combine(Path.GetTempPath(), "ith-scan-" + Guid.NewGuid().ToString("N"));
+        var desk = Directory.CreateDirectory(Path.Combine(root, "Desktop")).FullName;
+        File.WriteAllText(Path.Combine(desk, "a.txt"), "x");
+        var docs = Directory.CreateDirectory(Path.Combine(root, "Documents")).FullName;
+        var sig = Directory.CreateDirectory(Path.Combine(root, "Roaming", "Microsoft", "Signatures")).FullName;
+        File.WriteAllText(Path.Combine(sig, "Cty.htm"), "<p>chu ky</p>");
+        var pst = Directory.CreateDirectory(Path.Combine(docs, "Outlook Files", "Cu")).FullName;
+        File.WriteAllText(Path.Combine(pst, "luu-tru.pst"), "pst");
+        File.WriteAllText(Path.Combine(docs, "Outlook Files", "a@b.com.ost"), "ost");
+        Directory.CreateDirectory(Path.Combine(root, "Local"));
+        return new UserPaths { Profile = root, Desktop = desk, Documents = docs, Roaming = Path.Combine(root, "Roaming"), Local = Path.Combine(root, "Local") };
+    }
+
+    [Fact]
+    public void Scan_finds_outlook_pst_in_subfolder_ost_optional_and_signatures_restored()
+    {
+        var u = Temp(out var root);
+        var list = BackupScanner.Scan(u, measure: false, targetDrive: root.Substring(0, 2));
+        var pst = Assert.Single(list, b => b.Id.StartsWith("outlook-pst"));
+        Assert.True(pst.Default);
+        Assert.Contains("luu-tru.pst", pst.Files);
+        var ost = Assert.Single(list, b => b.Id.StartsWith("outlook-ost"));
+        Assert.False(ost.Default);                                  // .ost: tự tải lại khi đăng nhập Outlook
+        var sig = Assert.Single(list, b => b.Id == "outlook-signatures");
+        Assert.Equal(RestoreKind.AppData, sig.Restore);
+        Assert.Equal(@"%APPDATA%\Microsoft\Signatures", sig.RestoreTo);
+        Directory.Delete(root, true);
+    }
+
+    [Fact]
+    public void Items_on_other_drive_are_not_selected_by_default()
+    {
+        var u = Temp(out var root);
+        var other = root[0] == 'Z' ? "Y:" : "Z:";                    // giả sử ổ Windows là ổ khác → thư mục tạm "nằm ở ổ khác"
+        var list = BackupScanner.Scan(u, measure: false, targetDrive: other);
+        var desk = Assert.Single(list, b => b.Id == "Desktop");
+        Assert.False(desk.Default);
+        Assert.Contains("không bị xoá", desk.Note);
+        Assert.True(Assert.Single(list, b => b.Id == "Desktop" ).Restore == RestoreKind.UserFolder);
+        var same = BackupScanner.Scan(u, measure: false, targetDrive: root.Substring(0, 2));
+        Assert.True(Assert.Single(same, b => b.Id == "Desktop").Default);
+        Directory.Delete(root, true);
+    }
+
+    [Fact]
+    public void Font_item_copies_listed_files()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "ith-font-" + Guid.NewGuid().ToString("N"));
+        var src = Directory.CreateDirectory(Path.Combine(root, "src")).FullName;
+        File.WriteAllText(Path.Combine(src, "VNI-Times.TTF"), "font");
+        var item = new BackupItem { Id = ExtraData.FontsId, Title = "Font", FileList = { Path.Combine(src, "VNI-Times.TTF") }, Restore = RestoreKind.Fonts };
+        var res = BackupRunner.Run(new FakeRunner((_, _) => new RunResult(0, "")), [item], Path.Combine(root, "backup"), "Q:");
+        Assert.True(res.Ok);
+        Assert.True(File.Exists(Path.Combine(root, "backup", "fonts", "VNI-Times.TTF")));
+        Directory.Delete(root, true);
+    }
+}
