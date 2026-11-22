@@ -51,6 +51,8 @@ t = open(sys.argv[1], encoding='utf-8').read()
 t = t.replace('__DISKCONFIG__', '''$DISK''').replace('__INSTALLTO__', sys.argv[3])
 open(sys.argv[2], 'w', encoding='utf-8', newline='\r\n').write(t)
 PY
+# Phần mềm cài sẵn: uefi/happy cài thử TẤT CẢ phần mềm trong danh mục (kiểm nguồn tải: winget, GitHub, msstore…)
+SOFTWARE="7zip.7zip,unikey"; [ "$FW" = uefi ] && [ "$SCEN" = happy ] && SOFTWARE="all"
 EXTRA=""; [ "$BASE" = safe ] && EXTRA="--test-fail-before-format"
 ESD=0; [ "$BASE" = esd ] && ESD=1
 MULTI=0; [ "$BASE" = multi ] && MULTI=1
@@ -60,7 +62,7 @@ case "$SCEN" in
   multi) STAGING='K:\\ITH'; MKDISK=0 ;;
   samedrive) STAGING='C:\\ITH'; MKDISK=0 ;;
 esac
-sed -e "s/__EXTRA__/$EXTRA/" -e "s/__ESD__/$ESD/g" -e "s/__MULTI__/$MULTI/g" -e "s/__STAGING__/$STAGING/g" -e "s/__LEGACY__/$LEGACY/g" -e "s/__MKDISK__/$MKDISK/g" "$HERE/run-test.cmd" | sed 's/$/\r/' > tools/run-test.cmd
+sed -e "s/__EXTRA__/$EXTRA/" -e "s/__ESD__/$ESD/g" -e "s/__MULTI__/$MULTI/g" -e "s/__STAGING__/$STAGING/g" -e "s/__LEGACY__/$LEGACY/g" -e "s/__SOFTWARE__/$SOFTWARE/g" -e "s/__MKDISK__/$MKDISK/g" "$HERE/run-test.cmd" | sed 's/$/\r/' > tools/run-test.cmd
 grep -n "prepare" tools/run-test.cmd | head -2
 genisoimage -quiet -J -joliet-long -r -V ITHTEST -o tools.iso tools
 
@@ -191,7 +193,8 @@ echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
     check /mnt/stg/ITH/logs/prepare.log "ithreinstall prepare đã chạy"
     check /mnt/stg/ITH/logs/winpe.log "môi trường cài (WinPE) đã chạy"
   fi
-  [ -f "$OUT/logs/winpe.log" ] && { echo "### winpe.log (90 dòng cuối)"; tail -90 "$OUT/logs/winpe.log" | tr -d ''; } || true
+  [ -f "$OUT/logs/winpe.log" ] && { echo "### winpe.log (90 dòng cuối)"; tail -90 "$OUT/logs/winpe.log" | tr -d '
+'; } || true
   if [ "$BASE" = auto ] || [ "$BASE" = samedrive ]; then
     if [ -d /mnt/win/ITH-Backup ]; then L=/mnt/win/ITH-Backup/logs; B=/mnt/win/ITH-Backup; echo "Chế độ: phân vùng đệm riêng (thu nhỏ C:) → đã gộp"
       check $L/merged.done "phân vùng đệm đã gộp lại vào C:"
@@ -249,11 +252,17 @@ echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
       echo "FAIL mục khởi động tạm vẫn còn"; FAIL=1
     else echo "OK   mục khởi động tạm đã được xoá"; fi
   fi
+  if [ "$SOFTWARE" = all ] && [ -f /mnt/stg/ITH/logs/post/software.json ]; then
+    # Mỗi phần mềm một dòng OK / FAIL
+    python3 -c 'import json,sys; d=json.load(open(sys.argv[1],encoding="utf-8-sig")); d=d if isinstance(d,list) else [d]; [print(("OK   " if x["ok"] else "FAIL") + " cài phần mềm " + x["name"]) for x in d]' /mnt/stg/ITH/logs/post/software.json
+  fi
   [ -f /mnt/stg/ITH/logs/post/software.json ] && { echo "### Phần mềm"; cat /mnt/stg/ITH/logs/post/software.json; } || true
 } | tee -a "$OUT/result.txt"
 grep -q '^FAIL' "$OUT/result.txt" && FAIL=1
-[ -f /mnt/win/ITH-winpe-khong-thay-o-dem.txt ] && { echo "### WinPE không thấy ổ đệm"; sudo cat /mnt/win/ITH-winpe-khong-thay-o-dem.txt | tr -d ""; } >> "$OUT/result.txt" || true
-{ echo "### ith-test.log (máy ảo)"; sudo tail -40 /mnt/win/ith-test.log 2>/dev/null | tr -d ''; } >> "$OUT/result.txt" || true
+[ -f /mnt/win/ITH-winpe-khong-thay-o-dem.txt ] && { echo "### WinPE không thấy ổ đệm"; sudo cat /mnt/win/ITH-winpe-khong-thay-o-dem.txt | tr -d "
+"; } >> "$OUT/result.txt" || true
+{ echo "### ith-test.log (máy ảo)"; sudo tail -40 /mnt/win/ith-test.log 2>/dev/null | tr -d '
+'; } >> "$OUT/result.txt" || true
 sudo umount /mnt/stg /mnt/win 2>/dev/null || true
 sudo qemu-nbd -d /dev/nbd0 > /dev/null; sudo qemu-nbd -d /dev/nbd1 > /dev/null || true
 [ "${TIMEOUT:-0}" = 1 ] && FAIL=1

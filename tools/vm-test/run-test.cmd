@@ -63,7 +63,7 @@ if "__MULTI__"=="1" (
 
 "%T%cli\ithreinstall.exe" info --image "%SRC%" >> "%LOG%" 2>&1
 "%T%cli\ithreinstall.exe" backup --staging C:\ITH-list --list >> "%LOG%" 2>&1
-"%T%cli\ithreinstall.exe" prepare --image "%SRC%" --index 1 %EDITION% --staging __STAGING__ --account itadmin --password "Test@12345" --computer NEW-PC --software 7zip.7zip,unikey --tweaks default --backup Desktop,Documents,wifi,apps,printers --after "shutdown /s /t 60" --no-device-encryption --arm --reboot __EXTRA__ >> "%LOG%" 2>&1
+"%T%cli\ithreinstall.exe" prepare --image "%SRC%" --index 1 %EDITION% --staging __STAGING__ --account itadmin --password "Test@12345" --computer NEW-PC --software __SOFTWARE__ --tweaks default --backup Desktop,Documents,wifi,apps,printers --after "shutdown /s /t 60" --no-device-encryption --arm --reboot __EXTRA__ >> "%LOG%" 2>&1
 set RC=%ERRORLEVEL%
 echo [%DATE% %TIME%] prepare exit %RC% >> "%LOG%"
 
