@@ -126,11 +126,14 @@ for i in $(seq 1 48); do mon "sendkey tab"; sleep 1; done
 # Màn hình y hệt 15 phút liền = máy ảo đứng hình (lượt 45021075588 đứng ở màn khởi động 84 phút):
 # dừng sớm để đọc log, không chờ hết giờ. Đồng hồ khay hệ thống và vòng xoay làm ảnh đổi khi máy còn chạy.
 FREEZE=15; SAME=0; PREV=""
-START=$(date +%s); LIMIT=$((230 * 60)); n=0
+# Lượt bình thường ~40 phút (cài 18 phần mềm thêm ~10 phút): quá 90 phút là bất thường → tắt máy ảo, đọc log trên ổ
+START=$(date +%s); LIMIT=$((90 * 60)); n=0
 while kill -0 $QPID 2>/dev/null; do
   sleep 60; n=$((n + 1))
+  # nhích chuột 1 điểm để Windows không tắt màn hình (màn đen làm ảnh chụp giống nhau dù máy vẫn chạy)
+  mon "mouse_move 1 0"; sleep 1; mon "mouse_move -1 0"; sleep 2
   shot "$(printf '%03d' $n)"
-  CUR=$(md5sum "$OUT/shots/$(printf '%03d' $n).png" 2>/dev/null | cut -d' ' -f1)
+  CUR=$(md5sum "$WORK/s.ppm" 2>/dev/null | cut -d" " -f1)   # so điểm ảnh gốc (PNG có dấu thời gian nên luôn khác)
   if [ -n "$CUR" ] && [ "$CUR" = "$PREV" ]; then SAME=$((SAME + 1)); else SAME=0; fi
   PREV=$CUR
   if [ $SAME -ge $FREEZE ]; then
