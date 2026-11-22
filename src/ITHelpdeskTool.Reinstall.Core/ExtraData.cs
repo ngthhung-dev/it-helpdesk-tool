@@ -225,6 +225,8 @@ namespace ITHelpdeskTool.Reinstall
         {
             "381b4222-f694-41f0-9685-ff5bb260df2e", "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c",
             "a1841308-3541-4fab-bc81-f71556f20b4a", "e9a42b02-d5df-448d-aa00-03f14749eb61",
+            // Chế độ nguồn (thanh trượt pin) của Windows 10/11 — "… Overlay", không phải gói tự tạo
+            "961cc777-2547-4f9d-8174-7d86181b8a7a", "3af9b8d9-7c97-431d-ad78-34a8bfea439f", "ded574b5-45a0-4f42-8737-46345c09c238",
         };
 
         public static List<(string Guid, string Name)> CustomPowerPlans()
@@ -241,6 +243,7 @@ namespace ITHelpdeskTool.Reinstall
                     var name = s?.GetValue("FriendlyName") as string ?? g;
                     // FriendlyName dạng "@%SystemRoot%\...dll,-123,Tên" → lấy phần sau dấu phẩy cuối
                     if (name.StartsWith("@", StringComparison.Ordinal) && name.LastIndexOf(',') > 0) name = name.Substring(name.LastIndexOf(',') + 1);
+                    if (name.EndsWith("Overlay", StringComparison.OrdinalIgnoreCase)) continue;
                     list.Add((g, name));
                 }
             }
