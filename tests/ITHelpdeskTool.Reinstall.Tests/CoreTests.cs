@@ -202,11 +202,32 @@ public class TemplateTests
         Assert.Contains("bcdboot %TGT%\\Windows >>", s);
         Assert.Contains("bcdboot %TGT%\\Windows /s Y: /f UEFI", s);
         Assert.DoesNotContain("Windows /f UEFI", s);
+        // Máy UEFI nhiều ổ cứng: gắn đúng phân vùng EFI vừa khởi động (mountvol /s) trước, lỗi mới để bcdboot tự tìm
+        Assert.Contains("mountvol %SL%: /s", s);
+        Assert.Contains("bcdboot %TGT%\\Windows /s %SL%: /f UEFI", s);
+        Assert.True(s.IndexOf("mountvol", StringComparison.Ordinal) < s.IndexOf("bcdboot %TGT%\\Windows >>", StringComparison.Ordinal));
+        Assert.DoesNotContain("->", s);   // cmd hiểu "->" trong echo là chuyển hướng ra file
         // Mọi kiểm tra (tìm ổ, đọc file cài) nằm TRƯỚC bước format; lỗi trước format → nhãn safe (về Windows cũ)
         var format = s.IndexOf("format fs=ntfs", StringComparison.Ordinal);
         Assert.True(s.IndexOf("Get-WimInfo", StringComparison.Ordinal) < format);
         Assert.True(s.IndexOf("ITH-TARGET-abc123.tag", StringComparison.Ordinal) < format);
         Assert.Contains(":safe", s);
+    }
+
+    [Theory]
+    [InlineData("SYSPART=0|1|{0ac75bd3-1c5e-4f07-9a5e-3c1e7f2b9d10}|0|3", 0, 1, "0AC75BD3-1C5E-4F07-9A5E-3C1E7F2B9D10", true, false)]
+    [InlineData("SYSPART=1|2|6E1D7B2A|0|2", 1, 2, "6E1D7B2A", true, true)]     // EFI/System Reserved trên ổ cứng khác
+    [InlineData("SYSPART=0|1|6E1D7B2A|0|1", 0, 1, "6E1D7B2A", false, false)]   // BIOS: khởi động ngay trên ổ C:
+    [InlineData("SYSPART=0|1|bad id|0|3", 0, 1, "", false, false)]
+    [InlineData("", -1, -1, "", false, false)]
+    public void Parses_system_partition(string output, int disk, int part, string id, bool found, bool otherDisk)
+    {
+        var s = SystemPartition.Parse(output);
+        Assert.Equal(disk, s.Disk);
+        Assert.Equal(part, s.Partition);
+        Assert.Equal(id, s.DiskId);
+        Assert.Equal(found, s.Found);
+        Assert.Equal(otherDisk, s.OnOtherDisk);
     }
 
     [Fact]
@@ -268,5 +289,27 @@ public class PreflightTests
         var dirs = Drivers.StorageDirs(root);
         Assert.Single(dirs);
         Assert.Equal(rst, dirs[0]);
+    }
+
+    [Fact]
+    public void Flush_script_flushes_bcd_and_both_drives_once()
+    {
+        var s = Stager.FlushScript("S:\\", "C:");
+        Assert.Contains("OpenSubKey('BCD00000000')", s);
+        Assert.Contains("@('S','C')", s);
+        Assert.DoesNotContain("\"", s);
+        Assert.Contains("@('C')", Stager.FlushScript("C:\\", "C:"));
+    }
+
+    [Fact]
+    public void Detects_boot_sequence_entry()
+    {
+        const string id = "{4ea31ea2-e660-11f1-bc62-c7f7e5a59c5b}";
+        var withSeq = "Windows Boot Manager\r\n--------------------\r\nidentifier              {bootmgr}\r\ndisplayorder            {current}\r\n                        " + id + "\r\nbootsequence            " + id + "\r\ntimeout                 30\r\n";
+        Assert.True(Stager.BootSequenceIs(withSeq, id));
+        Assert.True(Stager.BootSequenceIs(withSeq, id.ToUpperInvariant()));
+        // Chỉ có trong displayorder (bootsequence đã mất) → không đạt
+        Assert.False(Stager.BootSequenceIs(withSeq.Replace("bootsequence            " + id + "\r\n", ""), id));
+        Assert.False(Stager.BootSequenceIs(withSeq, ""));
     }
 }

@@ -23,6 +23,8 @@ namespace ITHelpdeskTool.Reinstall.Cli
     ///           Thứ tự: kiểm tra → sao lưu (vào D:\ITH\backup) → chuẩn bị → đặt khởi động. Lỗi ở bước nào thì dừng ở đó.
     ///   arm     --staging D:\ITH                    đặt khởi động vào môi trường cài (một lần)
     ///   cancel  --staging D:\ITH [--remove]         huỷ, máy như cũ
+    ///   download --dest D:\Win11 [--product 11|10] [--lang en-us] [--arch x64|ARM64] [--list]
+    ///                                               tải bộ cài .esd gốc của Microsoft (kiểm SHA1) rồi dựng thư mục bộ cài
     /// </summary>
     internal static class Program
     {
@@ -47,6 +49,7 @@ namespace ITHelpdeskTool.Reinstall.Cli
                     case "check": return CheckCmd(run, a);
                     case "backup": return BackupCmd(run, a);
                     case "decrypt": return Decrypt(run, a);
+                    case "download": return Download(run, a);
                     case "prepare": return Prepare(run, a);
                     case "arm": return Arm(run, a);
                     case "cancel": return Cancel(run, a);
@@ -119,6 +122,13 @@ namespace ITHelpdeskTool.Reinstall.Cli
                 AfterPostInstall = a.Get("after", ""),
                 Firmware = BootEntry.DetectFirmware(run),
             };
+            // --edition Professional: chọn bản theo mã (file .esd tải về có nhiều bản, số thứ tự khác ISO)
+            if (a.Has("edition"))
+            {
+                var ed = a.Get("edition");
+                p.ImageIndex = Workflow.ReadEditions(run, p.ImagePath).FirstOrDefault(e => e.Edition.Equals(ed, StringComparison.OrdinalIgnoreCase))?.Index
+                               ?? throw new ReinstallException($"File cài không có bản {ed}.");
+            }
             p.Software = Pick(a.Get("software", "default"), Catalog.Software, Catalog.DefaultSoftware, s => s.Id, s => s.Clone());
             p.Tweaks = Pick(a.Get("tweaks", "default"), Catalog.Tweaks, Catalog.DefaultTweaks, t => t.Id, t => t.Clone());
             return p;
@@ -266,6 +276,37 @@ namespace ITHelpdeskTool.Reinstall.Cli
             OpenLog(p.StagingDir);
             var e = new Stager(run, Log).Arm(p);
             Log($"Đã đặt khởi động một lần vào môi trường cài ({e.EntryId}).");
+            return 0;
+        }
+
+        private static int Download(IRunner run, Args a)
+        {
+            var product = a.Get("product", "11") == "10" ? EsdCatalog.Windows10 : EsdCatalog.Windows11;
+            var dest = Path.GetFullPath(a.Get("dest", Path.Combine(Path.GetTempPath(), "ITH-Windows")));
+            var files = EsdCatalog.LoadAsync(run, product, Path.Combine(dest, "catalog")).GetAwaiter().GetResult();
+            if (a.Has("list"))
+            {
+                foreach (var f in files.Where(f => f.Consumer)) Console.WriteLine($"{f.LanguageCode,-6} {f}");
+                return 0;
+            }
+            var lang = a.Get("lang", "en-us");
+            var arch = a.Get("arch", EsdCatalog.MachineArchitecture());
+            var esd = EsdCatalog.Pick(files, lang, arch) ?? throw new ReinstallException($"Danh mục {product} không có bản {lang} {arch}.");
+            Log($"Tải: {esd} · {esd.Url}");
+            var media = Path.Combine(dest, $"{product.Replace(" ", "")}-{esd.Build}-{esd.LanguageCode}-{esd.Architecture}");
+            var existing = MediaBuilder.Existing(media);
+            if (existing != null) { Log("Đã có sẵn: " + existing); return 0; }
+            var file = Path.Combine(dest, esd.FileName);
+            var lastPct = -1;
+            EsdDownloader.DownloadAsync(esd, file, (d, t) =>
+            {
+                var pct = t > 0 ? (int)(d * 100 / t) : 0;
+                if (pct / 5 != lastPct / 5) { lastPct = pct; Log($"… {pct}% ({d / 1048576:N0}/{t / 1048576:N0} MB)"); }
+            }, Log).GetAwaiter().GetResult();
+            Log("SHA1 khớp danh mục của Microsoft.");
+            var install = MediaBuilder.Build(run, file, media, Log);
+            foreach (var e in Workflow.ReadEditions(run, install)) Console.WriteLine(e + " [" + e.Edition + "]");
+            Log("Chọn file cài: " + install);
             return 0;
         }
 

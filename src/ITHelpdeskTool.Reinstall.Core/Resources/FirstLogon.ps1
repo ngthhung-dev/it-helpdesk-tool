@@ -33,12 +33,13 @@ for ($i = 0; $i -lt 60; $i++) {
 Log "Mang: $online"
 
 # ---- 3. winget (App Installer dang ky cham o lan dang nhap dau) ----
+# Phai goi qua loi tat %LOCALAPPDATA%\Microsoft\WindowsApps\winget.exe (dang ky theo tai khoan):
+# chay thang file trong C:\Program Files\WindowsApps bi Windows tu choi (Access is denied).
 function Find-Winget {
+  $alias = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\winget.exe'
+  if (Test-Path $alias) { return $alias }
   $c = Get-Command winget.exe -ErrorAction SilentlyContinue
-  if ($c) { return $c.Source }
-  $p = Get-ChildItem "$env:ProgramFiles\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\winget.exe" -ErrorAction SilentlyContinue |
-       Sort-Object FullName -Descending | Select-Object -First 1
-  if ($p) { return $p.FullName }
+  if ($c -and $c.Source -notlike "*\Program Files\WindowsApps\*") { return $c.Source }
   return $null
 }
 $needWinget = @($cfg.software | Where-Object { $_.kind -eq 'Winget' }).Count -gt 0

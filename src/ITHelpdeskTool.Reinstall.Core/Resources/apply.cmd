@@ -67,6 +67,19 @@ rem ---- 7. File khoi dong ----
 rem bcdboot khong /s: tu tim phan vung he thong (ESP voi UEFI, phan vung Active voi BIOS) theo kieu khoi dong hien tai
 rem (/f bat buoc di kem /s nen khong dung o lan dau).
 call :log "bcdboot ({{FIRMWARE}}) ..."
+rem May UEFI: mountvol /s gan ky tu cho DUNG phan vung EFI ma firmware vua dung de khoi dong (cua Windows cu)
+rem nen may nhieu o cung (o du lieu con phan vung EFI cu) khong bi ghi nham sang o khac. Loi thi bcdboot tu dong nhu cu.
+if /i not "{{FIRMWARE}}"=="UEFI" goto bootauto
+set "SL="
+for %%l in (W V U T R Q P O N M) do if not defined SL if not exist %%l:\ set "SL=%%l"
+if not defined SL goto bootauto
+mountvol %SL%: /s >>"%LOG%" 2>&1
+if not exist %SL%:\ goto bootauto
+call :log "Boot EFI partition mounted as %SL%: by mountvol /s"
+bcdboot %TGT%\Windows /s %SL%: /f UEFI >>"%LOG%" 2>&1
+if not errorlevel 1 goto bootok
+call :log "WARN: bcdboot to the boot EFI partition failed - trying automatic"
+:bootauto
 bcdboot %TGT%\Windows >>"%LOG%" 2>&1
 if not errorlevel 1 goto bootok
 rem Du phong: gan ky tu cho phan vung he thong (diskpart danh dau "System") roi chi ro /s /f
@@ -88,6 +101,11 @@ if errorlevel 1 (
 )
 :bootok
 call :removeentries
+rem Ghi lai cau hinh khoi dong cuoi cung (de xu ly neu Windows moi khong len)
+echo ---- bcdedit /enum all >>"%LOG%"
+bcdedit /enum all >>"%LOG%" 2>&1
+echo ---- bcdedit /enum firmware >>"%LOG%"
+bcdedit /enum firmware >>"%LOG%" 2>&1
 
 > "%STG%\logs\winpe.done" echo %DATE% %TIME%
 call :log "=== Done. Rebooting into the new Windows."

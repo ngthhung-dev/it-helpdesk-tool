@@ -103,6 +103,9 @@ namespace ITHelpdeskTool.Reinstall
                 BootWim.Build(_run, media.BootWim, Path.Combine(staging, "boot.wim"), Path.Combine(staging, "mount"), runCmd, storage, _progress);
 
                 // ---- 6. Kịch bản ----
+                // Phân vùng khởi động đang dùng (ghi vào log để đối chiếu; môi trường cài gắn đúng phân vùng EFI này bằng mountvol /s)
+                var sys = SystemPartition.Probe(_run, p.TargetDrive);
+                _progress("Phân vùng khởi động: " + sys + (sys.OnOtherDisk ? " — nằm trên ổ cứng khác với Windows, giữ nguyên như hiện tại" : ""));
                 _progress("Đang tạo kịch bản cài…");
                 var apply = Templates.Fill(Templates.Load("apply.cmd"), new Dictionary<string, string>
                 {
@@ -176,7 +179,41 @@ namespace ITHelpdeskTool.Reinstall
             _progress("Đang đặt khởi động vào môi trường cài (một lần)…");
             var e = BootEntry.Create(_run, Path.Combine(staging, "boot.wim"), Path.Combine(staging, "boot.sdi"), p.Firmware);
             e.Save(staging);
+            FlushToDisk(staging, p.TargetDrive);
+            // Đọc lại: lần khởi động kế tiếp phải đúng là mục vừa tạo (phần mềm khác / chính sách có thể đã ghi đè).
+            var check = _run.Run("bcdedit.exe", "/enum {bootmgr}");
+            if (check.Ok && !BootSequenceIs(check.Output, e.EntryId))
+            {
+                e.Delete(_run);
+                throw new ReinstallException("Đặt khởi động vào môi trường cài không giữ được (bcdedit không thấy bootsequence). Chưa xoá gì — thử lại hoặc khởi động lại máy rồi chạy lại.");
+            }
             return e;
+        }
+
+        /// <summary>
+        /// Ép ghi hẳn xuống đĩa: kho cấu hình khởi động (BCD là một nhánh registry, Windows ghi trễ) và bộ đệm ghi của ổ đệm / ổ Windows.
+        /// Nếu lần khởi động lại không tắt sạch (treo / màn hình xanh lúc tắt máy) thì mục khởi động vừa tạo và file đánh dấu vẫn còn
+        /// — trước đây mất hết, máy lại vào Windows cũ (thấy trên máy ảo: bcdedit sau khi quay về không còn mục ITH, log cuối bị cắt).
+        /// </summary>
+        internal static string FlushScript(string stagingDrive, string targetDrive)
+        {
+            var letters = string.Join(",", new[] { stagingDrive, targetDrive }
+                .Select(d => d.TrimEnd('\\', ':')).Where(d => d.Length == 1).Distinct(StringComparer.OrdinalIgnoreCase).Select(d => "'" + d + "'"));
+            return "$ErrorActionPreference='SilentlyContinue';" +
+                   "$k=[Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('BCD00000000'); if($k){ $k.Flush(); 'BCD flushed' };" +
+                   $"foreach($l in @({letters})){{ Write-VolumeCache -DriveLetter $l; 'Volume ' + $l + ': flushed' }}";
+        }
+
+        /// <summary>Kết quả "bcdedit /enum {bootmgr}" có dòng bootsequence trỏ đúng mục id không.</summary>
+        internal static bool BootSequenceIs(string bootmgrOutput, string id) =>
+            id.Length > 0 && bootmgrOutput.Replace("\r", "").Split('\n')
+                .Any(l => l.TrimStart().StartsWith("bootsequence", StringComparison.OrdinalIgnoreCase) && l.IndexOf(id, StringComparison.OrdinalIgnoreCase) >= 0);
+
+        private void FlushToDisk(string staging, string targetDrive)
+        {
+            _progress("Đang ghi hẳn cấu hình khởi động xuống đĩa…");
+            var stgRoot = Path.GetPathRoot(staging) ?? "";
+            _run.Run("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -Command \"" + FlushScript(stgRoot, targetDrive) + "\"");
         }
 
         /// <summary>Huỷ: xoá mục khởi động tạm và file đánh dấu. removeFiles = xoá luôn thư mục đệm.</summary>
