@@ -220,7 +220,8 @@ public sealed partial class ReinstallViewModel : PageViewModel
 
     // ================= Tải bộ cài gốc từ Microsoft =================
     public IReadOnlyList<string> DlProducts { get; } = [RI.EsdCatalog.Windows11, RI.EsdCatalog.Windows10];
-    [ObservableProperty] private string _dlProduct = RI.EsdCatalog.Windows11;
+    // Máy Windows 7 / 8 (bản nhẹ) thường không đủ điều kiện Windows 11 (TPM 2.0, CPU đời mới) → mặc định Windows 10
+    [ObservableProperty] private string _dlProduct = RI.Platform.IsLegacy ? RI.EsdCatalog.Windows10 : RI.EsdCatalog.Windows11;
     [ObservableProperty] private bool _showDownload;
     public ObservableCollection<RI.EsdFile> DlFiles { get; } = [];
     [ObservableProperty] private RI.EsdFile? _dlFile;
@@ -354,7 +355,10 @@ public sealed partial class ReinstallViewModel : PageViewModel
         var targetDisk = diskOf.TryGetValue(Target, out var td) ? td : -1;
         var sameDisk = new List<StagingOption>();
         var otherDisk = new List<StagingOption>();
-        StagingOptions.Add(new StagingOption("auto", $"Tự động — thu nhỏ {Target} tạo phân vùng đệm (cài xong tự gộp lại); không được thì dùng {Target}\\ITH", true));
+        StagingOptions.Add(new StagingOption("auto", RI.Platform.IsLegacy
+            // Windows 7 / 8 không tự thu nhỏ ổ được (xem StagingPartition.Probe)
+            ? $"Tự động — dùng thư mục {Target}\\ITH ngay trên ổ Windows (không format; xoá mọi thứ trên {Target} trừ thư mục này)"
+            : $"Tự động — thu nhỏ {Target} tạo phân vùng đệm (cài xong tự gộp lại); không được thì dùng {Target}\\ITH", true));
         foreach (var d in DriveInfo.GetDrives())
         {
             try
