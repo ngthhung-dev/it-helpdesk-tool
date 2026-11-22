@@ -176,10 +176,49 @@ namespace ITHelpdeskTool.Reinstall
             if (!File.Exists(Path.Combine(staging, "boot.wim")) || !File.Exists(Path.Combine(staging, "apply.cmd")))
                 throw new ReinstallException("Chưa chuẩn bị xong (thiếu boot.wim / apply.cmd).");
             BootEntry.Load(staging)?.Delete(_run);
+            var bootDir = BootFilesDir(p, staging);
             _progress("Đang đặt khởi động vào môi trường cài (một lần)…");
-            var e = BootEntry.Create(_run, Path.Combine(staging, "boot.wim"), Path.Combine(staging, "boot.sdi"), p.Firmware);
+            var e = BootEntry.Create(_run, Path.Combine(bootDir, "boot.wim"), Path.Combine(bootDir, "boot.sdi"), p.Firmware);
             e.Save(staging);
             return e;
+        }
+
+        /// <summary>Thư mục chép boot.wim / boot.sdi sang ổ Windows (máy UEFI có ổ đệm ở phân vùng khác).</summary>
+        public const string BootCopyFolder = "ITH-Boot";
+
+        /// <summary>
+        /// Máy UEFI có ổ đệm nằm ngoài ổ Windows: chép riêng boot.wim + boot.sdi (vài trăm MB) sang &lt;ổ Windows&gt;\ITH-Boot.
+        /// Trình khởi động chỉ đọc được ổ qua firmware, mà firmware UEFI (Fast Boot) có thể không kết nối / đọc chập chờn
+        /// ổ cứng thứ hai → không vào được môi trường cài. Ổ Windows thì chắc chắn đọc được (vừa khởi động từ đó).
+        /// WinPE chạy trong RAM nên xoá ổ Windows sau đó không ảnh hưởng; bộ cài lớn vẫn ở ổ đệm (WinPE tự tìm theo file đánh dấu).
+        /// Không đủ chỗ trên ổ Windows thì giữ nguyên ở ổ đệm.
+        /// </summary>
+        private string BootFilesDir(ReinstallPlan p, string staging)
+        {
+            var target = p.TargetDrive.TrimEnd('\\', ':') + ":";
+            var stgRoot = (Path.GetPathRoot(staging) ?? "").TrimEnd('\\');
+            if (p.Firmware != FirmwareMode.Uefi || string.Equals(stgRoot, target, StringComparison.OrdinalIgnoreCase)) return staging;
+            var wim = Path.Combine(staging, "boot.wim");
+            var sdi = Path.Combine(staging, "boot.sdi");
+            var dir = target + "\\" + BootCopyFolder;
+            try
+            {
+                var need = new FileInfo(wim).Length + new FileInfo(sdi).Length + 1024L * 1024 * 1024;
+                if (new DriveInfo(target).AvailableFreeSpace < need)
+                {
+                    _progress($"{target} không đủ chỗ cho file khởi động — khởi động thẳng từ ổ đệm.");
+                    return staging;
+                }
+                Directory.CreateDirectory(dir);
+                Copy(wim, Path.Combine(dir, "boot.wim"), $"Đang chép boot.wim sang {dir} (để firmware UEFI chắc chắn đọc được)");
+                Copy(sdi, Path.Combine(dir, "boot.sdi"), "Đang chép boot.sdi");
+                return dir;
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                _progress($"Không chép được file khởi động sang {target} ({ex.Message}) — khởi động thẳng từ ổ đệm.");
+                return staging;
+            }
         }
 
         /// <summary>Huỷ: xoá mục khởi động tạm và file đánh dấu. removeFiles = xoá luôn thư mục đệm.</summary>
@@ -189,6 +228,9 @@ namespace ITHelpdeskTool.Reinstall
             BootEntry.Load(staging)?.Delete(_run);
             Delete(Path.Combine(staging, "bootids.cmd"));
             foreach (var t in Directory.GetFiles(targetDrive.TrimEnd('\\') + "\\", "ITH-TARGET-*.tag")) Delete(t);
+            var bootCopy = Path.Combine(targetDrive.TrimEnd('\\') + "\\", BootCopyFolder);
+            if (Directory.Exists(bootCopy) && !string.Equals(Path.GetFullPath(bootCopy).TrimEnd('\\'), staging, StringComparison.OrdinalIgnoreCase))
+                Directory.Delete(bootCopy, true);
             if (!removeFiles) return;
             var root = Path.GetPathRoot(staging) ?? "";
             if (StagingPartition.IsOurs(root))
