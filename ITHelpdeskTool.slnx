@@ -3,6 +3,7 @@
     <Project Path="src/ITHelpdeskTool/ITHelpdeskTool.csproj" />
     <Project Path="src/ITHelpdeskTool.Reinstall.Core/ITHelpdeskTool.Reinstall.Core.csproj" />
     <Project Path="src/ITHelpdeskTool.Reinstall.Cli/ITHelpdeskTool.Reinstall.Cli.csproj" />
+    <Project Path="src/ITHelpdeskTool.Lite/ITHelpdeskTool.Lite.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ITHelpdeskTool.Reinstall.Tests/ITHelpdeskTool.Reinstall.Tests.csproj" />

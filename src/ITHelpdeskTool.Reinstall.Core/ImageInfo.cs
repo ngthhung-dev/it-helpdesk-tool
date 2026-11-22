@@ -41,6 +41,8 @@ namespace ITHelpdeskTool.Reinstall
     {
         public static List<ImageEdition> Read(IRunner run, string wimOrEsd, bool details = false)
         {
+            // Windows 7: DISM 6.1 không đọc được .esd (LZMS) → đọc thẳng phần XML (đã đủ chi tiết)
+            if (Platform.IsLegacy) return WimXml.Read(wimOrEsd);
             var r = run.Run("dism.exe", $"/English /Get-WimInfo /WimFile:\"{wimOrEsd}\"");
             if (!r.Ok) throw new ReinstallException($"Không đọc được file cài {Path.GetFileName(wimOrEsd)}: {ProcessRunner.FirstLines(r.Output, 3)}");
             var list = Parse(r.Output);

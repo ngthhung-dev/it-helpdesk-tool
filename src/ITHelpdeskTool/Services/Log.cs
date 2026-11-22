@@ -46,7 +46,11 @@ public static class Log
             Directory.CreateDirectory(Folder);
             var fi = new FileInfo(FilePath);
             if (fi.Exists && fi.Length > 1_000_000)
-                File.Move(FilePath, Path.Combine(Folder, "app.old.log"), overwrite: true);
+            {
+                var old = Path.Combine(Folder, "app.old.log");
+                if (File.Exists(old)) File.Delete(old);
+                File.Move(FilePath, old);
+            }
         }
         catch { /* không ghi được log thì thôi */ }
 
@@ -74,7 +78,7 @@ public static class UiWatchdog
                 var activity = Log.Activity;
                 var op = ui.BeginInvoke(DispatcherPriority.Input, () => { });
                 op.Wait(TimeSpan.FromSeconds(30));
-                var ms = Stopwatch.GetElapsedTime(sent).TotalMilliseconds;
+                var ms = (Stopwatch.GetTimestamp() - sent) * 1000.0 / Stopwatch.Frequency;   // (bản .NET 4.8 dùng chung: không có GetElapsedTime)
                 if (ms > 300)
                     Log.Warn($"UI bị chặn ~{ms:0} ms (đang làm: {(activity.Length > 0 ? activity : Log.Activity)})");
                 if (ui.HasShutdownStarted) return;

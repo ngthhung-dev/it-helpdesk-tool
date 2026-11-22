@@ -268,7 +268,7 @@ namespace ITHelpdeskTool.Reinstall
             if (File.Exists(tag)) File.Delete(tag);
 
             log("Đang bung thư mục bộ cài…");
-            var r = run.Run("dism.exe", $"/English /Apply-Image /ImageFile:\"{esd}\" /Index:{media.Index} /ApplyDir:\"{mediaDir.TrimEnd('\\')}\"");
+            var r = Wim.Apply(run, esd, media.Index, mediaDir);
             if (!r.Ok) throw new ReinstallException("Không bung được thư mục bộ cài: " + ProcessRunner.FirstLines(r.Output, 3));
 
             var sources = Path.Combine(mediaDir, "sources");
@@ -276,7 +276,7 @@ namespace ITHelpdeskTool.Reinstall
             var bootWim = Path.Combine(sources, "boot.wim");
             if (File.Exists(bootWim)) File.Delete(bootWim);
             log("Đang tạo boot.wim (môi trường cài)…");
-            r = run.Run("dism.exe", $"/English /Export-Image /SourceImageFile:\"{esd}\" /SourceIndex:{pe.Index} /DestinationImageFile:\"{bootWim}\" /Compress:max");
+            r = Wim.Export(run, esd, pe.Index, bootWim, bootable: false);
             if (!r.Ok) throw new ReinstallException("Không tạo được boot.wim: " + ProcessRunner.FirstLines(r.Output, 3));
             if (!File.Exists(Path.Combine(mediaDir, "boot", "boot.sdi")))
                 throw new ReinstallException("Thư mục bộ cài thiếu boot\\boot.sdi.");

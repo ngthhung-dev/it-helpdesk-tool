@@ -81,6 +81,13 @@ namespace ITHelpdeskTool.Reinstall
             IsoMount? iso = null;
             try
             {
+                if (image.EndsWith(".iso", StringComparison.OrdinalIgnoreCase) && Platform.IsLegacy)
+                {
+                    // Windows 7: đọc thẳng trong ISO, không cần mở ổ ảo
+                    using var reader = new IsoReader(image);
+                    using var s = reader.Open(reader.InstallImage);
+                    return WimXml.Read(s).Where(e => !MediaBuilder.IsSetupImage(e)).ToList();
+                }
                 if (image.EndsWith(".iso", StringComparison.OrdinalIgnoreCase))
                 {
                     iso = IsoMount.Mount(run, image);

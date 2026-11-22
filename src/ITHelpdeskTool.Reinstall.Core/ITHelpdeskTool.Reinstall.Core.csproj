@@ -3,6 +3,7 @@
   <!--
     Lõi tính năng "Cài lại Windows" dùng chung cho app chính (.NET 10) và bản nhẹ cho Win 7 (.NET Framework 4.8).
     Chỉ dùng API của netstandard2.0 và gọi công cụ có sẵn của Windows (dism, bcdedit, powershell) — không P/Invoke, không WPF.
+    Windows 7: thêm wimlib-imagex (đi kèm bộ cài) và DiscUtils — xem Legacy.cs.
   -->
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -15,6 +16,11 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="ITHelpdeskTool.Reinstall.Tests" />
+  </ItemGroup>
+
+  <!-- Đọc file .iso trong code cho Windows 7 (không có Mount-DiskImage). MIT. -->
+  <ItemGroup>
+    <PackageReference Include="DiscUtils.Udf" Version="0.16.13" />
   </ItemGroup>
 
   <ItemGroup>

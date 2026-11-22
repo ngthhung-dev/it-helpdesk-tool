@@ -36,6 +36,14 @@ jobs:
       - name: Publish
         run: dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o publish -p:TestBuild=true -p:AuthMode=${{ github.event.inputs.auth }}
 
+      - name: Build bản nhẹ Windows 7 (khi chụp trang lite)
+        if: contains(github.event.inputs.pages, 'lite')
+        shell: pwsh
+        run: |
+          dotnet build src/ITHelpdeskTool.Lite/ITHelpdeskTool.Lite.csproj -c Release -o lite -p:TestBuild=true -p:AuthMode=${{ github.event.inputs.auth }}
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          tools/get-wimlib.ps1 -Dest lite
+
       - name: Chụp màn hình
         shell: pwsh
         env:
@@ -122,7 +130,9 @@ jobs:
               Stop-Process $p -Force -ErrorAction SilentlyContinue; Start-Sleep 1
               continue
             }
-            $p = Start-Process publish\ITHelpdeskTool.exe -ArgumentList '--no-login', '--page', $page, '--theme', '${{ github.event.inputs.theme }}' -PassThru
+            # lite, lite/download: bản nhẹ Windows 7 (chỉ có trang Cài lại sạch)
+            if ($page -like 'lite*') { $exe = 'lite\ITHelpdeskToolLite.exe'; $pg = 'reinstall' + ($page -replace '^lite', '') } else { $exe = 'publish\ITHelpdeskTool.exe'; $pg = $page }
+            $p = Start-Process $exe -ArgumentList '--no-login', '--page', $pg, '--theme', '${{ github.event.inputs.theme }}' -PassThru
             $sw = [Diagnostics.Stopwatch]::StartNew()
             while ($p.MainWindowHandle -eq 0 -and $sw.ElapsedMilliseconds -lt 30000) { Start-Sleep -Milliseconds 100; $p.Refresh() }
             [U]::ShowWindow($p.MainWindowHandle, 3) | Out-Null      # phóng to

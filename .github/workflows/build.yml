@@ -76,6 +76,17 @@ jobs:
       - name: Publish (single-file, self-contained)
         run: dotnet publish src/ITHelpdeskTool/ITHelpdeskTool.csproj -c Release -o publish -p:Version=${{ steps.ver.outputs.version }} -p:AuthMode=${{ github.event.inputs.auth || 'online' }}
 
+      - name: Bản nhẹ Windows 7 (.NET Framework 4.8) + wimlib
+        shell: pwsh
+        run: |
+          dotnet build src/ITHelpdeskTool.Lite/ITHelpdeskTool.Lite.csproj -c Release -o lite -p:Version=${{ steps.ver.outputs.version }} -p:AuthMode=${{ github.event.inputs.auth || 'online' }}
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          tools/get-wimlib.ps1 -Dest lite
+          Get-ChildItem lite -Include *.pdb, *.xml -Recurse | Remove-Item
+          $f = (Get-Item lite\ITHelpdeskToolLite.exe).VersionInfo
+          $f | Format-List FileDescription, FileVersion, ProductName
+          Get-ChildItem lite -Recurse -File | Measure-Object Length -Sum | ForEach-Object { "Bản nhẹ: {0} file, {1:N1} MB" -f $_.Count, ($_.Sum / 1MB) }
+
       - name: Kiểm tra thông tin file .exe
         shell: pwsh
         run: |

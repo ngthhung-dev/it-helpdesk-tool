@@ -92,7 +92,7 @@ public sealed class SectionIndex : ItemsControl
         if ((e.OriginalSource as FrameworkElement)?.DataContext is not SectionIndexItem item || Target is null) return;
         var y = Top(item.Element);
         if (double.IsNaN(y)) return;
-        var target = Math.Clamp(Target.VerticalOffset + y - 8, 0, Target.ScrollableHeight);
+        var target = Math.Max(0, Math.Min(Target.VerticalOffset + y - 8, Target.ScrollableHeight));   // (không dùng Math.Clamp: bản .NET 4.8 dùng chung file này)
         _clicked = item;
         _clickedOffset = target;
         Target.ScrollToVerticalOffset(target);

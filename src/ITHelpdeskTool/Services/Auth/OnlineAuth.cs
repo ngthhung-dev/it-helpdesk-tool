@@ -93,11 +93,11 @@ public static class OnlineAuth
     }
 
     public static byte[] HashOf(string password, byte[] salt, int iter) =>
-        Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(password), salt, iter, HashAlgorithmName.SHA256, 32);
+        AuthCrypto.Pbkdf2(password, salt, iter);
 
     public static void SetPassword(OnlineAccount a, string password)
     {
-        var salt = RandomNumberGenerator.GetBytes(16);
+        var salt = AuthCrypto.RandomBytes(16);
         a.Salt = Convert.ToBase64String(salt);
         a.Iter = Iterations;
         a.Hash = Convert.ToBase64String(HashOf(password, salt, Iterations));
@@ -105,7 +105,7 @@ public static class OnlineAuth
 
     private static bool Matches(OnlineAccount a, string password)
     {
-        try { return CryptographicOperations.FixedTimeEquals(HashOf(password, Convert.FromBase64String(a.Salt), a.Iter), Convert.FromBase64String(a.Hash)); }
+        try { return AuthCrypto.FixedTimeEquals(HashOf(password, Convert.FromBase64String(a.Salt), a.Iter), Convert.FromBase64String(a.Hash)); }
         catch { return false; }
     }
 
