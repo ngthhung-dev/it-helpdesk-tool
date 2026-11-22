@@ -123,9 +123,9 @@ sleep 2
 for i in $(seq 1 48); do mon "sendkey tab"; sleep 1; done
 
 # ---- Chờ máy ảo tự tắt (run-test / FirstLogon.ps1 tắt máy khi xong), chụp màn hình mỗi phút ----
-# Màn hình y hệt 15 phút liền = máy ảo đứng hình (lượt 45021075588 đứng ở màn khởi động 84 phút):
+# Màn hình y hệt 25 phút liền = máy ảo đứng hình (lượt 45021075588 đứng ở màn khởi động 84 phút):
 # dừng sớm để đọc log, không chờ hết giờ. Đồng hồ khay hệ thống và vòng xoay làm ảnh đổi khi máy còn chạy.
-FREEZE=15; SAME=0; PREV=""
+FREEZE=25; SAME=0; PREV=""
 # Lượt bình thường ~40 phút (cài 18 phần mềm thêm ~10 phút): quá 90 phút là bất thường → tắt máy ảo, đọc log trên ổ
 START=$(date +%s); LIMIT=$((90 * 60)); n=0
 while kill -0 $QPID 2>/dev/null; do
@@ -178,6 +178,9 @@ sudo cp -r /mnt/stg/ITH/logs "$OUT/logs" 2>/dev/null || true
 [ -d "$OUT/logs" ] || sudo cp -r /mnt/win/ITH-Backup/logs "$OUT/logs" 2>/dev/null || sudo cp -r /mnt/win/ITH/logs "$OUT/logs" 2>/dev/null || true
 sudo blkid /dev/nbd1p* > "$OUT/partitions.txt" 2>/dev/null || true
 mkdir -p "$OUT/logs"; sudo cp /mnt/win/ith-test.log "$OUT/logs/" 2>/dev/null || true
+# Log FirstLogon ngay trên ổ Windows mới (kể cả khi chưa xong, chưa chép về ổ đệm) + log winget của itadmin
+sudo mkdir -p "$OUT/logs/win"; sudo cp /mnt/win/ProgramData/ITHReinstall/logs/* "$OUT/logs/win/" 2>/dev/null || true
+sudo cp /mnt/win/Users/itadmin/AppData/Local/Packages/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe/LocalState/DiagOutputDir/*.log "$OUT/logs/win/" 2>/dev/null || true
 sudo chown -R "$USER" "$OUT"
 
 # multi: mount mọi phân vùng theo nhãn (DATA-D, DATA-E, DATA-F, OLDEFI) để kiểm tra dữ liệu còn nguyên
