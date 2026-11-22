@@ -21,6 +21,11 @@ namespace ITHelpdeskTool.Reinstall
             IEnumerable<string> storageDriverDirs, Action<string>? progress = null)
         {
             if (File.Exists(destBootWim)) File.Delete(destBootWim);
+            if (Platform.IsLegacy)
+            {
+                BuildWithWimlib(run, sourceBootWim, destBootWim, mountDir, runCmd, progress);
+                return;
+            }
             CleanMount(run, mountDir);
 
             progress?.Invoke("Đang tạo môi trường cài từ boot.wim…");
@@ -55,6 +60,32 @@ namespace ITHelpdeskTool.Reinstall
             {
                 if (!committed) run.Run("dism.exe", $"/English /Unmount-Image /MountDir:\"{mountDir}\" /Discard");
                 try { Directory.Delete(mountDir, true); } catch { }
+            }
+        }
+
+        /// <summary>
+        /// Windows 7: DISM 6.1 không xuất được ảnh và không có /Export-Driver → dùng wimlib-imagex sửa thẳng file .wim (không mount).
+        /// Không nạp driver ổ cứng (Windows 7 không xuất được driver; WinPE của Windows 10/11 có sẵn driver SATA/AHCI/NVMe chuẩn).
+        /// </summary>
+        private static void BuildWithWimlib(IRunner run, string sourceBootWim, string destBootWim, string workDir, string runCmd, Action<string>? progress)
+        {
+            progress?.Invoke("Đang tạo môi trường cài từ boot.wim (wimlib)…");
+            Must(Wim.Export(run, sourceBootWim, 1, destBootWim, bootable: true), "Không lấy được môi trường cài từ boot.wim");
+            if (!Wim.Contains(run, destBootWim, 1, "/Windows/System32/wpeinit.exe"))
+                throw new ReinstallException("boot.wim không phải môi trường WinPE (thiếu wpeinit.exe) — hãy dùng ISO chính thức của Microsoft.");
+            Directory.CreateDirectory(workDir);
+            try
+            {
+                var ini = Path.Combine(workDir, "winpeshl.ini");
+                var cmd = Path.Combine(workDir, "run.cmd");
+                File.WriteAllText(ini, WinPeshl, Encoding.ASCII);
+                File.WriteAllText(cmd, Templates.Crlf(runCmd), Encoding.ASCII);
+                Must(Wim.AddFile(run, destBootWim, 1, ini, "/Windows/System32/winpeshl.ini"), "Không gắn được winpeshl.ini vào boot.wim");
+                Must(Wim.AddFile(run, destBootWim, 1, cmd, "/Windows/System32/ith/run.cmd"), "Không gắn được run.cmd vào boot.wim");
+            }
+            finally
+            {
+                try { Directory.Delete(workDir, true); } catch { }
             }
         }
 

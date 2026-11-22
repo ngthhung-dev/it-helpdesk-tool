@@ -49,6 +49,13 @@ namespace ITHelpdeskTool.Reinstall
         public static ShrinkInfo Probe(IRunner run, string drive)
         {
             var l = Letter(drive);
+            if (Platform.IsLegacy)
+            {
+                // Windows 7 không có lệnh thu nhỏ của PowerShell: chỉ báo chỗ trống → dùng thư mục đệm ngay trên ổ (C:\ITH)
+                long free = 0;
+                try { free = new DriveInfo(l + ":").AvailableFreeSpace; } catch (IOException) { }
+                return new ShrinkInfo { Free = free, Error = "Windows 7 không tự thu nhỏ ổ được — dùng thư mục đệm ngay trên ổ hoặc một phân vùng khác." };
+            }
             var r = run.Run("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -Command \"" +
                 "$ErrorActionPreference='Stop'; try { " +
                 $"$p=Get-Partition -DriveLetter {l}; $s=Get-PartitionSupportedSize -DriveLetter {l}; $v=Get-Volume -DriveLetter {l}; $d=Get-Disk -Number $p.DiskNumber; " +

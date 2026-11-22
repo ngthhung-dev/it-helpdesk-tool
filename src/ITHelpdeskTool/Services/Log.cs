@@ -46,7 +46,11 @@ public static class Log
             Directory.CreateDirectory(Folder);
             var fi = new FileInfo(FilePath);
             if (fi.Exists && fi.Length > 1_000_000)
-                File.Move(FilePath, Path.Combine(Folder, "app.old.log"), overwrite: true);
+            {
+                var old = Path.Combine(Folder, "app.old.log");
+                if (File.Exists(old)) File.Delete(old);
+                File.Move(FilePath, old);
+            }
         }
         catch { /* không ghi được log thì thôi */ }
 

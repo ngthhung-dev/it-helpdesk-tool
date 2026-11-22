@@ -39,11 +39,12 @@ public static class LocalAuth
         var raw = ProtectedData.Protect(JsonSerializer.SerializeToUtf8Bytes(s), Entropy, DataProtectionScope.LocalMachine);
         var tmp = FilePath + ".tmp";
         File.WriteAllBytes(tmp, raw);
-        File.Move(tmp, FilePath, true);
+        if (File.Exists(FilePath)) File.Delete(FilePath);
+        File.Move(tmp, FilePath);
     }
 
     private static byte[] Hash(string password, byte[] salt, int iter) =>
-        Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(password), salt, iter, HashAlgorithmName.SHA256, 32);
+        AuthCrypto.Pbkdf2(password, salt, iter);
 
     public static string? ValidateNew(string user, string pw, string pw2)
     {
@@ -55,7 +56,7 @@ public static class LocalAuth
 
     public static void Create(string user, string password)
     {
-        var salt = RandomNumberGenerator.GetBytes(16);
+        var salt = AuthCrypto.RandomBytes(16);
         Write(new Store(user.Trim(), Convert.ToBase64String(salt), Convert.ToBase64String(Hash(password, salt, Iterations)), Iterations));
         Log.Info($"Đã tạo tài khoản mở app: {user.Trim()}");
     }
@@ -66,7 +67,7 @@ public static class LocalAuth
         if (s is null) return false;
         var h = Hash(password, Convert.FromBase64String(s.Salt), s.Iter);
         var userOk = string.Equals(s.User, user.Trim(), StringComparison.OrdinalIgnoreCase);
-        return CryptographicOperations.FixedTimeEquals(h, Convert.FromBase64String(s.Hash)) && userOk;
+        return AuthCrypto.FixedTimeEquals(h, Convert.FromBase64String(s.Hash)) && userOk;
     }
 
     public static string? Change(string oldPw, string newUser, string newPw, string newPw2)

@@ -1,0 +1,26 @@
+<Window x:Class="ITHelpdeskTool.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:core="clr-namespace:ITHelpdeskTool.Core"
+        xmlns:v="clr-namespace:ITHelpdeskTool.Views"
+        Title="IT Helpdesk Tool Lite – Cài lại Windows" Icon="/Assets/app.ico"
+        Width="1040" Height="720" MinWidth="820" MinHeight="520"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource BgBrush}"
+        FontFamily="{StaticResource UiFont}" FontSize="13"
+        TextOptions.TextFormattingMode="Display"
+        UseLayoutRounding="True">
+
+    <Window.Resources>
+        <core:BoolToVisibility x:Key="BoolVis"/>
+        <core:BoolToVisibility x:Key="NotBoolVis" Invert="True"/>
+    </Window.Resources>
+
+    <DockPanel>
+        <!-- Thanh dưới: phiên bản + ghi chú bản nhẹ -->
+        <Border DockPanel.Dock="Bottom" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource BorderBrush}" Padding="16,6">
+            <TextBlock x:Name="Footer" Foreground="{DynamicResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+        </Border>
+        <v:ReinstallPage x:Name="Page"/>
+    </DockPanel>
+</Window>

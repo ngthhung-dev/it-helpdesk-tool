@@ -5,8 +5,15 @@
 # safe : như trên nhưng WinPE dừng trước bước format → phải quay về Windows cũ, không mất gì.
 # auto : máy chỉ có một ổ, --staging auto (thu nhỏ C: tạo phân vùng đệm, không được thì đệm ngay trên C:).
 # samedrive: máy một ổ, --staging C:\ITH (không format, xoá mọi thứ trừ C:\ITH).
+# legacy / legacyesd: như happy / esd nhưng ép đường Windows 7 (ITH_LEGACY=1): đọc .iso trong code (DiscUtils),
+#   wimlib-imagex thay DISM, không thu nhỏ ổ. legacy lấy bộ cài từ file win.iso trên một ổ cứng thứ ba.
 set -euo pipefail
 FW=$1; SCEN=$2; ISO=$3; CLI=$4; OUT=$5
+LEGACY=0; BASE=$SCEN
+case "$SCEN" in
+  legacy) LEGACY=1; BASE=happy ;;
+  legacyesd) LEGACY=1; BASE=esd ;;
+esac
 HERE=$(cd "$(dirname "$0")" && pwd)
 WORK=/mnt/vm/$FW-$SCEN
 mkdir -p "$WORK" "$OUT/shots"
@@ -44,22 +51,36 @@ t = open(sys.argv[1], encoding='utf-8').read()
 t = t.replace('__DISKCONFIG__', '''$DISK''').replace('__INSTALLTO__', sys.argv[3])
 open(sys.argv[2], 'w', encoding='utf-8', newline='\r\n').write(t)
 PY
-EXTRA=""; [ "$SCEN" = safe ] && EXTRA="--test-fail-before-format"
-ESD=0; [ "$SCEN" = esd ] && ESD=1
-MULTI=0; [ "$SCEN" = multi ] && MULTI=1
+EXTRA=""; [ "$BASE" = safe ] && EXTRA="--test-fail-before-format"
+ESD=0; [ "$BASE" = esd ] && ESD=1
+MULTI=0; [ "$BASE" = multi ] && MULTI=1
 case "$SCEN" in
-  happy|safe|esd) STAGING='S:\\ITH'; MKDISK=1 ;;
+  happy|safe|esd|legacy|legacyesd) STAGING='S:\\ITH'; MKDISK=1 ;;
   auto) STAGING=auto; MKDISK=0 ;;
   multi) STAGING='K:\\ITH'; MKDISK=0 ;;
   samedrive) STAGING='C:\\ITH'; MKDISK=0 ;;
 esac
-sed -e "s/__EXTRA__/$EXTRA/" -e "s/__ESD__/$ESD/g" -e "s/__MULTI__/$MULTI/g" -e "s/__STAGING__/$STAGING/g" -e "s/__MKDISK__/$MKDISK/g" "$HERE/run-test.cmd" | sed 's/$/\r/' > tools/run-test.cmd
+sed -e "s/__EXTRA__/$EXTRA/" -e "s/__ESD__/$ESD/g" -e "s/__MULTI__/$MULTI/g" -e "s/__STAGING__/$STAGING/g" -e "s/__LEGACY__/$LEGACY/g" -e "s/__MKDISK__/$MKDISK/g" "$HERE/run-test.cmd" | sed 's/$/\r/' > tools/run-test.cmd
 grep -n "prepare" tools/run-test.cmd | head -2
 genisoimage -quiet -J -joliet-long -r -V ITHTEST -o tools.iso tools
 
 # ---- Ổ đĩa: 0 = Windows (sẽ bị cài lại), 1 = ổ đệm ----
 qemu-img create -f qcow2 disk0.qcow2 64G > /dev/null
 qemu-img create -f qcow2 disk1.qcow2 40G > /dev/null
+# legacy: ổ cứng thứ ba (NTFS) chứa win.iso — như người dùng Win 7 tải ISO về ổ D:
+ISODISK=()
+if [ "$SCEN" = legacy ]; then
+  sudo modprobe nbd max_part=16
+  qemu-img create -f qcow2 disk2.qcow2 12G > /dev/null
+  sudo qemu-nbd -c /dev/nbd3 disk2.qcow2
+  echo 'type=7' | sudo sfdisk -q /dev/nbd3
+  for i in $(seq 1 10); do [ -e /dev/nbd3p1 ] && break; sleep 1; done
+  sudo mkntfs -Q -L ISOS /dev/nbd3p1 > /dev/null
+  sudo mkdir -p /mnt/isos && sudo mount -t ntfs-3g /dev/nbd3p1 /mnt/isos
+  sudo cp "$ISO" /mnt/isos/win.iso && ls -l /mnt/isos
+  sudo umount /mnt/isos && sudo qemu-nbd -d /dev/nbd3 > /dev/null
+  ISODISK=(-drive file=disk2.qcow2,if=none,id=d2 -device ide-hd,drive=d2,bus=ahci.4)
+fi
 
 MON=$WORK/mon.sock
 # CPU: runner GitHub đã là máy ảo → KVM lồng nhau. Với "-cpu host" Windows 11 thấy VT-x/AMD-V nên tự bật VBS / Hyper-V
@@ -87,7 +108,7 @@ else
     -device ide-cd,drive=cd0,bus=ahci.2,bootindex=1 -device ide-cd,drive=cd1,bus=ahci.3)
 fi
 
-qemu-system-x86_64 "${COMMON[@]}" "${ARGS[@]}" &
+qemu-system-x86_64 "${COMMON[@]}" "${ARGS[@]}" "${ISODISK[@]}" &
 QPID=$!
 mon() { echo "$1" | socat - unix-connect:$MON > /dev/null 2>&1 || true; }
 shot() { mon "screendump $WORK/s.ppm"; sleep 1; convert "$WORK/s.ppm" -resize 800x "$OUT/shots/$1.png" 2>/dev/null || true; }
@@ -143,7 +164,7 @@ mkdir -p "$OUT/logs"; sudo cp /mnt/win/ith-test.log "$OUT/logs/" 2>/dev/null || 
 sudo chown -R "$USER" "$OUT"
 
 # multi: mount mọi phân vùng theo nhãn (DATA-D, DATA-E, DATA-F, OLDEFI) để kiểm tra dữ liệu còn nguyên
-if [ "$SCEN" = multi ]; then
+if [ "$BASE" = multi ]; then
   for p in /dev/nbd0p* /dev/nbd1p*; do
     l=$(sudo blkid -o value -s LABEL "$p" 2>/dev/null || true); [ -n "$l" ] || continue
     m=$(findmnt -n -o TARGET "$p" 2>/dev/null || true)
@@ -166,19 +187,19 @@ echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
      && [ ! -e /mnt/win/ProgramData/ITHReinstall ] && [ ! -e /mnt/win/ITH-Backup ]; then
     echo "HẠ TẦNG: app chưa từng chạy — máy ảo hỏng trước đó (xem ảnh chụp cuối: màn hình xanh / kẹt cài Windows gốc)"
   fi
-  if [ "$SCEN" = happy ] || [ "$SCEN" = safe ] || [ "$SCEN" = esd ]; then
+  if [ "$BASE" = happy ] || [ "$BASE" = safe ] || [ "$BASE" = esd ]; then
     check /mnt/stg/ITH/logs/prepare.log "ithreinstall prepare đã chạy"
     check /mnt/stg/ITH/logs/winpe.log "môi trường cài (WinPE) đã chạy"
   fi
   [ -f "$OUT/logs/winpe.log" ] && { echo "### winpe.log (90 dòng cuối)"; tail -90 "$OUT/logs/winpe.log" | tr -d ''; } || true
-  if [ "$SCEN" = auto ] || [ "$SCEN" = samedrive ]; then
+  if [ "$BASE" = auto ] || [ "$BASE" = samedrive ]; then
     if [ -d /mnt/win/ITH-Backup ]; then L=/mnt/win/ITH-Backup/logs; B=/mnt/win/ITH-Backup; echo "Chế độ: phân vùng đệm riêng (thu nhỏ C:) → đã gộp"
       check $L/merged.done "phân vùng đệm đã gộp lại vào C:"
       grep -q 'ITH-STAGING' "$OUT/partitions.txt" && { echo "FAIL phân vùng ITH-STAGING vẫn còn"; FAIL=1; } || echo "OK   không còn phân vùng ITH-STAGING"
     else L=/mnt/win/ITH/logs; B=/mnt/win/ITH/backup; echo "Chế độ: thư mục đệm ngay trên C: (C:\\ITH)"
       [ -e /mnt/win/ITH/install.wim ] && { echo "FAIL file cài vẫn còn trong C:\\ITH"; FAIL=1; } || echo "OK   đã dọn file cài trong C:\\ITH"
     fi
-    [ "$SCEN" = samedrive ] && [ -d /mnt/win/ITH-Backup ] && { echo "FAIL samedrive mà lại tạo phân vùng đệm"; FAIL=1; }
+    [ "$BASE" = samedrive ] && [ -d /mnt/win/ITH-Backup ] && { echo "FAIL samedrive mà lại tạo phân vùng đệm"; FAIL=1; }
     check $L/winpe.done "WinPE cài xong"
     check $L/post/firstlogon.done "Windows mới vào Desktop, chạy FirstLogon.ps1"
     check $B/backup.json "đã sao lưu trước khi cài"
@@ -186,7 +207,7 @@ echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
     check /mnt/win/Users/itadmin/Desktop/ith-backup-test.txt "Desktop cũ đã tự chép lại vào tài khoản mới"
     check "/mnt/win/Users/itadmin/Documents/Ke toan/bao-cao.txt" "Documents cũ đã tự chép lại"
     [ -e /mnt/win/Users/olduser ] && { echo "FAIL tài khoản cũ olduser vẫn còn"; FAIL=1; } || echo "OK   Windows cũ đã được thay"
-  elif [ "$SCEN" = multi ]; then
+  elif [ "$BASE" = multi ]; then
     L=/mnt/lbl/DATA-D/ITH/logs
     check $L/winpe.done "WinPE cài xong (ổ đệm D: cùng ổ cứng với C:)"
     check $L/post/firstlogon.done "Windows mới vào Desktop, chạy FirstLogon.ps1"
@@ -199,8 +220,8 @@ echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
     check "/mnt/win/Program Files/7-Zip/7z.exe" "7-Zip (winget) đã cài"
     check /mnt/win/Users/itadmin/Desktop/ith-backup-test.txt "Desktop cũ đã tự chép lại vào tài khoản mới"
     [ -e /mnt/win/Users/olduser ] && { echo "FAIL tài khoản cũ olduser vẫn còn"; FAIL=1; } || echo "OK   Windows cũ đã được thay"
-  elif [ "$SCEN" = happy ] || [ "$SCEN" = esd ]; then
-    if [ "$SCEN" = esd ]; then ls /mnt/stg/ITH-Windows/*/ith-media.done >/dev/null 2>&1 && echo "OK   đã tự tải bộ cài gốc từ Microsoft (SHA1 khớp) và dựng bộ cài" || { echo "FAIL không thấy bộ cài tải về (/mnt/stg/ITH-Windows/*/ith-media.done)"; FAIL=1; }; fi
+  elif [ "$BASE" = happy ] || [ "$BASE" = esd ]; then
+    if [ "$BASE" = esd ]; then ls /mnt/stg/ITH-Windows/*/ith-media.done >/dev/null 2>&1 && echo "OK   đã tự tải bộ cài gốc từ Microsoft (SHA1 khớp) và dựng bộ cài" || { echo "FAIL không thấy bộ cài tải về (/mnt/stg/ITH-Windows/*/ith-media.done)"; FAIL=1; }; fi
     check /mnt/stg/ITH/logs/winpe.done "WinPE cài xong"
     check /mnt/stg/ITH/logs/post/firstlogon.done "Windows mới vào Desktop, chạy FirstLogon.ps1"
     check /mnt/win/ProgramData/ITHReinstall/logs/firstlogon.done "log sau cài nằm trên ổ Windows mới"
@@ -212,6 +233,13 @@ echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
     check "/mnt/win/Users/itadmin/Documents/Ke toan/bao-cao.txt" "Documents cũ đã tự chép lại vào tài khoản mới"
     [ -e /mnt/win/Users/olduser ] && { echo "FAIL tài khoản cũ olduser vẫn còn (ổ chưa bị cài lại)"; FAIL=1; } || echo "OK   Windows cũ đã được thay"
     [ -e /mnt/stg/ITH/logs/back-to-old.txt ] && { echo "FAIL máy đã quay về Windows cũ"; FAIL=1; } || true
+    if [ "$LEGACY" = 1 ]; then
+      grep -qa 'wimlib-imagex' /mnt/stg/ITH/logs/prepare.log && echo "OK   đường Windows 7: xử lý .wim bằng wimlib (không dùng DISM mới)" || { echo "FAIL không chạy đường Windows 7 (wimlib)"; FAIL=1; }
+      grep -qa 'Mount-DiskImage\|Export-Image\|Apply-Image' /mnt/stg/ITH/logs/prepare.log && { echo "FAIL đường Windows 7 vẫn gọi lệnh chỉ có từ Windows 8"; FAIL=1; } || echo "OK   không gọi Mount-DiskImage / dism Export-Image / Apply-Image"
+      if [ "$SCEN" = legacy ]; then
+        grep -qa 'từ ISO' /mnt/stg/ITH/logs/prepare.log && echo "OK   đọc file ISO trong code (Windows 7 không mở được ISO)" || { echo "FAIL không đọc ISO trong code"; FAIL=1; }
+      fi
+    fi
   else
     check /mnt/stg/ITH/logs/winpe.safe "WinPE dừng an toàn trước khi xoá"
     check /mnt/stg/ITH/logs/back-to-old.txt "máy khởi động lại vào Windows cũ"

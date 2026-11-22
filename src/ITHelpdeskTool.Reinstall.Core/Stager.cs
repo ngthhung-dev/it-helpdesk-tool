@@ -47,7 +47,13 @@ namespace ITHelpdeskTool.Reinstall
                 // ---- 1. File cài ----
                 MediaFiles media;
                 var ext = Path.GetExtension(p.ImagePath).ToLowerInvariant();
-                if (ext == ".iso")
+                if (ext == ".iso" && Platform.IsLegacy)
+                {
+                    // Windows 7 không mở được ISO: lấy 3 file cần dùng ra ngay trong thư mục đệm, rồi chuyển chỗ (không chép lần hai)
+                    using var reader = new IsoReader(p.ImagePath);
+                    media = reader.ExtractMedia(Path.Combine(staging, IsoExtractFolder), _progress);
+                }
+                else if (ext == ".iso")
                 {
                     _progress("Đang mở file ISO…");
                     iso = IsoMount.Mount(_run, p.ImagePath);
@@ -84,8 +90,18 @@ namespace ITHelpdeskTool.Reinstall
                 // ---- 3. Chép file cài và boot.sdi ----
                 var imageName = "install" + Path.GetExtension(media.InstallImage).ToLowerInvariant();
                 foreach (var other in new[] { "install.wim", "install.esd" }.Where(n => n != imageName)) Delete(Path.Combine(staging, other));
-                Copy(media.InstallImage, Path.Combine(staging, imageName), "Đang chép file cài Windows");
-                Copy(media.BootSdi, Path.Combine(staging, "boot.sdi"), "Đang chép boot.sdi");
+                var extracted = Path.Combine(staging, IsoExtractFolder) + "\\";
+                if (media.InstallImage.StartsWith(extracted, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Đã lấy từ ISO vào thư mục đệm (Windows 7): chỉ đổi chỗ
+                    MoveInto(media.InstallImage, Path.Combine(staging, imageName));
+                    MoveInto(media.BootSdi, Path.Combine(staging, "boot.sdi"));
+                }
+                else
+                {
+                    Copy(media.InstallImage, Path.Combine(staging, imageName), "Đang chép file cài Windows");
+                    Copy(media.BootSdi, Path.Combine(staging, "boot.sdi"), "Đang chép boot.sdi");
+                }
 
                 // ---- 4. Driver ----
                 var drivers = Path.Combine(staging, "drivers");
@@ -101,6 +117,7 @@ namespace ITHelpdeskTool.Reinstall
                     ["STAGING_REL"] = stagingRel,
                 });
                 BootWim.Build(_run, media.BootWim, Path.Combine(staging, "boot.wim"), Path.Combine(staging, "mount"), runCmd, storage, _progress);
+                if (Directory.Exists(extracted)) try { Directory.Delete(extracted, true); } catch (IOException) { }
 
                 // ---- 6. Kịch bản ----
                 // Phân vùng khởi động đang dùng (ghi vào log để đối chiếu; môi trường cài gắn đúng phân vùng EFI này bằng mountvol /s)
@@ -137,6 +154,15 @@ namespace ITHelpdeskTool.Reinstall
             {
                 iso?.Dispose();
             }
+        }
+
+        /// <summary>Thư mục tạm trong ổ đệm chứa file lấy từ ISO (Windows 7).</summary>
+        public const string IsoExtractFolder = "iso-files";
+
+        private void MoveInto(string src, string dst)
+        {
+            if (File.Exists(dst)) File.Delete(dst);
+            File.Move(src, dst);
         }
 
         // ---- Đoạn apply.cmd theo chế độ ổ đệm ----

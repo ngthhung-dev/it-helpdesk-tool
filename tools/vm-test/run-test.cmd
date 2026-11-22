@@ -3,6 +3,8 @@ rem Chay trong may ao thu (Windows "may cu" vua cai xong): chay ithreinstall de 
 rem run-vm.sh thay: __STAGING__ (S:\ITH | auto | C:\ITH), __MKDISK__ (1 = tao o dem S: tren o thu hai), __EXTRA__.
 set "T=%~dp0"
 set "LOG=C:\ith-test.log"
+rem Kich ban legacy: ep duong Windows 7 (doc ISO trong code, wimlib thay DISM)
+if "__LEGACY__"=="1" set "ITH_LEGACY=1"
 echo [%DATE% %TIME%] run-test start staging=__STAGING__ >> "%LOG%"
 whoami >> "%LOG%" 2>&1
 whoami /groups | find /i "Mandatory Label" >> "%LOG%" 2>&1
@@ -21,6 +23,8 @@ rem ---- O dia cai Windows ----
 set "SRC="
 for %%d in (D E F G H I J K L M N O P Q R T U V W) do if exist "%%d:\sources\install.wim" set "SRC=%%d:\sources\install.wim"
 for %%d in (D E F G H I J K L M N O P Q R T U V W) do if not defined SRC if exist "%%d:\sources\install.esd" set "SRC=%%d:\sources\install.esd"
+rem Kich ban legacy: chon file win.iso tren o cung thu ba (nhu nguoi dung tai ISO ve o D:)
+if "__LEGACY__"=="1" for %%d in (D E F G H I J K L M N O P Q R T U V W) do if exist "%%d:\win.iso" set "SRC=%%d:\win.iso"
 rem Kich ban esd: tu tai bo cai goc cua Microsoft (ithreinstall download) roi cai lai bang chinh bo cai do
 set "EDITION="
 if "__ESD__"=="1" (

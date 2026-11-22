@@ -1,0 +1,92 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Bản nhẹ cho Windows 7 SP1 / 8 / 8.1 (app chính .NET 10 không chạy được trên các bản này): chỉ có tính năng "Cài lại sạch".
+    .NET Framework 4.8 (Windows 7 SP1 cài được). Dùng chung mã nguồn với app chính (link file) — không sao chép:
+    trang Cài lại sạch, đăng nhập, hộp thoại, giao diện. Lõi xử lý: ITHelpdeskTool.Reinstall.Core (netstandard2.0).
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\ITHelpdeskTool\Assets\app.ico</ApplicationIcon>
+    <AssemblyName>ITHelpdeskToolLite</AssemblyName>
+    <RootNamespace>ITHelpdeskTool</RootNamespace>
+    <NoWarn>$(NoWarn);MVVMTK0045;CS8632</NoWarn>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>$(DefineConstants);LITE</DefineConstants>
+    <Version>1.0.0</Version>
+    <FileVersion>$(Version).0</FileVersion>
+    <AssemblyVersion>$(Version).0</AssemblyVersion>
+    <InformationalVersion>$(Version)</InformationalVersion>
+    <AssemblyTitle>IT Helpdesk Tool Lite by ngthhung</AssemblyTitle>
+    <Product>IT Helpdesk Tool</Product>
+    <Company>ngthhung</Company>
+    <Authors>ngthhung</Authors>
+    <Copyright>Copyright © 2026 ngthhung</Copyright>
+    <Description>IT Helpdesk Tool Lite (Windows 7) by ngthhung</Description>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TestBuild)' == 'true'">
+    <DefineConstants>$(DefineConstants);TEST_BUILD</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(AuthMode)' == 'online'">
+    <DefineConstants>$(DefineConstants);AUTH_ONLINE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="ContactEmail" Value="ngthhung.dev@gmail.com" />
+    <AssemblyMetadata Include="ContactPhone" Value="0968 799 365" />
+  </ItemGroup>
+
+  <!-- Mã nguồn dùng chung với app chính -->
+  <ItemGroup>
+    <Compile Include="..\ITHelpdeskTool\Core\PageViewModel.cs" Link="Shared\Core\PageViewModel.cs" />
+    <Compile Include="..\ITHelpdeskTool\Core\Converters.cs" Link="Shared\Core\Converters.cs" />
+    <Compile Include="..\ITHelpdeskTool\Core\ThemeService.cs" Link="Shared\Core\ThemeService.cs" />
+    <Compile Include="..\ITHelpdeskTool\Controls\SectionIndex.cs" Link="Shared\Controls\SectionIndex.cs" />
+    <Compile Include="..\ITHelpdeskTool\Services\ActiveUser.cs" Link="Shared\Services\ActiveUser.cs" />
+    <Compile Include="..\ITHelpdeskTool\Services\AdminHelper.cs" Link="Shared\Services\AdminHelper.cs" />
+    <Compile Include="..\ITHelpdeskTool\Services\AppInfo.cs" Link="Shared\Services\AppInfo.cs" />
+    <Compile Include="..\ITHelpdeskTool\Services\Log.cs" Link="Shared\Services\Log.cs" />
+    <Compile Include="..\ITHelpdeskTool\Services\ProcessRunner.cs" Link="Shared\Services\ProcessRunner.cs" />
+    <Compile Include="..\ITHelpdeskTool\Services\Wmi.cs" Link="Shared\Services\Wmi.cs" />
+    <Compile Include="..\ITHelpdeskTool\Services\Windows\CpuSupport.cs" Link="Shared\Services\Windows\CpuSupport.cs" />
+    <Compile Include="..\ITHelpdeskTool\Services\Auth\*.cs" Link="Shared\Services\Auth\%(Filename)%(Extension)" />
+    <Compile Include="..\ITHelpdeskTool\ViewModels\ReinstallViewModel.cs" Link="Shared\ViewModels\ReinstallViewModel.cs" />
+    <Compile Include="..\ITHelpdeskTool\Views\DialogWindow.xaml.cs" Link="Shared\Views\DialogWindow.xaml.cs" DependentUpon="DialogWindow.xaml" />
+    <Compile Include="..\ITHelpdeskTool\Views\LoginWindow.xaml.cs" Link="Shared\Views\LoginWindow.xaml.cs" DependentUpon="LoginWindow.xaml" />
+    <Compile Include="..\ITHelpdeskTool\Views\ReinstallPage.xaml.cs" Link="Shared\Views\ReinstallPage.xaml.cs" DependentUpon="ReinstallPage.xaml" />
+    <Page Include="..\ITHelpdeskTool\Views\DialogWindow.xaml" Link="Shared\Views\DialogWindow.xaml" />
+    <Page Include="..\ITHelpdeskTool\Views\LoginWindow.xaml" Link="Shared\Views\LoginWindow.xaml" />
+    <Page Include="..\ITHelpdeskTool\Views\ReinstallPage.xaml" Link="Shared\Views\ReinstallPage.xaml" />
+    <Page Include="..\ITHelpdeskTool\Themes\Colors.xaml" Link="Themes\Colors.xaml" />
+    <Page Include="..\ITHelpdeskTool\Themes\Controls.xaml" Link="Themes\Controls.xaml" />
+    <Resource Include="..\ITHelpdeskTool\Assets\app.png" Link="Assets\app.png" />
+    <Resource Include="..\ITHelpdeskTool\Assets\app.ico" Link="Assets\app.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ITHelpdeskTool.Reinstall.Core\ITHelpdeskTool.Reinstall.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Management" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Security" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
+    <PackageReference Include="PolySharp" Version="1.16.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>
