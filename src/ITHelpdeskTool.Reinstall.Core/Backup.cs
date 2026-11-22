@@ -75,6 +75,9 @@ namespace ITHelpdeskTool.Reinstall
         /// <summary>UserFolder: Desktop / Documents / Downloads / Pictures / Videos / Music. Bookmarks: đường dẫn hồ sơ trình duyệt so với %LOCALAPPDATA%.</summary>
         public string RestoreTo { get; set; } = "";
 
+        /// <summary>Mục là một phiên bản SQL Server (sao lưu .bak + chép file dữ liệu, xem <see cref="AppData.BackupSql"/>).</summary>
+        public SqlInstanceInfo? Sql { get; set; }
+
         /// <summary>Tên thư mục con trong bản sao lưu.</summary>
         public string Folder => Id;
     }
@@ -143,6 +146,10 @@ namespace ITHelpdeskTool.Reinstall
             list.Add(new BackupItem { Id = "printers", Title = "Danh sách máy in và cổng in", Group = "Cấu hình", Default = true });
 
             if (measure) foreach (var b in list.Where(b => b.Source.Length > 0)) b.Bytes = Measure(b);
+
+            // ---- Phần mềm kế toán / thuế / BHXH: SQL Server (MISA, ECUS, FAST, Bravo…), HTKK, kê khai BHXH ----
+            try { list.InsertRange(list.FindIndex(b => b.Group == "Cấu hình") is var at && at >= 0 ? at : list.Count, AppData.Scan(u, measure)); }
+            catch (Exception) { /* không đọc được — vẫn sao lưu các mục khác */ }
             foreach (var b in list.Where(b => b.InOneDrive))
                 b.Note = (b.Note.Length > 0 ? b.Note + " " : "") +
                          "Thư mục nằm trong OneDrive: chỉ sao lưu file đã có trên máy" +
@@ -218,6 +225,13 @@ namespace ITHelpdeskTool.Reinstall
                 var to = Path.Combine(dest, b.Folder);
                 try
                 {
+                    if (b.Sql != null)
+                    {
+                        var err = AppData.BackupSql(run, b.Sql, to, progress);
+                        if (err.Length > 0) { res.Errors.Add($"{b.Title}: {err}"); continue; }
+                        res.Done.Add(b);
+                        continue;
+                    }
                     switch (b.Id)
                     {
                         case "wifi":
