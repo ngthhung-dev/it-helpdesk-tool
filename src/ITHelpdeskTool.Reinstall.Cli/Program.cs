@@ -14,7 +14,7 @@ namespace ITHelpdeskTool.Reinstall.Cli
     ///   check   --image X --index N --staging D:\ITH  kiểm tra máy + tương thích với bản Windows đã chọn
     ///   backup  --staging D:\ITH [--backup default|all|none|id,id] [--profile C:\Users\X] [--list]
     ///   prepare --image X --index N --staging D:\ITH [--account Admin] [--password P] [--computer NAME]
-    ///           [--software default|none|id,id] [--tweaks default|none|id,id] [--no-drivers] [--after "lệnh"]
+    ///           [--software default|all|none|id,id] [--tweaks default|none|id,id] [--no-drivers] [--after "lệnh"]
     ///           [--backup default|all|none|id,id] [--profile …] [--no-restore] [--ignore-backup-errors]
     ///           [--microsoft-account] [--confirm org,bitlocker-keys]
     ///           --staging auto = máy chỉ có ổ C:: thu nhỏ C: tạo phân vùng đệm ITH-STAGING, cài xong tự gộp lại
