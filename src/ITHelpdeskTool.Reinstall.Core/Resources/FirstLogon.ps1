@@ -145,6 +145,34 @@ if ($stg) {
           }
           $ok = $true
         }
+        'AppData' {
+          # vd %APPDATA%\Microsoft\Signatures (chu ky Outlook) cua tai khoan moi
+          $dst = [Environment]::ExpandEnvironmentVariables($r.to)
+          Log "Chep lai $($r.title) -> $dst"
+          robocopy $src $dst /E /COPY:DAT /XJ /R:1 /W:1 /NP /NFL /NDL | Out-Null
+          $ok = $LASTEXITCODE -lt 8
+        }
+        'Fonts' {
+          # Cai font cho ca may: chep vao Windows\Fonts + ghi registry (khong ghi de font co san)
+          $fontDir = Join-Path $env:SystemRoot 'Fonts'
+          $reg = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts'
+          $n = 0
+          foreach ($f in Get-ChildItem $src -File | Where-Object { $_.Extension -match '^\.(ttf|otf|ttc|otc|fon|fnt)$' }) {
+            $dst = Join-Path $fontDir $f.Name
+            if (Test-Path $dst) { continue }
+            Copy-Item $f.FullName $dst -Force
+            $kind = if ($f.Extension -match 'otf|otc') { 'OpenType' } elseif ($f.Extension -match 'fon|fnt') { '' } else { 'TrueType' }
+            $label = $f.BaseName + $(if ($kind) { " ($kind)" } else { '' })
+            New-ItemProperty -Path $reg -Name $label -Value $f.Name -PropertyType String -Force | Out-Null
+            $n++
+          }
+          Log "Da cai lai $n font"
+          $ok = $true
+        }
+        'PowerPlans' {
+          foreach ($p in Get-ChildItem $src -Filter *.pow) { powercfg /import "$($p.FullName)" | Out-Null }
+          $ok = $true
+        }
       }
     } catch { Log "LOI chep lai $($r.title): $($_.Exception.Message)" }
     Log ("Chep lai {0}: {1}" -f $r.title, $(if ($ok) { 'OK' } else { 'LOI' }))

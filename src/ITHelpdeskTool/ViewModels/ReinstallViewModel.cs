@@ -410,7 +410,8 @@ public sealed partial class ReinstallViewModel : PageViewModel
         try
         {
             var keep = BackupItems.ToDictionary(c => ((RI.BackupItem)c.Item).Id, c => c.IsChecked);
-            var list = await Task.Run(() => RI.BackupScanner.Scan(UserPaths()));
+            var target = Target;
+            var list = await Task.Run(() => RI.BackupScanner.Scan(UserPaths(), targetDrive: target));
             foreach (var c in BackupItems) c.PropertyChanged -= BackupChanged;
             BackupItems.Clear();
             foreach (var b in list)

@@ -49,6 +49,12 @@ namespace ITHelpdeskTool.Reinstall
         WiFi,
         /// <summary>Chép file Bookmarks vào hồ sơ mặc định của trình duyệt Chromium tương ứng.</summary>
         Bookmarks,
+        /// <summary>Chép lại vào thư mục có biến môi trường (vd %APPDATA%\Microsoft\Signatures) của tài khoản mới.</summary>
+        AppData,
+        /// <summary>Cài lại font (chép vào Windows\Fonts + ghi registry).</summary>
+        Fonts,
+        /// <summary>Nhập lại gói nguồn (powercfg /import).</summary>
+        PowerPlans,
     }
 
     /// <summary>Một mục có thể sao lưu.</summary>
@@ -75,6 +81,12 @@ namespace ITHelpdeskTool.Reinstall
         /// <summary>UserFolder: Desktop / Documents / Downloads / Pictures / Videos / Music. Bookmarks: đường dẫn hồ sơ trình duyệt so với %LOCALAPPDATA%.</summary>
         public string RestoreTo { get; set; } = "";
 
+        /// <summary>Mục là một phiên bản SQL Server (sao lưu .bak + chép file dữ liệu, xem <see cref="AppData.BackupSql"/>).</summary>
+        public SqlInstanceInfo? Sql { get; set; }
+
+        /// <summary>Danh sách file cụ thể (đường dẫn đầy đủ) — vd font cài thêm nằm lẫn trong Windows\Fonts.</summary>
+        public List<string> FileList { get; set; } = new List<string>();
+
         /// <summary>Tên thư mục con trong bản sao lưu.</summary>
         public string Folder => Id;
     }
@@ -85,7 +97,8 @@ namespace ITHelpdeskTool.Reinstall
         private static readonly string[] BrowserCache =
             { "Cache", "Code Cache", "GPUCache", "Service Worker", "ShaderCache", "GrShaderCache", "DawnCache", "Crashpad", "component_crx_cache", "optimization_guide_model_store" };
 
-        public static List<BackupItem> Scan(UserPaths u, bool measure = true)
+        /// <param name="targetDrive">Ổ sẽ bị xoá: mục nằm ở ổ khác (vd Downloads đã chuyển sang E:) vẫn còn sau khi cài lại → mặc định không sao lưu.</param>
+        public static List<BackupItem> Scan(UserPaths u, bool measure = true, string targetDrive = "C:")
         {
             var list = new List<BackupItem>();
             void Folder(string id, string title, string path, string restoreTo, bool def = true)
@@ -101,12 +114,15 @@ namespace ITHelpdeskTool.Reinstall
             Folder("Music", "Music", u.Music, "Music", def: false);
 
             // ---- Trình duyệt nhân Chromium: cả hồ sơ (trừ bộ nhớ đệm) + tự chép lại dấu trang ----
+            // (cùng danh sách với trang "Sao lưu trình duyệt")
             var browsers = new[]
             {
                 ("chrome", "Google Chrome", @"Google\Chrome\User Data"),
                 ("edge", "Microsoft Edge", @"Microsoft\Edge\User Data"),
                 ("coccoc", "Cốc Cốc", @"CocCoc\Browser\User Data"),
                 ("brave", "Brave", @"BraveSoftware\Brave-Browser\User Data"),
+                ("vivaldi", "Vivaldi", @"Vivaldi\User Data"),
+                ("chromium", "Chromium", @"Chromium\User Data"),
             };
             foreach (var (id, name, rel) in browsers)
             {
@@ -124,25 +140,46 @@ namespace ITHelpdeskTool.Reinstall
             if (Directory.Exists(firefox))
                 list.Add(new BackupItem { Id = "browser-firefox", Title = "Mozilla Firefox (hồ sơ)", Group = "Trình duyệt", Source = firefox, Default = true,
                     ExcludeDirs = { "cache2", "startupCache", "crashes" }, Note = "Lấy lại bằng cách chép vào %APPDATA%\\Mozilla\\Firefox trước khi mở Firefox." });
+            // Opera để hồ sơ trong Roaming, không có thư mục Default
+            foreach (var (id, name, rel) in new[] { ("opera", "Opera", @"Opera Software\Opera Stable"), ("operagx", "Opera GX", @"Opera Software\Opera GX Stable") })
+            {
+                var dir = Path.Combine(u.Roaming, rel);
+                if (Directory.Exists(dir))
+                    list.Add(new BackupItem { Id = "browser-" + id, Title = $"{name} (dấu trang, lịch sử, tiện ích)", Group = "Trình duyệt", Source = dir, Default = true,
+                        ExcludeDirs = BrowserCache.ToList(),
+                        Note = $"Lấy lại: cài {name}, đóng trình duyệt, chép thư mục này đè vào %APPDATA%\\{rel}. Mật khẩu đã lưu không dùng lại được — bật đồng bộ tài khoản Opera." });
+            }
 
             // ---- Ứng dụng ----
-            var outlookPst = new[] { Path.Combine(u.Documents, "Outlook Files"), Path.Combine(u.Local, @"Microsoft\Outlook") }
-                .Where(d => Directory.Exists(d) && Directory.GetFiles(d, "*.pst").Length > 0).ToList();
-            for (var i = 0; i < outlookPst.Count; i++)
-                list.Add(new BackupItem { Id = "outlook-pst" + (i == 0 ? "" : i.ToString()), Title = "Outlook: file thư lưu trên máy (.pst)", Group = "Ứng dụng",
-                    Source = outlookPst[i], Files = { "*.pst" }, Default = true, Note = "Mở lại trong Outlook: File → Open & Export → Open Outlook Data File." });
+            list.AddRange(ExtraData.Outlook(u));
             var zalo = Path.Combine(u.Roaming, "ZaloData");
             if (Directory.Exists(zalo))
                 list.Add(new BackupItem { Id = "zalo", Title = "Zalo PC (tin nhắn, file đã nhận)", Group = "Ứng dụng", Source = zalo, Default = true,
                     Note = "Cài Zalo, đăng nhập rồi chép thư mục này đè vào %APPDATA%\\ZaloData (tắt Zalo trước)." });
+            list.AddRange(ExtraData.MultiZalo());
 
             // ---- Cấu hình máy (chạy lệnh) ----
             list.Add(new BackupItem { Id = "wifi", Title = "Mật khẩu Wi-Fi đã lưu", Group = "Cấu hình", Default = true, Restore = RestoreKind.WiFi,
                 Note = "File xuất ra chứa mật khẩu Wi-Fi dạng chữ thường — giữ bản sao lưu cẩn thận." });
             list.Add(new BackupItem { Id = "apps", Title = "Danh sách phần mềm đang cài (để đối chiếu cài lại)", Group = "Cấu hình", Default = true });
             list.Add(new BackupItem { Id = "printers", Title = "Danh sách máy in và cổng in", Group = "Cấu hình", Default = true });
+            list.AddRange(ExtraData.Config(u));
 
-            if (measure) foreach (var b in list.Where(b => b.Source.Length > 0)) b.Bytes = Measure(b);
+            if (measure) foreach (var b in list.Where(b => b.Source.Length > 0 && b.Bytes == 0)) b.Bytes = Measure(b);
+
+            // ---- Phần mềm kế toán / thuế / BHXH: SQL Server (MISA, ECUS, FAST, Bravo…), HTKK, kê khai BHXH ----
+            try { list.InsertRange(list.FindIndex(b => b.Group == "Cấu hình") is var at && at >= 0 ? at : list.Count, AppData.Scan(u, measure)); }
+            catch (Exception) { /* không đọc được — vẫn sao lưu các mục khác */ }
+
+            // ---- Mục nằm ở ổ khác ổ sẽ bị xoá (vd Downloads đã chuyển sang E:, SQL để dữ liệu ở D:): vẫn còn sau khi cài lại ----
+            var target = targetDrive.TrimEnd('\\', ':') + ":";
+            foreach (var b in list.Where(b => b.Source.Length > 2 && !b.Source.StartsWith(target, StringComparison.OrdinalIgnoreCase) && b.Source[1] == ':'))
+            {
+                b.Default = false;
+                b.Note = $"Nằm trên ổ {b.Source.Substring(0, 2)} — ổ này không bị xoá nên không cần sao lưu" +
+                         (b.Restore == RestoreKind.UserFolder ? $" (Windows mới dùng thư mục {b.RestoreTo} mặc định trên {target}; dữ liệu cũ vẫn ở {b.Source})." : ".") +
+                         (b.Note.Length > 0 ? " " + b.Note : "");
+            }
             foreach (var b in list.Where(b => b.InOneDrive))
                 b.Note = (b.Note.Length > 0 ? b.Note + " " : "") +
                          "Thư mục nằm trong OneDrive: chỉ sao lưu file đã có trên máy" +
@@ -218,6 +255,20 @@ namespace ITHelpdeskTool.Reinstall
                 var to = Path.Combine(dest, b.Folder);
                 try
                 {
+                    if (b.Sql != null)
+                    {
+                        var err = AppData.BackupSql(run, b.Sql, to, progress);
+                        if (err.Length > 0) { res.Errors.Add($"{b.Title}: {err}"); continue; }
+                        res.Done.Add(b);
+                        continue;
+                    }
+                    if (b.Id == ExtraData.FontsId || b.Id == ExtraData.PowerPlansId)
+                    {
+                        var err = ExtraData.Run(run, b, to);
+                        if (err.Length > 0) res.Errors.Add($"{b.Title}: {err}");
+                        res.Done.Add(b);   // lỗi lẻ (1 font) vẫn giữ phần đã chép để chép lại được
+                        continue;
+                    }
                     switch (b.Id)
                     {
                         case "wifi":

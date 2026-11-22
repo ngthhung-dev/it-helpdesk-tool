@@ -21,6 +21,10 @@
   <!-- Đọc file .iso trong code cho Windows 7 (không có Mount-DiskImage). MIT. -->
   <ItemGroup>
     <PackageReference Include="DiscUtils.Udf" Version="0.16.13" />
+    <!-- Đọc registry (SQL Server, phần mềm đã cài) trên netstandard2.0 -->
+    <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
+    <!-- Chủ sở hữu file font (phân biệt font của Windows với font cài thêm) -->
+    <PackageReference Include="System.IO.FileSystem.AccessControl" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>
