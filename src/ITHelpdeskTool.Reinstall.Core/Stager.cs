@@ -180,6 +180,13 @@ namespace ITHelpdeskTool.Reinstall
             var e = BootEntry.Create(_run, Path.Combine(staging, "boot.wim"), Path.Combine(staging, "boot.sdi"), p.Firmware);
             e.Save(staging);
             FlushToDisk(staging, p.TargetDrive);
+            // Đọc lại: lần khởi động kế tiếp phải đúng là mục vừa tạo (phần mềm khác / chính sách có thể đã ghi đè).
+            var check = _run.Run("bcdedit.exe", "/enum {bootmgr}");
+            if (check.Ok && !BootSequenceIs(check.Output, e.EntryId))
+            {
+                e.Delete(_run);
+                throw new ReinstallException("Đặt khởi động vào môi trường cài không giữ được (bcdedit không thấy bootsequence). Chưa xoá gì — thử lại hoặc khởi động lại máy rồi chạy lại.");
+            }
             return e;
         }
 
@@ -196,6 +203,11 @@ namespace ITHelpdeskTool.Reinstall
                    "$k=[Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('BCD00000000'); if($k){ $k.Flush(); 'BCD flushed' };" +
                    $"foreach($l in @({letters})){{ Write-VolumeCache -DriveLetter $l; 'Volume ' + $l + ': flushed' }}";
         }
+
+        /// <summary>Kết quả "bcdedit /enum {bootmgr}" có dòng bootsequence trỏ đúng mục id không.</summary>
+        internal static bool BootSequenceIs(string bootmgrOutput, string id) =>
+            id.Length > 0 && bootmgrOutput.Replace("\r", "").Split('\n')
+                .Any(l => l.TrimStart().StartsWith("bootsequence", StringComparison.OrdinalIgnoreCase) && l.IndexOf(id, StringComparison.OrdinalIgnoreCase) >= 0);
 
         private void FlushToDisk(string staging, string targetDrive)
         {

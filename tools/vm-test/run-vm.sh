@@ -62,7 +62,12 @@ qemu-img create -f qcow2 disk0.qcow2 64G > /dev/null
 qemu-img create -f qcow2 disk1.qcow2 40G > /dev/null
 
 MON=$WORK/mon.sock
-COMMON=(-enable-kvm -cpu host -smp 4 -m 6144
+# CPU: runner GitHub đã là máy ảo → KVM lồng nhau. Với "-cpu host" Windows 11 thấy VT-x/AMD-V nên tự bật VBS / Hyper-V
+# (lồng thêm một tầng) và bị màn hình xanh 0x3B lúc có lúc không — cả khi đang cài Windows gốc, trước khi app chạy (run 44975344972),
+# và lúc tắt máy (khởi động lại không sạch → mất mục BCD). Tắt vmx/svm + bật các "enlightenment" Hyper-V như libvirt khuyên cho Windows.
+lscpu | grep -E 'Model name|Vendor ID|Virtualization|Hypervisor' || true
+CPU="host,-vmx,-svm,hv_relaxed,hv_vapic,hv_spinlocks=0x1fff,hv_time,hv_vpindex,hv_synic,hv_stimer"
+COMMON=(-enable-kvm -cpu "$CPU" -smp 4 -m 6144
   -drive file=disk0.qcow2,if=none,id=d0 -drive file=disk1.qcow2,if=none,id=d1
   -drive file="$ISO",media=cdrom,if=none,id=cd0,readonly=on -drive file=tools.iso,media=cdrom,if=none,id=cd1,readonly=on
   -nic user,model=e1000e
@@ -155,6 +160,10 @@ check() { if [ -e "$1" ]; then echo "OK   $2"; else echo "FAIL $2 ($1)"; FAIL=1;
 FAIL=0
 echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
 {
+  # Không có log của app ở đâu cả → máy ảo hỏng trước khi app chạy (vd màn hình xanh lúc cài Windows gốc): lỗi hạ tầng, không phải app
+  if [ ! -e /mnt/stg/ITH/logs/prepare.log ] && [ ! -e /mnt/win/ITH/logs/prepare.log ] && [ ! -e /mnt/win/ith-test.log ]; then
+    echo "HẠ TẦNG: app chưa từng chạy — máy ảo hỏng trước đó (xem ảnh chụp cuối: màn hình xanh / kẹt cài Windows gốc)"
+  fi
   if [ "$SCEN" = happy ] || [ "$SCEN" = safe ] || [ "$SCEN" = esd ]; then
     check /mnt/stg/ITH/logs/prepare.log "ithreinstall prepare đã chạy"
     check /mnt/stg/ITH/logs/winpe.log "môi trường cài (WinPE) đã chạy"

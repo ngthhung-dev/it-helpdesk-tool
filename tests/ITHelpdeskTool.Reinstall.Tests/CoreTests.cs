@@ -300,4 +300,16 @@ public class PreflightTests
         Assert.DoesNotContain("\"", s);
         Assert.Contains("@('C')", Stager.FlushScript("C:\\", "C:"));
     }
+
+    [Fact]
+    public void Detects_boot_sequence_entry()
+    {
+        const string id = "{4ea31ea2-e660-11f1-bc62-c7f7e5a59c5b}";
+        var withSeq = "Windows Boot Manager\r\n--------------------\r\nidentifier              {bootmgr}\r\ndisplayorder            {current}\r\n                        " + id + "\r\nbootsequence            " + id + "\r\ntimeout                 30\r\n";
+        Assert.True(Stager.BootSequenceIs(withSeq, id));
+        Assert.True(Stager.BootSequenceIs(withSeq, id.ToUpperInvariant()));
+        // Chỉ có trong displayorder (bootsequence đã mất) → không đạt
+        Assert.False(Stager.BootSequenceIs(withSeq.Replace("bootsequence            " + id + "\r\n", ""), id));
+        Assert.False(Stager.BootSequenceIs(withSeq, ""));
+    }
 }
