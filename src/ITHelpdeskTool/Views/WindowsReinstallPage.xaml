@@ -1,0 +1,80 @@
+<UserControl x:Class="ITHelpdeskTool.Views.WindowsReinstallPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:ITHelpdeskTool.ViewModels"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:WindowsReinstallViewModel}"
+             d:DesignWidth="1200" d:DesignHeight="900">
+    <UserControl.Resources>
+        <!-- Ô chọn cách cài lại: viền xanh khi đang chọn -->
+        <Style x:Key="ModeTile" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="B" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1.5" CornerRadius="10" Padding="16,12">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="B" Property="Background" Value="{DynamicResource Surface2Brush}"/>
+                            </Trigger>
+                            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
+                                <Setter TargetName="B" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                <Setter TargetName="B" Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Margin="28,4,22,6">
+            <TextBlock Text="Cài lại Windows" Style="{StaticResource H1}"/>
+            <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,12" FontSize="13" TextWrapping="Wrap"
+                       Text="Chọn cách cài lại: giữ nguyên dữ liệu và phần mềm (sửa lỗi Windows), hoặc xoá sạch ổ C: rồi cài Windows mới."/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button Style="{StaticResource ModeTile}" Command="{Binding SetModeCommand}" CommandParameter="keep" Tag="{Binding IsKeep}">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="&#xE90F;" FontFamily="{StaticResource IconFont}" FontSize="20" Margin="0,2,12,0"
+                                   Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Top"/>
+                        <StackPanel>
+                            <TextBlock Text="Giữ dữ liệu — sửa lỗi Windows" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource TextBrush}"/>
+                            <TextBlock Style="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,3,0,0"
+                                       Text="Cài đè bằng bộ cài gốc (giữ file và phần mềm), Reset this PC, kiểm tra yêu cầu Windows 11, vào môi trường khôi phục."/>
+                        </StackPanel>
+                    </DockPanel>
+                </Button>
+                <Button Grid.Column="2" Style="{StaticResource ModeTile}" Command="{Binding SetModeCommand}" CommandParameter="clean" Tag="{Binding IsClean}">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="&#xE72C;" FontFamily="{StaticResource IconFont}" FontSize="20" Margin="0,2,12,0"
+                                   Foreground="{DynamicResource BadBrush}" VerticalAlignment="Top"/>
+                        <StackPanel>
+                            <TextBlock Text="Cài lại sạch — xoá ổ C:" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource TextBrush}"/>
+                            <TextBlock Style="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,3,0,0"
+                                       Text="Không cần USB: tự sao lưu dữ liệu quan trọng, xoá C: rồi cài Windows mới, cài xong tự tạo tài khoản, cài phần mềm và chép lại dữ liệu."/>
+                        </StackPanel>
+                    </DockPanel>
+                </Button>
+            </Grid>
+        </StackPanel>
+
+        <!-- Trang con (DataTemplate theo ViewModel trong App.xaml) -->
+        <ContentControl Grid.Row="1" Content="{Binding Current}" Focusable="False"/>
+    </Grid>
+</UserControl>
