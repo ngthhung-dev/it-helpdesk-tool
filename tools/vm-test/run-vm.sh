@@ -52,7 +52,7 @@ t = t.replace('__DISKCONFIG__', '''$DISK''').replace('__INSTALLTO__', sys.argv[3
 open(sys.argv[2], 'w', encoding='utf-8', newline='\r\n').write(t)
 PY
 # uefi/happy cài mọi phần mềm trong danh mục trừ WhatsApp (Microsoft Store lỗi chứng chỉ trên Windows mới cài, mặc định không chọn)
-SOFTWARE="7zip.7zip,unikey"; ALLSW=0; [ "$FW" = uefi ] && [ "$SCEN" = happy ] && ALLSW=1 && SOFTWARE="7zip.7zip,CocCoc.CocCoc,evkey,Google.Chrome,it-helpdesk-tool,CodecGuide.K-LiteCodecPack.Standard,mail-lite,Mozilla.Firefox,pdf-editor-lite,rustdesk,DucFabulous.UltraViewer,Foxit.FoxitReader,Telegram.TelegramDesktop,unikey,VideoLAN.VLC,Tencent.WeChat.Universal,RARLab.WinRAR,Zoom.Zoom"
+SOFTWARE="7zip.7zip,unikey"; ALLSW=0; [ "$FW" = uefi ] && [ "$SCEN" = happy ] && ALLSW=1 && SOFTWARE="7zip.7zip,CocCoc.CocCoc,evkey,Google.Chrome,it-helpdesk-tool,CodecGuide.K-LiteCodecPack.Standard,mail-lite,Mozilla.Firefox,pdf-editor-lite,rustdesk,DucFabulous.UltraViewer,Foxit.FoxitReader,Telegram.TelegramDesktop,unikey,VideoLAN.VLC,Tencent.WeChat.Universal,RARLab.WinRAR,Zoom.Zoom,zalo,bartender-lite,OpenAI.ChatGPT,Anthropic.Claude,Oracle.JavaRuntimeEnvironment,Skillbrains.Lightshot,Python.Python.3.13"
 EXTRA=""; [ "$BASE" = safe ] && EXTRA="--test-fail-before-format"
 ESD=0; [ "$BASE" = esd ] && ESD=1
 MULTI=0; [ "$BASE" = multi ] && MULTI=1

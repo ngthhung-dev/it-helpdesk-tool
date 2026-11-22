@@ -178,11 +178,18 @@ public class CatalogAndOrderTests
         Assert.Equal(names.OrderBy(n => n, StringComparer.InvariantCultureIgnoreCase), names);
         var on = Catalog.Software.Where(s => s.Default).Select(s => s.Name).OrderBy(n => n).ToList();
         Assert.Equal(new[] { "7-Zip", "Cốc Cốc", "EVKey", "Google Chrome", "IT Helpdesk Tool", "K-Lite Codec Pack", "Mail Lite",
-                             "Mozilla Firefox", "PDF Editor Lite", "RustDesk", "UltraViewer" }.OrderBy(n => n), on);
+                             "Mozilla Firefox", "PDF Editor Lite", "RustDesk", "UltraViewer", "Zalo PC" }.OrderBy(n => n), on);
         var off = Catalog.Software.Where(s => !s.Default).Select(s => s.Name).OrderBy(n => n).ToList();
-        Assert.Equal(new[] { "Foxit PDF Reader", "Telegram", "UniKey", "VLC", "WeChat", "WhatsApp", "WinRAR", "Zoom" }.OrderBy(n => n), off);
+        Assert.Equal(new[] { "Bartender Lite", "ChatGPT", "Claude", "Foxit PDF Reader", "Java 8 (JRE)", "Lightshot", "Python 3.13",
+                             "Telegram", "UniKey", "VLC", "WeChat", "WhatsApp", "WinRAR", "Zoom" }.OrderBy(n => n), off);
         Assert.All(Catalog.Software, s => Assert.False(string.IsNullOrEmpty(s.Description)));
-        Assert.All(Catalog.Software.Where(s => s.Kind == SoftwareKind.Installer && !s.Url.EndsWith("msi$")), s => Assert.NotEqual("", s.Args));
+        Assert.Equal(Catalog.Software.Count, Catalog.Software.Select(s => s.Id).Distinct().Count());
+        // Bộ cài Inno của chính mình: tham số cố định; còn lại Args trống = FirstLogon tự nhận kiểu bộ cài
+        Assert.All(Catalog.Software.Where(s => s.Id is "it-helpdesk-tool" or "pdf-editor-lite"), s => Assert.Contains("/VERYSILENT", s.Args));
+        // FirstLogon có đoán tham số im lặng + User-Agent trình duyệt (zalo.me cần)
+        var ps = Templates.Load("FirstLogon.ps1");
+        Assert.Contains("function Get-SilentArgs", ps);
+        Assert.Contains("Mozilla/5.0 (Windows NT 10.0; Win64; x64)", ps);
     }
 
     [Fact]

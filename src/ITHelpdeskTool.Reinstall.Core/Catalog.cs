@@ -91,8 +91,18 @@ namespace ITHelpdeskTool.Reinstall
             new SoftwareItem { Id = "rustdesk", Name = "RustDesk", Kind = SoftwareKind.Installer, Default = true, Description = "Điều khiển từ xa, miễn phí",
                 Url = @"github:rustdesk/rustdesk|x86_64\.msi$" },
             new SoftwareItem { Id = "DucFabulous.UltraViewer", Name = "UltraViewer", Default = true, Description = "Điều khiển từ xa" },
+            // Args trống = FirstLogon tự nhận kiểu bộ cài (Inno / NSIS…) như App Store
+            new SoftwareItem { Id = "zalo", Name = "Zalo PC", Kind = SoftwareKind.Installer, Default = true, Description = "Chat, gọi video",
+                Url = "https://zalo.me/download/zalo-pc?utm=90000" },
 
             // ---- Không chọn sẵn ----
+            new SoftwareItem { Id = "bartender-lite", Name = "Bartender Lite", Kind = SoftwareKind.Installer, Description = "Thiết kế, in tem nhãn, mã vạch",
+                Url = @"github:ngthhung-dev/bartender-lite|Setup\.exe$" },
+            new SoftwareItem { Id = "OpenAI.ChatGPT", Name = "ChatGPT", Description = "Trợ lý AI ChatGPT bản desktop" },
+            new SoftwareItem { Id = "Anthropic.Claude", Name = "Claude", Description = "Trợ lý AI Claude bản desktop" },
+            new SoftwareItem { Id = "Oracle.JavaRuntimeEnvironment", Name = "Java 8 (JRE)", Description = "Cho phần mềm Java: chữ ký số, khai thuế…" },
+            new SoftwareItem { Id = "Skillbrains.Lightshot", Name = "Lightshot", Description = "Chụp vùng màn hình bằng phím PrtSc" },
+            new SoftwareItem { Id = "Python.Python.3.13", Name = "Python 3.13", Description = "Ngôn ngữ lập trình Python" },
             new SoftwareItem { Id = "Foxit.FoxitReader", Name = "Foxit PDF Reader", Description = "Đọc, ký, điền form PDF" },
             new SoftwareItem { Id = "Telegram.TelegramDesktop", Name = "Telegram", Description = "Chat, gửi file lớn" },
             new SoftwareItem { Id = "unikey", Name = "UniKey", Kind = SoftwareKind.Portable, Description = "Bộ gõ tiếng Việt (bản chạy liền)",

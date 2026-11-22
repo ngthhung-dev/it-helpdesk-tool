@@ -170,6 +170,27 @@
                                     <TextBlock Text="{Binding BackupTotal}" Style="{StaticResource Hint}"/>
                                 </StackPanel>
                             </DockPanel>
+                            <!-- Tuỳ chọn áp cho cả bản sao lưu: để trên cùng, tách khỏi danh sách dữ liệu -->
+                            <Border Background="{DynamicResource BgBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                    CornerRadius="8" Padding="14,10" Margin="0,6,0,4">
+                                <StackPanel>
+                                    <TextBlock Text="Tuỳ chọn" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,6"/>
+                                    <CheckBox IsChecked="{Binding RestoreAfter}">
+                                        <StackPanel>
+                                            <TextBlock Text="Cài xong tự chép lại vào tài khoản mới" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap"/>
+                                            <TextBlock Text="Desktop, Documents, Wi-Fi, bookmark, font, Power Plan… về đúng chỗ cũ. Bỏ chọn nếu chỉ muốn giữ bản sao lưu để tự chép."
+                                                       Style="{StaticResource Hint}"/>
+                                        </StackPanel>
+                                    </CheckBox>
+                                    <CheckBox IsChecked="{Binding IgnoreBackupErrors}" Margin="0,8,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="Vẫn cài tiếp nếu có file không sao lưu được" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap"/>
+                                            <TextBlock Text="File đang mở, đường dẫn lỗi… sẽ bị bỏ qua và mất khi xoá ổ C:. Chỉ bật khi đã chắc các file đó không cần."
+                                                       Style="{StaticResource Hint}"/>
+                                        </StackPanel>
+                                    </CheckBox>
+                                </StackPanel>
+                            </Border>
                             <ItemsControl ItemsSource="{Binding BackupView}" ItemTemplate="{StaticResource ChoiceTemplate}">
                                 <ItemsControl.GroupStyle>
                                     <GroupStyle>
@@ -182,8 +203,6 @@
                                     </GroupStyle>
                                 </ItemsControl.GroupStyle>
                             </ItemsControl>
-                            <CheckBox IsChecked="{Binding RestoreAfter}" Margin="0,8,0,0" Content="Cài xong tự chép lại vào tài khoản mới (Desktop, Documents, Wi-Fi, bookmark…)"/>
-                            <CheckBox IsChecked="{Binding IgnoreBackupErrors}" Margin="0,4,0,0" Content="Vẫn cài tiếp nếu có file không sao lưu được (file đang mở, đường dẫn lỗi)"/>
                         </StackPanel>
                     </Border>
 
