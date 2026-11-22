@@ -62,8 +62,9 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             <StackPanel Margin="28,4,22,4">
-                <TextBlock Text="Cài lại sạch" Style="{StaticResource H1}"/>
+                <TextBlock Text="Cài lại sạch" Style="{StaticResource H1}" Visibility="{Binding Embedded, Converter={x:Static core:Converters.NotVis}}"/>
                 <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,14" FontSize="13" TextWrapping="Wrap"
+                           Visibility="{Binding Embedded, Converter={x:Static core:Converters.NotVis}}"
                            Text="Xoá ổ Windows đang chạy rồi cài Windows mới từ ISO, không cần USB. Kiểm tra máy, sao lưu dữ liệu quan trọng, cài xong tự tạo tài khoản, cài phần mềm và chép lại dữ liệu."/>
                 <c:SectionIndex Target="{Binding ElementName=PageScroller}" Margin="0,0,0,2"/>
             </StackPanel>

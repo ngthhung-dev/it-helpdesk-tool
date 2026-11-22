@@ -38,8 +38,9 @@
             </Grid.RowDefinitions>
             <!-- Đầu trang ghim cố định (không cuộn) -->
             <StackPanel Margin="28,4,22,4">
-                <TextBlock Text="Cài Windows" Style="{StaticResource H1}"/>
+                <TextBlock Text="Cài Windows" Style="{StaticResource H1}" Visibility="{Binding Embedded, Converter={x:Static core:Converters.NotVis}}"/>
                 <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,14" FontSize="13" TextWrapping="Wrap"
+                           Visibility="{Binding Embedded, Converter={x:Static core:Converters.NotVis}}"
                            Text="Kiểm tra yêu cầu Windows 11, cài lại Windows giữ nguyên dữ liệu, mở trình cài đặt gốc từ ISO của Microsoft, vào môi trường khôi phục."/>
 
                 <c:SectionIndex Target="{Binding ElementName=PageScroller}" Margin="0,0,0,2"/>

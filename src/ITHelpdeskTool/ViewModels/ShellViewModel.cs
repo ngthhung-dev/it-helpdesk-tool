@@ -40,7 +40,11 @@ public sealed partial class ShellViewModel : ObservableObject
     {
         get => _startPage;
         // Trang "Kho ứng dụng" cũ đã gộp vào App Store
-        set => _startPage = value is not null && value.StartsWith("postinstall", StringComparison.OrdinalIgnoreCase) ? "store" + value[11..] : value;
+        set => _startPage = value is null ? null
+            : value.StartsWith("postinstall", StringComparison.OrdinalIgnoreCase) ? "store" + value[11..]
+            // Trang "Cài Windows" cũ đã gộp vào "Cài lại Windows" (cách Giữ dữ liệu)
+            : value.Equals("wininstall", StringComparison.OrdinalIgnoreCase) ? "reinstall/keep"
+            : value;
     }
     private static string? _startPage;
 
@@ -82,8 +86,7 @@ public sealed partial class ShellViewModel : ObservableObject
             [
                 Item("iso", "Tải ISO", "\uE958", 1, () => new IsoViewModel()),
                 Item("usb", "Tạo USB boot", "\uE88E", 1, () => new UsbViewModel()),
-                Item("wininstall", "Cài Windows", "\uE7F8", 1, () => new WinInstallViewModel()),
-                Item("reinstall", "Cài lại sạch", "\uE72C", 1, () => new ReinstallViewModel()),
+                Item("reinstall", "Cài lại Windows", "\uE72C", 1, () => new WindowsReinstallViewModel()),   // gộp "Cài Windows" (giữ dữ liệu) + "Cài lại sạch" (xoá C:)
                 Item("winpe", "WinPE", "\uE756", 1, () => new WinPeViewModel()),
             ]),
             new("Ổ ĐĨA & DỮ LIỆU",
