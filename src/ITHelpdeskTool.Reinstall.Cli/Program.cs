@@ -129,7 +129,11 @@ namespace ITHelpdeskTool.Reinstall.Cli
                 p.ImageIndex = Workflow.ReadEditions(run, p.ImagePath).FirstOrDefault(e => e.Edition.Equals(ed, StringComparison.OrdinalIgnoreCase))?.Index
                                ?? throw new ReinstallException($"File cài không có bản {ed}.");
             }
-            p.Software = Pick(a.Get("software", "default"), Catalog.Software, Catalog.DefaultSoftware, s => s.Id, s => s.Clone());
+            // --software all: cài mọi phần mềm trong danh mục (chỉ cho phần mềm — tinh chỉnh "all" sẽ bật cả mục nguy hiểm)
+            var software = a.Get("software", "default");
+            p.Software = software == "all"
+                ? Catalog.Software.Select(s => s.Clone()).ToList()
+                : Pick(software, Catalog.Software, Catalog.DefaultSoftware, s => s.Id, s => s.Clone());
             p.Tweaks = Pick(a.Get("tweaks", "default"), Catalog.Tweaks, Catalog.DefaultTweaks, t => t.Id, t => t.Clone());
             return p;
         }
