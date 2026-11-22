@@ -14,7 +14,7 @@ namespace ITHelpdeskTool.Reinstall.Cli
     ///   check   --image X --index N --staging D:\ITH  kiểm tra máy + tương thích với bản Windows đã chọn
     ///   backup  --staging D:\ITH [--backup default|all|none|id,id] [--profile C:\Users\X] [--list]
     ///   prepare --image X --index N --staging D:\ITH [--account Admin] [--password P] [--computer NAME]
-    ///           [--software default|none|id,id] [--tweaks default|none|id,id] [--no-drivers] [--after "lệnh"]
+    ///           [--software default|all|none|id,id] [--tweaks default|none|id,id] [--no-drivers] [--after "lệnh"]
     ///           [--backup default|all|none|id,id] [--profile …] [--no-restore] [--ignore-backup-errors]
     ///           [--microsoft-account] [--confirm org,bitlocker-keys]
     ///           --staging auto = máy chỉ có ổ C:: thu nhỏ C: tạo phân vùng đệm ITH-STAGING, cài xong tự gộp lại
@@ -129,7 +129,11 @@ namespace ITHelpdeskTool.Reinstall.Cli
                 p.ImageIndex = Workflow.ReadEditions(run, p.ImagePath).FirstOrDefault(e => e.Edition.Equals(ed, StringComparison.OrdinalIgnoreCase))?.Index
                                ?? throw new ReinstallException($"File cài không có bản {ed}.");
             }
-            p.Software = Pick(a.Get("software", "default"), Catalog.Software, Catalog.DefaultSoftware, s => s.Id, s => s.Clone());
+            // --software all: cài mọi phần mềm trong danh mục (chỉ cho phần mềm — tinh chỉnh "all" sẽ bật cả mục nguy hiểm)
+            var software = a.Get("software", "default");
+            p.Software = software == "all"
+                ? Catalog.Software.Select(s => s.Clone()).ToList()
+                : Pick(software, Catalog.Software, Catalog.DefaultSoftware, s => s.Id, s => s.Clone());
             p.Tweaks = Pick(a.Get("tweaks", "default"), Catalog.Tweaks, Catalog.DefaultTweaks, t => t.Id, t => t.Clone());
             return p;
         }

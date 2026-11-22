@@ -35,7 +35,7 @@ namespace ITHelpdeskTool.Reinstall
                 if (pst.Count > 0)
                     list.Add(new BackupItem
                     {
-                        Id = "outlook-pst" + (n++ == 0 ? "" : n.ToString()), Group = "Ứng dụng", Default = true, Source = g.Key,
+                        Id = "outlook-pst" + (n++ == 0 ? "" : n.ToString()), Group = BackupScanner.GroupMail, Default = true, Source = g.Key,
                         Title = $"Outlook: file thư lưu trên máy (.pst) — {pst.Count} file",
                         Files = pst.Select(Path.GetFileName).ToList()!, Bytes = pst.Sum(Size),
                         Note = "Đóng Outlook trước khi sao lưu. Mở lại trong Outlook: File → Open & Export → Open Outlook Data File.",
@@ -43,7 +43,7 @@ namespace ITHelpdeskTool.Reinstall
                 if (ost.Count > 0)
                     list.Add(new BackupItem
                     {
-                        Id = "outlook-ost" + (n++ == 0 ? "" : n.ToString()), Group = "Ứng dụng", Default = false, Source = g.Key,
+                        Id = "outlook-ost" + (n++ == 0 ? "" : n.ToString()), Group = BackupScanner.GroupMail, Default = false, Source = g.Key,
                         Title = $"Outlook: bộ nhớ đệm thư (.ost) — {ost.Count} file",
                         Files = ost.Select(Path.GetFileName).ToList()!, Bytes = ost.Sum(Size),
                         Note = "Thường KHÔNG cần: thư tài khoản Microsoft 365 / Exchange / IMAP tự tải lại khi đăng nhập Outlook. " +
@@ -54,7 +54,7 @@ namespace ITHelpdeskTool.Reinstall
             if (Directory.Exists(sig) && Directory.EnumerateFileSystemEntries(sig).Any())
                 list.Add(new BackupItem
                 {
-                    Id = "outlook-signatures", Title = "Outlook: chữ ký email", Group = "Ứng dụng", Source = sig, Default = true,
+                    Id = "outlook-signatures", Title = "Outlook: chữ ký email", Group = BackupScanner.GroupMail, Source = sig, Default = true,
                     Restore = RestoreKind.AppData, RestoreTo = @"%APPDATA%\Microsoft\Signatures",
                     Note = "Tự chép lại vào tài khoản mới — mở Outlook là có chữ ký (chọn lại chữ ký mặc định trong File → Options → Mail → Signatures).",
                 });
@@ -62,7 +62,7 @@ namespace ITHelpdeskTool.Reinstall
             if (Directory.Exists(roam) && Directory.GetFiles(roam, "Stream_Autocomplete*.dat").Length > 0)
                 list.Add(new BackupItem
                 {
-                    Id = "outlook-autocomplete", Title = "Outlook: danh sách gợi ý địa chỉ khi gõ (Auto-Complete)", Group = "Ứng dụng", Source = roam,
+                    Id = "outlook-autocomplete", Title = "Outlook: danh sách gợi ý địa chỉ khi gõ (Auto-Complete)", Group = BackupScanner.GroupMail, Source = roam,
                     Files = { "Stream_Autocomplete*.dat" }, Default = true,
                     Note = "Lấy lại: cài Outlook, thêm tài khoản, đóng Outlook, chép file .dat đè vào %LOCALAPPDATA%\\Microsoft\\Outlook\\RoamCache (giữ tên file mới mà Outlook tạo).",
                 });
@@ -135,7 +135,7 @@ namespace ITHelpdeskTool.Reinstall
                 if (!Directory.Exists(folder)) continue;
                 list.Add(new BackupItem
                 {
-                    Id = "multizalo-" + AppData.Safe(name), Title = $"Multi-Zalo: hồ sơ “{name}”", Group = "Ứng dụng", Source = folder, Default = true,
+                    Id = "multizalo-" + AppData.Safe(name), Title = $"Multi-Zalo: hồ sơ “{name}”", Group = BackupScanner.GroupMail, Source = folder, Default = true,
                     ExcludeDirs = { "Cache", "GPUCache", "Code Cache" },
                     Note = $"Lấy lại: cài Zalo, tạo lại hồ sơ cùng tên ở trang Multi-Zalo, tắt Zalo rồi chép thư mục này đè vào thư mục hồ sơ mới.",
                 });
@@ -159,7 +159,7 @@ namespace ITHelpdeskTool.Reinstall
             if (fonts.Count > 0)
                 list.Add(new BackupItem
                 {
-                    Id = FontsId, Title = $"Font cài thêm ({fonts.Count} font, không tính font của Windows)", Group = "Cấu hình", Default = true,
+                    Id = FontsId, Title = $"Font cài thêm ({fonts.Count} font, không tính font của Windows)", Group = BackupScanner.GroupSettings, Default = true,
                     FileList = fonts, Bytes = fonts.Sum(Size), Restore = RestoreKind.Fonts,
                     Note = "Tự cài lại trên Windows mới (font tiếng Việt VNI / TCVN3 / .VnTime… cho văn bản cũ).",
                 });
@@ -167,13 +167,13 @@ namespace ITHelpdeskTool.Reinstall
             if (plans.Count > 0)
                 list.Add(new BackupItem
                 {
-                    Id = PowerPlansId, Title = $"Gói nguồn (Power Plan) tự tạo: {string.Join(", ", plans.Select(p => p.Name))}", Group = "Cấu hình", Default = true,
+                    Id = PowerPlansId, Title = $"Gói nguồn (Power Plan) tự tạo: {string.Join(", ", plans.Select(p => p.Name))}", Group = BackupScanner.GroupSettings, Default = true,
                     Restore = RestoreKind.PowerPlans, Note = "Tự nhập lại trên Windows mới (chọn lại gói đang dùng trong Power Options).",
                 });
             if (Directory.Exists(AppDataDir) && Directory.EnumerateFileSystemEntries(AppDataDir).Any())
                 list.Add(new BackupItem
                 {
-                    Id = "ithelpdesk", Title = "Dữ liệu của IT Helpdesk Tool (nhật ký, bản sao lưu Startup / Gỡ app sạch, cấu hình Multi-Zalo)", Group = "Cấu hình",
+                    Id = "ithelpdesk", Title = "Dữ liệu của IT Helpdesk Tool (nhật ký, bản sao lưu Startup / Gỡ app sạch, cấu hình Multi-Zalo)", Group = BackupScanner.GroupSettings,
                     Source = AppDataDir, Default = true, Note = "File .reg sao lưu khi xoá mục khởi động / gỡ app: nhấp đúp để khôi phục nếu cần.",
                 });
             return list;

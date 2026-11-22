@@ -51,6 +51,8 @@ t = open(sys.argv[1], encoding='utf-8').read()
 t = t.replace('__DISKCONFIG__', '''$DISK''').replace('__INSTALLTO__', sys.argv[3])
 open(sys.argv[2], 'w', encoding='utf-8', newline='\r\n').write(t)
 PY
+# uefi/happy cài mọi phần mềm trong danh mục trừ WhatsApp (Microsoft Store lỗi chứng chỉ trên Windows mới cài, mặc định không chọn)
+SOFTWARE="7zip.7zip,unikey"; ALLSW=0; [ "$FW" = uefi ] && [ "$SCEN" = happy ] && ALLSW=1 && SOFTWARE="7zip.7zip,CocCoc.CocCoc,evkey,Google.Chrome,it-helpdesk-tool,CodecGuide.K-LiteCodecPack.Standard,mail-lite,Mozilla.Firefox,pdf-editor-lite,rustdesk,DucFabulous.UltraViewer,Foxit.FoxitReader,Telegram.TelegramDesktop,unikey,VideoLAN.VLC,Tencent.WeChat.Universal,RARLab.WinRAR,Zoom.Zoom"
 EXTRA=""; [ "$BASE" = safe ] && EXTRA="--test-fail-before-format"
 ESD=0; [ "$BASE" = esd ] && ESD=1
 MULTI=0; [ "$BASE" = multi ] && MULTI=1
@@ -60,7 +62,7 @@ case "$SCEN" in
   multi) STAGING='K:\\ITH'; MKDISK=0 ;;
   samedrive) STAGING='C:\\ITH'; MKDISK=0 ;;
 esac
-sed -e "s/__EXTRA__/$EXTRA/" -e "s/__ESD__/$ESD/g" -e "s/__MULTI__/$MULTI/g" -e "s/__STAGING__/$STAGING/g" -e "s/__LEGACY__/$LEGACY/g" -e "s/__MKDISK__/$MKDISK/g" "$HERE/run-test.cmd" | sed 's/$/\r/' > tools/run-test.cmd
+sed -e "s/__EXTRA__/$EXTRA/" -e "s/__ESD__/$ESD/g" -e "s/__MULTI__/$MULTI/g" -e "s/__STAGING__/$STAGING/g" -e "s/__LEGACY__/$LEGACY/g" -e "s/__SOFTWARE__/$SOFTWARE/g" -e "s/__MKDISK__/$MKDISK/g" "$HERE/run-test.cmd" | sed 's/$/\r/' > tools/run-test.cmd
 grep -n "prepare" tools/run-test.cmd | head -2
 genisoimage -quiet -J -joliet-long -r -V ITHTEST -o tools.iso tools
 
@@ -121,10 +123,25 @@ sleep 2
 for i in $(seq 1 48); do mon "sendkey tab"; sleep 1; done
 
 # ---- Chờ máy ảo tự tắt (run-test / FirstLogon.ps1 tắt máy khi xong), chụp màn hình mỗi phút ----
-START=$(date +%s); LIMIT=$((230 * 60)); n=0
+# Màn hình y hệt 15 phút liền = máy ảo đứng hình (lượt 45021075588 đứng ở màn khởi động 84 phút):
+# dừng sớm để đọc log, không chờ hết giờ. Đồng hồ khay hệ thống và vòng xoay làm ảnh đổi khi máy còn chạy.
+FREEZE=15; SAME=0; PREV=""
+# Lượt bình thường ~40 phút (cài 18 phần mềm thêm ~10 phút): quá 90 phút là bất thường → tắt máy ảo, đọc log trên ổ
+START=$(date +%s); LIMIT=$((90 * 60)); n=0
 while kill -0 $QPID 2>/dev/null; do
   sleep 60; n=$((n + 1))
+  # nhích chuột 1 điểm để Windows không tắt màn hình (màn đen làm ảnh chụp giống nhau dù máy vẫn chạy)
+  mon "mouse_move 1 0"; sleep 1; mon "mouse_move -1 0"; sleep 2
   shot "$(printf '%03d' $n)"
+  CUR=$(md5sum "$WORK/s.ppm" 2>/dev/null | cut -d" " -f1)   # so điểm ảnh gốc (PNG có dấu thời gian nên luôn khác)
+  if [ -n "$CUR" ] && [ "$CUR" = "$PREV" ]; then SAME=$((SAME + 1)); else SAME=0; fi
+  PREV=$CUR
+  if [ $SAME -ge $FREEZE ]; then
+    echo "::error::Máy ảo đứng hình $FREEZE phút (ảnh $(printf '%03d' $n)) — dừng sớm"
+    mon quit; sleep 5; kill $QPID 2>/dev/null || true
+    TIMEOUT=1
+    break
+  fi
   if [ $(( $(date +%s) - START )) -gt $LIMIT ]; then
     echo "::error::Hết giờ ($((LIMIT / 60)) phút) — máy ảo chưa tự tắt"
     mon quit; sleep 5; kill $QPID 2>/dev/null || true
@@ -191,7 +208,8 @@ echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
     check /mnt/stg/ITH/logs/prepare.log "ithreinstall prepare đã chạy"
     check /mnt/stg/ITH/logs/winpe.log "môi trường cài (WinPE) đã chạy"
   fi
-  [ -f "$OUT/logs/winpe.log" ] && { echo "### winpe.log (90 dòng cuối)"; tail -90 "$OUT/logs/winpe.log" | tr -d ''; } || true
+  [ -f "$OUT/logs/winpe.log" ] && { echo "### winpe.log (90 dòng cuối)"; tail -90 "$OUT/logs/winpe.log" | tr -d '
+'; } || true
   if [ "$BASE" = auto ] || [ "$BASE" = samedrive ]; then
     if [ -d /mnt/win/ITH-Backup ]; then L=/mnt/win/ITH-Backup/logs; B=/mnt/win/ITH-Backup; echo "Chế độ: phân vùng đệm riêng (thu nhỏ C:) → đã gộp"
       check $L/merged.done "phân vùng đệm đã gộp lại vào C:"
@@ -249,11 +267,17 @@ echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
       echo "FAIL mục khởi động tạm vẫn còn"; FAIL=1
     else echo "OK   mục khởi động tạm đã được xoá"; fi
   fi
+  if [ "$ALLSW" = 1 ] && [ -f /mnt/stg/ITH/logs/post/software.json ]; then
+    # Mỗi phần mềm một dòng OK / FAIL
+    python3 -c 'import json,sys; d=json.load(open(sys.argv[1],encoding="utf-8-sig")); d=d if isinstance(d,list) else [d]; [print(("OK   " if x["ok"] else "FAIL") + " cài phần mềm " + x["name"]) for x in d]' /mnt/stg/ITH/logs/post/software.json
+  fi
   [ -f /mnt/stg/ITH/logs/post/software.json ] && { echo "### Phần mềm"; cat /mnt/stg/ITH/logs/post/software.json; } || true
 } | tee -a "$OUT/result.txt"
 grep -q '^FAIL' "$OUT/result.txt" && FAIL=1
-[ -f /mnt/win/ITH-winpe-khong-thay-o-dem.txt ] && { echo "### WinPE không thấy ổ đệm"; sudo cat /mnt/win/ITH-winpe-khong-thay-o-dem.txt | tr -d ""; } >> "$OUT/result.txt" || true
-{ echo "### ith-test.log (máy ảo)"; sudo tail -40 /mnt/win/ith-test.log 2>/dev/null | tr -d ''; } >> "$OUT/result.txt" || true
+[ -f /mnt/win/ITH-winpe-khong-thay-o-dem.txt ] && { echo "### WinPE không thấy ổ đệm"; sudo cat /mnt/win/ITH-winpe-khong-thay-o-dem.txt | tr -d "
+"; } >> "$OUT/result.txt" || true
+{ echo "### ith-test.log (máy ảo)"; sudo tail -40 /mnt/win/ith-test.log 2>/dev/null | tr -d '
+'; } >> "$OUT/result.txt" || true
 sudo umount /mnt/stg /mnt/win 2>/dev/null || true
 sudo qemu-nbd -d /dev/nbd0 > /dev/null; sudo qemu-nbd -d /dev/nbd1 > /dev/null || true
 [ "${TIMEOUT:-0}" = 1 ] && FAIL=1

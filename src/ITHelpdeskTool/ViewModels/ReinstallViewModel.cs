@@ -17,9 +17,10 @@ namespace ITHelpdeskTool.ViewModels;
 /// <summary>Một dòng chọn (sao lưu / phần mềm / tinh chỉnh).</summary>
 public sealed partial class Choice : ObservableObject
 {
-    public Choice(object item, string title, bool on, string detail = "", string size = "", bool danger = false)
+    public Choice(object item, string title, bool on, string detail = "", string size = "", bool danger = false, string group = "")
     {
         Item = item;
+        Group = group;
         Title = title;
         _isChecked = on;
         Detail = detail;
@@ -32,6 +33,8 @@ public sealed partial class Choice : ObservableObject
     public string Detail { get; }
     public string Size { get; }
     public bool Danger { get; }
+    /// <summary>Nhóm hiển thị (sao lưu: Thư mục cá nhân, Email &amp; chat…).</summary>
+    public string Group { get; }
     [ObservableProperty] private bool _isChecked;
 }
 
@@ -87,6 +90,17 @@ public sealed partial class ReinstallViewModel : PageViewModel
 
     // ---- Sao lưu ----
     public ObservableCollection<Choice> BackupItems { get; } = [];
+
+    /// <summary>Danh sách sao lưu chia nhóm (tiêu đề nhóm trong giao diện).</summary>
+    public System.ComponentModel.ICollectionView BackupView => _backupView ??= MakeBackupView();
+    private System.ComponentModel.ICollectionView? _backupView;
+
+    private System.ComponentModel.ICollectionView MakeBackupView()
+    {
+        var v = new System.Windows.Data.ListCollectionView(BackupItems);
+        v.GroupDescriptions.Add(new System.Windows.Data.PropertyGroupDescription(nameof(Choice.Group)));
+        return v;
+    }
     [ObservableProperty] private string _backupTotal = "";
     [ObservableProperty] private bool _restoreAfter = true;
     [ObservableProperty] private bool _ignoreBackupErrors;
@@ -132,7 +146,7 @@ public sealed partial class ReinstallViewModel : PageViewModel
         _loaded = true;
         ComputerName = Environment.MachineName;
         foreach (var s in RI.Catalog.Software)
-            Software.Add(new Choice(s, s.Name, s.Default, s.Kind.ToString()));
+            Software.Add(new Choice(s, s.Name, s.Default, s.Description));
         foreach (var t in RI.Catalog.Tweaks)
             Tweaks.Add(new Choice(t, t.Title, t.Default && !t.Danger, t.Warning, danger: t.Danger));
         LoadStaging();
@@ -419,7 +433,7 @@ public sealed partial class ReinstallViewModel : PageViewModel
                 var note = b.Note;
                 if (b.CloudFiles > 0) note = (note.Length > 0 ? note + " · " : "") + $"{b.CloudFiles} file chỉ có trên OneDrive — không chép (vẫn còn trên cloud)";
                 var c = new Choice(b, b.Title + (b.Source.Length > 0 ? "  ·  " + b.Source : ""), keep.TryGetValue(b.Id, out var on) ? on : b.Default,
-                    note, b.Bytes > 0 ? RI.Workflow.Size(b.Bytes) : "");
+                    note, b.Bytes > 0 ? RI.Workflow.Size(b.Bytes) : "", group: b.Group);
                 c.PropertyChanged += BackupChanged;
                 BackupItems.Add(c);
             }

@@ -594,14 +594,23 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
-                    <StackPanel Orientation="Horizontal" Background="Transparent">
-                        <Border x:Name="Box" Width="18" Height="18" CornerRadius="5" BorderThickness="1"
+                    <!-- DockPanel (không dùng StackPanel ngang): nội dung nhận đúng bề rộng còn lại nên chữ dài tự xuống dòng
+                         khi cửa sổ hẹp, thay vì bị cắt mất -->
+                    <DockPanel Background="Transparent" LastChildFill="True">
+                        <Border x:Name="Box" DockPanel.Dock="Left" Width="18" Height="18" CornerRadius="5" BorderThickness="1" VerticalAlignment="Top" Margin="0,1,0,0"
                                 BorderBrush="{DynamicResource FaintBrush}" Background="{DynamicResource Surface2Brush}">
                             <TextBlock x:Name="Mark" Text="&#xE73E;" FontFamily="{StaticResource IconFont}" FontSize="11"
                                        Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
                         </Border>
-                        <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center"/>
-                    </StackPanel>
+                        <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center">
+                            <ContentPresenter.Resources>
+                                <!-- Content là chữ thường (Content="…"): cũng xuống dòng -->
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
+                    </DockPanel>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Box" Property="Background" Value="{DynamicResource AccentBrush}"/>

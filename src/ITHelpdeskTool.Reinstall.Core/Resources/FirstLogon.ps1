@@ -69,33 +69,78 @@ function New-Shortcut([string]$lnk, [string]$target) {
 }
 
 # ---- 4. Phan mem ----
-foreach ($s in @($cfg.software)) {
-  if (-not $s) { continue }
+# Moi phan mem toi da $perApp giay (tai + cai). Qua gio: dung ca cay tien trinh, ghi LOI, cai tiep phan mem sau
+# (bo cai hien cua so hoi du da bao cai im lang thi khong lam treo ca buoi cai).
+$perApp = 600
+if ($cfg.softwareTimeoutSec) { $perApp = [int]$cfg.softwareTimeoutSec }
+function Left-Sec { [Math]::Max(5, [int]($deadline - (Get-Date)).TotalSeconds) }
+function Wait-Proc($p) {
+  [void]$p.Handle   # giu handle de doc duoc ExitCode sau khi tien trinh thoat
+  if (-not $p.WaitForExit((Left-Sec) * 1000)) {
+    & taskkill.exe /T /F /PID $p.Id 2>&1 | Out-Null
+    throw ("qua {0} phut chua cai xong - da dung, bo qua" -f [Math]::Round($perApp / 60))
+  }
+  return $p.ExitCode
+}
+# Tai song song: moi file (.exe/.msi/.zip) bat dau tai ngay tu dau, trong luc winget cai lan luot.
+# Cai van lan luot: Windows chi cho 1 bo cai MSI chay mot luc, winget chay song song de loi.
+$dl = @{}
+$sw = @($cfg.software | Where-Object { $_ })
+if ($online) {
+  foreach ($s in @($sw | Where-Object { $_.kind -ne 'Winget' })) {
+    try {
+      $url = Resolve-Url $s.url
+      $name = if ($s.kind -eq 'Portable') { $s.id + '.zip' } else { [IO.Path]::GetFileName(([Uri]$url).AbsolutePath) }
+      $file = Join-Path $env:TEMP $name
+      $wc = New-Object Net.WebClient
+      $wc.Headers.Add('User-Agent', 'ITHelpdeskTool')
+      Log "Tai (song song) $url"
+      $dl[$s.id] = @{ file = $file; wc = $wc; task = $wc.DownloadFileTaskAsync($url, $file) }
+    } catch { $dl[$s.id] = @{ error = $_.Exception.Message } }
+  }
+}
+function Get-File($s) {
+  $d = $dl[$s.id]
+  if (-not $d) { throw 'chua tai duoc' }
+  if ($d.error) { throw $d.error }
+  try { $done = $d.task.Wait((Left-Sec) * 1000) } catch { throw ('loi tai: ' + $_.Exception.GetBaseException().Message) }
+  if (-not $done) { $d.wc.CancelAsync(); throw ("tai qua {0} phut - bo qua" -f [Math]::Round($perApp / 60)) }
+  return $d.file
+}
+# winget truoc; cac file tai song song cai sau (luc do da tai xong hoac gan xong)
+$sw = @($sw | Where-Object { $_.kind -eq 'Winget' }) + @($sw | Where-Object { $_.kind -ne 'Winget' })
+foreach ($s in $sw) {
   $ok = $false
+  $deadline = (Get-Date).AddSeconds($perApp)
   try {
     if (-not $online) { throw 'khong co mang' }
     switch ($s.kind) {
       'Winget' {
         if (-not $wg) { throw 'khong co winget' }
         Log "winget install $($s.id)"
-        $out = & $wg install --id $s.id --exact --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity 2>&1
-        Add-Content -Path $log -Value ($out | Out-String) -Encoding UTF8
-        $ok = ($LASTEXITCODE -eq 0) -or ($LASTEXITCODE -eq -1978335189)   # 0x8A15002B = da co ban moi nhat
+        # Id dang 9NKSQGP7F2NH (12 ky tu) = app Microsoft Store (vd WhatsApp) -> nguon msstore
+        $src = if ($s.id -cmatch '^[0-9A-Z]{12}$') { 'msstore' } else { 'winget' }
+        $wout = Join-Path $env:TEMP ("winget-{0}.txt" -f ($s.id -replace '[^\w.-]', '_'))
+        $p = Start-Process $wg -ArgumentList @('install', '--id', $s.id, '--exact', '--source', $src, '--silent',
+          '--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity') `
+          -NoNewWindow -PassThru -RedirectStandardOutput $wout -RedirectStandardError "$wout.err"
+        try { $code = Wait-Proc $p }
+        finally {
+          foreach ($f in $wout, "$wout.err") { if (Test-Path $f) { Add-Content -Path $log -Value (Get-Content $f -Raw -Encoding UTF8) -Encoding UTF8 } }
+        }
+        $ok = ($code -eq 0) -or ($code -eq -1978335189)   # 0x8A15002B = da co ban moi nhat
+        if (-not $ok) { Log "winget ma loi $code" }
       }
       'Installer' {
-        $url = Resolve-Url $s.url
-        $file = Join-Path $env:TEMP ([IO.Path]::GetFileName(([Uri]$url).AbsolutePath))
-        Log "Tai $url"
-        Invoke-WebRequest $url -OutFile $file -UseBasicParsing
-        if ($file -like '*.msi') { $p = Start-Process msiexec.exe -ArgumentList "/i `"$file`" /qn /norestart" -Wait -PassThru }
-        else { $p = Start-Process $file -ArgumentList $s.args -Wait -PassThru }
-        $ok = $p.ExitCode -in 0, 3010
+        $file = Get-File $s
+        if ($file -like '*.msi') { $p = Start-Process msiexec.exe -ArgumentList "/i `"$file`" /qn /norestart" -PassThru }
+        else { $p = Start-Process $file -ArgumentList $s.args -PassThru }
+        $code = Wait-Proc $p
+        $ok = $code -in 0, 3010
+        if (-not $ok) { Log "bo cai tra ma $code" }
       }
       'Portable' {
-        $url = Resolve-Url $s.url
-        $zip = Join-Path $env:TEMP ($s.id + '.zip')
-        Log "Tai $url"
-        Invoke-WebRequest $url -OutFile $zip -UseBasicParsing
+        $zip = Get-File $s
         $dir = Join-Path $env:ProgramFiles $s.name
         Expand-Archive $zip -DestinationPath $dir -Force
         $exe = Get-ChildItem $dir -Recurse -Filter $s.exe | Select-Object -First 1
