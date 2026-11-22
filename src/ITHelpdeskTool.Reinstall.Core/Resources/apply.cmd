@@ -101,6 +101,11 @@ if errorlevel 1 (
 )
 :bootok
 call :removeentries
+rem Ghi lai cau hinh khoi dong cuoi cung (de xu ly neu Windows moi khong len)
+echo ---- bcdedit /enum all >>"%LOG%"
+bcdedit /enum all >>"%LOG%" 2>&1
+echo ---- bcdedit /enum firmware >>"%LOG%"
+bcdedit /enum firmware >>"%LOG%" 2>&1
 
 > "%STG%\logs\winpe.done" echo %DATE% %TIME%
 call :log "=== Done. Rebooting into the new Windows."

@@ -159,7 +159,7 @@ echo "## Kết quả $FW / $SCEN" | tee "$OUT/result.txt"
     check /mnt/stg/ITH/logs/prepare.log "ithreinstall prepare đã chạy"
     check /mnt/stg/ITH/logs/winpe.log "môi trường cài (WinPE) đã chạy"
   fi
-  [ -f "$OUT/logs/winpe.log" ] && { echo "### winpe.log (20 dòng cuối)"; tail -20 "$OUT/logs/winpe.log" | tr -d ''; } || true
+  [ -f "$OUT/logs/winpe.log" ] && { echo "### winpe.log (90 dòng cuối)"; tail -90 "$OUT/logs/winpe.log" | tr -d ''; } || true
   if [ "$SCEN" = auto ] || [ "$SCEN" = samedrive ]; then
     if [ -d /mnt/win/ITH-Backup ]; then L=/mnt/win/ITH-Backup/logs; B=/mnt/win/ITH-Backup; echo "Chế độ: phân vùng đệm riêng (thu nhỏ C:) → đã gộp"
       check $L/merged.done "phân vùng đệm đã gộp lại vào C:"
