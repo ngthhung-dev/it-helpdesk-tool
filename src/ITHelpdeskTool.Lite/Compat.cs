@@ -50,6 +50,22 @@ namespace ITHelpdeskTool
             return tcs.Task;
         }
 
+        /// <summary>.NET 4.8 không dừng được cả cây tiến trình: dừng tiến trình chính.</summary>
+        public static void Kill(this Process p, bool entireProcessTree)
+        {
+            if (entireProcessTree)
+            {
+                try
+                {
+                    using var k = Process.Start(new ProcessStartInfo("taskkill.exe", $"/PID {p.Id} /T /F") { UseShellExecute = false, CreateNoWindow = true });
+                    k?.WaitForExit(5000);
+                    if (p.HasExited) return;
+                }
+                catch (Exception) { }
+            }
+            p.Kill();
+        }
+
         public static Task<string> ReadAsStringAsync(this HttpContent c, CancellationToken ct) => c.ReadAsStringAsync();
     }
 }

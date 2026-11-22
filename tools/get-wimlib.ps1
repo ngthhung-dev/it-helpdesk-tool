@@ -4,10 +4,10 @@
 param([Parameter(Mandatory)] [string] $Dest)
 $ErrorActionPreference = 'Stop'
 $ver = '1.14.5'
-# SHA-256 của file zip chính thức; trống = in ra để ghim lại
+# SHA-256 của file zip chính thức (ghim lại: file đổi thì dừng)
 $sha = @{
-    'x86_64' = ''
-    'i686'   = ''
+    'x86_64' = '2f446d6fa3866582175f1a22a7be198eeee0aec7aba5b4e04ad25c99eae2d265'
+    'i686'   = '3739eb2291b9a86d2fcc2914c4b2b53317c045de214782e46588ed8350371905'
 }
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $tmp = Join-Path ([IO.Path]::GetTempPath()) ("wimlib-" + [guid]::NewGuid().ToString('N'))

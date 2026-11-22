@@ -78,7 +78,7 @@ public static class UiWatchdog
                 var activity = Log.Activity;
                 var op = ui.BeginInvoke(DispatcherPriority.Input, () => { });
                 op.Wait(TimeSpan.FromSeconds(30));
-                var ms = Stopwatch.GetElapsedTime(sent).TotalMilliseconds;
+                var ms = (Stopwatch.GetTimestamp() - sent) * 1000.0 / Stopwatch.Frequency;   // (bản .NET 4.8 dùng chung: không có GetElapsedTime)
                 if (ms > 300)
                     Log.Warn($"UI bị chặn ~{ms:0} ms (đang làm: {(activity.Length > 0 ? activity : Log.Activity)})");
                 if (ui.HasShutdownStarted) return;

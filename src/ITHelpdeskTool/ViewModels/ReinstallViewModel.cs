@@ -192,7 +192,7 @@ public sealed partial class ReinstallViewModel : PageViewModel
         var dlg = new OpenFileDialog
         {
             Filter = "Bộ cài Windows (*.iso;install.wim;install.esd)|*.iso;*.wim;*.esd",
-            InitialDirectory = Directory.Exists(WindowsDownloads.DownloadDir) ? WindowsDownloads.DownloadDir : "",
+            InitialDirectory = Directory.Exists(ActiveUser.Downloads) ? ActiveUser.Downloads : "",
         };
         if (dlg.ShowDialog() != true) return;
         IsBusy = true;
@@ -259,7 +259,7 @@ public sealed partial class ReinstallViewModel : PageViewModel
 
     /// <summary>Thư mục lưu bộ cài tải về: ổ đệm (không bị xoá) nếu có, không thì Downloads.</summary>
     private string DownloadRoot() =>
-        Staging is { Auto: false } s ? Path.Combine(Path.GetPathRoot(s.Value)!, "ITH-Windows") : Path.Combine(WindowsDownloads.DownloadDir, "ITH-Windows");
+        Staging is { Auto: false } s ? Path.Combine(Path.GetPathRoot(s.Value)!, "ITH-Windows") : Path.Combine(ActiveUser.Downloads, "ITH-Windows");
 
     [RelayCommand]
     private async Task DownloadAsync()
