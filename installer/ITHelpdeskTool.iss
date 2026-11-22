@@ -10,6 +10,7 @@
 #endif
 #define AppName "IT Helpdesk Tool"
 #define AppExe "ITHelpdeskTool.exe"
+#define LiteExe "ITHelpdeskToolLite.exe"
 #define AppAuthor "ngthhung"
 #define AppEmail "ngthhung.dev@gmail.com"
 #define AppPhone "0968 799 365"
