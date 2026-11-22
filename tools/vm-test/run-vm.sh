@@ -123,10 +123,22 @@ sleep 2
 for i in $(seq 1 48); do mon "sendkey tab"; sleep 1; done
 
 # ---- Chờ máy ảo tự tắt (run-test / FirstLogon.ps1 tắt máy khi xong), chụp màn hình mỗi phút ----
+# Màn hình y hệt 15 phút liền = máy ảo đứng hình (lượt 45021075588 đứng ở màn khởi động 84 phút):
+# dừng sớm để đọc log, không chờ hết giờ. Đồng hồ khay hệ thống và vòng xoay làm ảnh đổi khi máy còn chạy.
+FREEZE=15; SAME=0; PREV=""
 START=$(date +%s); LIMIT=$((230 * 60)); n=0
 while kill -0 $QPID 2>/dev/null; do
   sleep 60; n=$((n + 1))
   shot "$(printf '%03d' $n)"
+  CUR=$(md5sum "$OUT/shots/$(printf '%03d' $n).png" 2>/dev/null | cut -d' ' -f1)
+  if [ -n "$CUR" ] && [ "$CUR" = "$PREV" ]; then SAME=$((SAME + 1)); else SAME=0; fi
+  PREV=$CUR
+  if [ $SAME -ge $FREEZE ]; then
+    echo "::error::Máy ảo đứng hình $FREEZE phút (ảnh $(printf '%03d' $n)) — dừng sớm"
+    mon quit; sleep 5; kill $QPID 2>/dev/null || true
+    TIMEOUT=1
+    break
+  fi
   if [ $(( $(date +%s) - START )) -gt $LIMIT ]; then
     echo "::error::Hết giờ ($((LIMIT / 60)) phút) — máy ảo chưa tự tắt"
     mon quit; sleep 5; kill $QPID 2>/dev/null || true
