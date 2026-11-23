@@ -41,6 +41,8 @@ public static class InstallerRunner
             if (text.Contains("InstallShield", StringComparison.Ordinal)) return new("installshield", "InstallShield", "/s /v\"/qn /norestart\"");
             if (text.Contains("Advanced Installer", StringComparison.Ordinal)) return new("advinst", "Advanced Installer", "/exenoui /qn /norestart");
             if (text.Contains("Squirrel", StringComparison.Ordinal)) return new("squirrel", "Squirrel", "--silent");
+            // Bộ cài kiểu Omaha (Google Update) của Cốc Cốc — bản đầy đủ coccoc_standalone_vi.exe
+            if (text.Contains("CocCocUpdate", StringComparison.Ordinal)) return new("omaha", "Cốc Cốc (Omaha)", "/silent /install");
         }
         catch { }
         return new("", "Không rõ (cài có giao diện)", "");

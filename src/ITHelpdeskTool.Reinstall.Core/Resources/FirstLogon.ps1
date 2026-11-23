@@ -140,6 +140,7 @@ function Get-SilentArgs([string]$file) {
   if ($text.Contains('InstallShield')) { return '/s /v"/qn /norestart"' }
   if ($text.Contains('Advanced Installer')) { return '/exenoui /qn /norestart' }
   if ($text.Contains('Squirrel')) { return '--silent' }
+  if ($text.Contains('CocCocUpdate')) { return '/silent /install' }
   return ''
 }
 function Get-File($s) {
@@ -152,6 +153,15 @@ function Get-File($s) {
   $fs = [IO.File]::OpenRead($d.file); try { [void]$fs.Read($head, 0, 2) } finally { $fs.Dispose() }
   if ($s.kind -ne 'Portable' -and $d.file -notlike '*.msi' -and -not ($head[0] -eq 0x4D -and $head[1] -eq 0x5A)) { throw 'link tra ve trang web, khong phai file cai' }
   return $d.file
+}
+# Chay winget co gioi han thoi gian (theo $deadline cua phan mem dang cai), ghi output vao log
+function Invoke-Winget([string[]]$a) {
+  $wout = Join-Path $env:TEMP ("winget-{0}.txt" -f [guid]::NewGuid().ToString('N'))
+  $p = Start-Process $wg -ArgumentList $a -NoNewWindow -PassThru -RedirectStandardOutput $wout -RedirectStandardError "$wout.err"
+  try { return (Wait-Proc $p) }
+  finally {
+    foreach ($f in $wout, "$wout.err") { if (Test-Path $f) { Add-Content -Path $log -Value (Get-Content $f -Raw -Encoding UTF8) -Encoding UTF8; Remove-Item $f -ErrorAction SilentlyContinue } }
+  }
 }
 # winget truoc; cac file tai song song cai sau (luc do da tai xong hoac gan xong)
 $sw = @($sw | Where-Object { $_.kind -eq 'Winget' }) + @($sw | Where-Object { $_.kind -ne 'Winget' })
@@ -166,13 +176,17 @@ foreach ($s in $sw) {
         Log "winget install $($s.id)"
         # Id dang 9NKSQGP7F2NH (12 ky tu) = app Microsoft Store (vd WhatsApp) -> nguon msstore
         $src = if ($s.id -cmatch '^[0-9A-Z]{12}$') { 'msstore' } else { 'winget' }
-        $wout = Join-Path $env:TEMP ("winget-{0}.txt" -f ($s.id -replace '[^\w.-]', '_'))
-        $p = Start-Process $wg -ArgumentList @('install', '--id', $s.id, '--exact', '--source', $src, '--silent',
-          '--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity') `
-          -NoNewWindow -PassThru -RedirectStandardOutput $wout -RedirectStandardError "$wout.err"
-        try { $code = Wait-Proc $p }
-        finally {
-          foreach ($f in $wout, "$wout.err") { if (Test-Path $f) { Add-Content -Path $log -Value (Get-Content $f -Raw -Encoding UTF8) -Encoding UTF8 } }
+        $code = Invoke-Winget @('install', '--id', $s.id, '--exact', '--source', $src, '--silent',
+          '--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity')
+        # 0x8A15005E = chung chi may chu Store khong khop chung chi winget ban cu ghim san (Windows moi cai,
+        # App Installer chua cap nhat). Tam bo ghim chung chi cho rieng nguon Store (van kiem tra HTTPS), thu lai, bat lai.
+        if ($code -eq -1978335138 -and $src -eq 'msstore') {
+          Log 'Store: chung chi khong khop ban winget cu - tam bo ghim chung chi, thu lai'
+          [void](Invoke-Winget @('settings', '--enable', 'BypassCertificatePinningForMicrosoftStore'))
+          try {
+            $code = Invoke-Winget @('install', '--id', $s.id, '--exact', '--source', $src, '--silent',
+              '--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity')
+          } finally { [void](Invoke-Winget @('settings', '--disable', 'BypassCertificatePinningForMicrosoftStore')) }
         }
         $ok = ($code -eq 0) -or ($code -eq -1978335189)   # 0x8A15002B = da co ban moi nhat
         if (-not $ok) { Log "winget ma loi $code" }

@@ -81,10 +81,11 @@ namespace ITHelpdeskTool.Reinstall
         {
             // ---- Mặc định chọn ----
             new SoftwareItem { Id = "7zip.7zip", Name = "7-Zip", Default = true, Description = "Nén / giải nén zip, rar, 7z" },
-            // Không dùng winget: gói CocCoc.CocCoc trên winget còn bản 120 cũ. Bộ cài chính thức (Chromium updater, /silent /install)
-            // cài xong trình duyệt trong vài giây nhưng tiến trình cài KHÔNG tự thoát (VM 45097531326) → nhận "đã cài" qua Detect.
+            // Không dùng winget (gói bản 120, bộ cài mồi treo) cũng không dùng bộ cài mồi trên trang tải (chỉ cài bộ cập nhật rồi đứng chờ,
+            // không tải trình duyệt — thử ở VM 45103009041 và máy Windows của GitHub). Bộ cài ĐẦY ĐỦ (offline, ~145 MB, có chữ ký Cốc Cốc)
+            // cài im lặng xong trong ~45 giây và tự thoát (probe 45113264472). Detect phòng khi bộ cài không tự thoát.
             new SoftwareItem { Id = "CocCoc.CocCoc", Name = "Cốc Cốc", Kind = SoftwareKind.Installer, Default = true, Description = "Trình duyệt Việt, tải video",
-                Url = "https://files.coccoc.com/browser/download/vi?plat=win&arch=x64", Args = "/silent /install", Detect = @"^(Cốc Cốc|Coc ?Coc)\b(?!.*Update)" },
+                Url = "https://files1.coccoc.com/browser/x64/coccoc_standalone_vi.exe", Args = "/silent /install", Detect = @"^(Cốc Cốc|Coc ?Coc)\b(?!.*Update)" },
             new SoftwareItem { Id = "evkey", Name = "EVKey", Kind = SoftwareKind.Portable, Default = true, Description = "Bộ gõ tiếng Việt (bản chạy liền)",
                 Url = @"github:lamquangminh/EVKey|^EVKey\.zip$", Exe = "EVKey64.exe" },
             new SoftwareItem { Id = "Google.Chrome", Name = "Google Chrome", Default = true, Description = "Trình duyệt" },

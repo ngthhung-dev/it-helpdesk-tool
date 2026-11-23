@@ -61,7 +61,9 @@ public static class StoreCatalog
     [
         // ---- Trình duyệt ----
         new("Google.Chrome", "Google Chrome", Browsers, "Trình duyệt phổ biến nhất"),
-        new("CocCoc.CocCoc", "Cốc Cốc", Browsers, "Trình duyệt Việt, tải video, sửa lỗi chính tả tiếng Việt"),
+        // Bộ cài đầy đủ chính thức: gói winget CocCoc.CocCoc (bản 120) và bộ cài mồi trên trang tải đều treo khi cài im lặng
+        new("CocCoc.CocCoc", "Cốc Cốc", Browsers, "Trình duyệt Việt, tải video, sửa lỗi chính tả tiếng Việt", StoreKind.Download,
+            "https://files1.coccoc.com/browser/x64/coccoc_standalone_vi.exe", @"^Cốc Cốc(?!\w)"),
         new("Mozilla.Firefox", "Mozilla Firefox", Browsers, "Trình duyệt mã nguồn mở, chú trọng riêng tư"),
         new("Microsoft.Edge", "Microsoft Edge", Browsers, "Trình duyệt mặc định của Windows"),
         new("Brave.Brave", "Brave", Browsers, "Chặn quảng cáo sẵn"),
