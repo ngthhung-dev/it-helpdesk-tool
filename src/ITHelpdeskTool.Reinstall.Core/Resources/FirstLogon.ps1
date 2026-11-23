@@ -140,6 +140,7 @@ function Get-SilentArgs([string]$file) {
   if ($text.Contains('InstallShield')) { return '/s /v"/qn /norestart"' }
   if ($text.Contains('Advanced Installer')) { return '/exenoui /qn /norestart' }
   if ($text.Contains('Squirrel')) { return '--silent' }
+  if ($text.Contains('CocCocUpdate')) { return '/silent /install' }
   return ''
 }
 function Get-File($s) {
