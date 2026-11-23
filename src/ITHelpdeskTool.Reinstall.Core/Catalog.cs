@@ -29,6 +29,11 @@ namespace ITHelpdeskTool.Reinstall
         public bool Default { get; set; }
         /// <summary>Mô tả ngắn hiện dưới tên trong danh sách chọn.</summary>
         public string Description { get; set; } = "";
+        /// <summary>
+        /// Regex tên phần mềm trong danh sách gỡ cài đặt (Uninstall) của Windows. Có giá trị = bộ cài có thể không tự thoát
+        /// sau khi cài xong (Cốc Cốc): thấy tên xuất hiện thì coi là đã cài, đợi thêm 60 giây rồi đóng bộ cài.
+        /// </summary>
+        public string Detect { get; set; } = "";
 
         public SoftwareItem Clone() => (SoftwareItem)MemberwiseClone();
     }
@@ -76,7 +81,10 @@ namespace ITHelpdeskTool.Reinstall
         {
             // ---- Mặc định chọn ----
             new SoftwareItem { Id = "7zip.7zip", Name = "7-Zip", Default = true, Description = "Nén / giải nén zip, rar, 7z" },
-            new SoftwareItem { Id = "CocCoc.CocCoc", Name = "Cốc Cốc", Default = true, Description = "Trình duyệt Việt, tải video" },
+            // Không dùng winget: gói CocCoc.CocCoc trên winget còn bản 120 cũ. Bộ cài chính thức (Chromium updater, /silent /install)
+            // cài xong trình duyệt trong vài giây nhưng tiến trình cài KHÔNG tự thoát (VM 45097531326) → nhận "đã cài" qua Detect.
+            new SoftwareItem { Id = "CocCoc.CocCoc", Name = "Cốc Cốc", Kind = SoftwareKind.Installer, Default = true, Description = "Trình duyệt Việt, tải video",
+                Url = "https://files.coccoc.com/browser/download/vi?plat=win&arch=x64", Args = "/silent /install", Detect = @"^(Cốc Cốc|Coc ?Coc)\b(?!.*Update)" },
             new SoftwareItem { Id = "evkey", Name = "EVKey", Kind = SoftwareKind.Portable, Default = true, Description = "Bộ gõ tiếng Việt (bản chạy liền)",
                 Url = @"github:lamquangminh/EVKey|^EVKey\.zip$", Exe = "EVKey64.exe" },
             new SoftwareItem { Id = "Google.Chrome", Name = "Google Chrome", Default = true, Description = "Trình duyệt" },
@@ -91,8 +99,18 @@ namespace ITHelpdeskTool.Reinstall
             new SoftwareItem { Id = "rustdesk", Name = "RustDesk", Kind = SoftwareKind.Installer, Default = true, Description = "Điều khiển từ xa, miễn phí",
                 Url = @"github:rustdesk/rustdesk|x86_64\.msi$" },
             new SoftwareItem { Id = "DucFabulous.UltraViewer", Name = "UltraViewer", Default = true, Description = "Điều khiển từ xa" },
+            // Args trống = FirstLogon tự nhận kiểu bộ cài (Inno / NSIS…) như App Store
+            new SoftwareItem { Id = "zalo", Name = "Zalo PC", Kind = SoftwareKind.Installer, Default = true, Description = "Chat, gọi video",
+                Url = "https://zalo.me/download/zalo-pc?utm=90000" },
 
             // ---- Không chọn sẵn ----
+            new SoftwareItem { Id = "bartender-lite", Name = "Bartender Lite", Kind = SoftwareKind.Installer, Description = "Thiết kế, in tem nhãn, mã vạch",
+                Url = @"github:ngthhung-dev/bartender-lite|Setup\.exe$" },
+            new SoftwareItem { Id = "OpenAI.ChatGPT", Name = "ChatGPT", Description = "Trợ lý AI ChatGPT bản desktop" },
+            new SoftwareItem { Id = "Anthropic.Claude", Name = "Claude", Description = "Trợ lý AI Claude bản desktop" },
+            new SoftwareItem { Id = "Oracle.JavaRuntimeEnvironment", Name = "Java 8 (JRE)", Description = "Cho phần mềm Java: chữ ký số, khai thuế…" },
+            new SoftwareItem { Id = "Skillbrains.Lightshot", Name = "Lightshot", Description = "Chụp vùng màn hình bằng phím PrtSc" },
+            new SoftwareItem { Id = "Python.Python.3.13", Name = "Python 3.13", Description = "Ngôn ngữ lập trình Python" },
             new SoftwareItem { Id = "Foxit.FoxitReader", Name = "Foxit PDF Reader", Description = "Đọc, ký, điền form PDF" },
             new SoftwareItem { Id = "Telegram.TelegramDesktop", Name = "Telegram", Description = "Chat, gửi file lớn" },
             new SoftwareItem { Id = "unikey", Name = "UniKey", Kind = SoftwareKind.Portable, Description = "Bộ gõ tiếng Việt (bản chạy liền)",

@@ -74,8 +74,29 @@ function New-Shortcut([string]$lnk, [string]$target) {
 $perApp = 600
 if ($cfg.softwareTimeoutSec) { $perApp = [int]$cfg.softwareTimeoutSec }
 function Left-Sec { [Math]::Max(5, [int]($deadline - (Get-Date)).TotalSeconds) }
-function Wait-Proc($p) {
+# Ten phan mem da co trong danh sach go cai dat (Uninstall) cua Windows chua
+function Test-Installed([string]$rx) {
+  foreach ($k in 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
+                 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*') {
+    foreach ($e in @(Get-ItemProperty $k -ErrorAction SilentlyContinue)) { if ($e.DisplayName -and $e.DisplayName -match $rx) { return $true } }
+  }
+  return $false
+}
+function Wait-Proc($p, [string]$detect = '') {
   [void]$p.Handle   # giu handle de doc duoc ExitCode sau khi tien trinh thoat
+  # Bo cai khong tu thoat sau khi cai xong (Coc Coc): thay ten trong Uninstall thi doi them 60 giay roi dong, coi la OK
+  if ($detect) {
+    $seen = $null
+    while (-not $p.WaitForExit(5000)) {
+      if ((Get-Date) -gt $deadline) { break }
+      if (-not $seen -and (Test-Installed $detect)) { $seen = Get-Date; Log 'da thay phan mem trong danh sach cai dat, cho bo cai tu thoat' }
+      if ($seen -and ((Get-Date) - $seen).TotalSeconds -ge 60) {
+        & taskkill.exe /T /F /PID $p.Id 2>&1 | Out-Null
+        Log 'bo cai khong tu thoat sau khi cai xong - da dong'
+        return 0
+      }
+    }
+  }
   if (-not $p.WaitForExit((Left-Sec) * 1000)) {
     & taskkill.exe /T /F /PID $p.Id 2>&1 | Out-Null
     throw ("qua {0} phut chua cai xong - da dung, bo qua" -f [Math]::Round($perApp / 60))
@@ -91,13 +112,35 @@ if ($online) {
     try {
       $url = Resolve-Url $s.url
       $name = if ($s.kind -eq 'Portable') { $s.id + '.zip' } else { [IO.Path]::GetFileName(([Uri]$url).AbsolutePath) }
+      # Link khong co duoi file (vd zalo.me/download/zalo-pc) -> coi la .exe
+      if ($s.kind -ne 'Portable' -and $name -notmatch '\.(exe|msi)$') { $name = $s.id + '.exe' }
       $file = Join-Path $env:TEMP $name
       $wc = New-Object Net.WebClient
-      $wc.Headers.Add('User-Agent', 'ITHelpdeskTool')
+      # Giong App Store: zalo.me chi tra file cai khi User-Agent la trinh duyet Windows (khong thi ve trang web)
+      $wc.Headers.Add('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ITHelpdeskTool')
       Log "Tai (song song) $url"
       $dl[$s.id] = @{ file = $file; wc = $wc; task = $wc.DownloadFileTaskAsync($url, $file) }
     } catch { $dl[$s.id] = @{ error = $_.Exception.Message } }
   }
+}
+# Doan tham so cai im lang theo chuoi nhan dang trong file (giong InstallerRunner.Detect cua App Store)
+function Get-SilentArgs([string]$file) {
+  $fs = [IO.File]::OpenRead($file)
+  try {
+    $len = [int][Math]::Min($fs.Length, 6MB); $buf = New-Object byte[] $len
+    $n = $fs.Read($buf, 0, $len); $text = [Text.Encoding]::ASCII.GetString($buf, 0, $n)
+    if ($fs.Length -gt $len) {
+      $t = [int][Math]::Min($fs.Length - $len, 2MB); [void]$fs.Seek(-$t, 'End'); $tail = New-Object byte[] $t
+      $m = $fs.Read($tail, 0, $t); $text += [Text.Encoding]::ASCII.GetString($tail, 0, $m)
+    }
+  } finally { $fs.Dispose() }
+  if ($text.Contains('Inno Setup')) { return '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' }
+  if ($text.Contains('Nullsoft')) { return '/S' }
+  if ($text.Contains('.wixburn')) { return '/quiet /norestart' }
+  if ($text.Contains('InstallShield')) { return '/s /v"/qn /norestart"' }
+  if ($text.Contains('Advanced Installer')) { return '/exenoui /qn /norestart' }
+  if ($text.Contains('Squirrel')) { return '--silent' }
+  return ''
 }
 function Get-File($s) {
   $d = $dl[$s.id]
@@ -105,6 +148,9 @@ function Get-File($s) {
   if ($d.error) { throw $d.error }
   try { $done = $d.task.Wait((Left-Sec) * 1000) } catch { throw ('loi tai: ' + $_.Exception.GetBaseException().Message) }
   if (-not $done) { $d.wc.CancelAsync(); throw ("tai qua {0} phut - bo qua" -f [Math]::Round($perApp / 60)) }
+  $head = New-Object byte[] 2
+  $fs = [IO.File]::OpenRead($d.file); try { [void]$fs.Read($head, 0, 2) } finally { $fs.Dispose() }
+  if ($s.kind -ne 'Portable' -and $d.file -notlike '*.msi' -and -not ($head[0] -eq 0x4D -and $head[1] -eq 0x5A)) { throw 'link tra ve trang web, khong phai file cai' }
   return $d.file
 }
 # winget truoc; cac file tai song song cai sau (luc do da tai xong hoac gan xong)
@@ -133,11 +179,21 @@ foreach ($s in $sw) {
       }
       'Installer' {
         $file = Get-File $s
-        if ($file -like '*.msi') { $p = Start-Process msiexec.exe -ArgumentList "/i `"$file`" /qn /norestart" -PassThru }
-        else { $p = Start-Process $file -ArgumentList $s.args -PassThru }
-        $code = Wait-Proc $p
-        $ok = $code -in 0, 3010
-        if (-not $ok) { Log "bo cai tra ma $code" }
+        $isMsi = $file -like '*.msi'
+        if (-not $isMsi) {
+          $a = if ($s.args) { $s.args } else { Get-SilentArgs $file }
+          if (-not $a) { throw 'khong nhan ra kieu bo cai de cai im lang' }
+        }
+        # Bo cai dung dot ngot (vd Zalo 0xC0000005 khi may vua cai xong phan mem khac) -> cho 15 giay, thu lai 1 lan
+        for ($try = 1; $try -le 2; $try++) {
+          if ($isMsi) { $p = Start-Process msiexec.exe -ArgumentList "/i `"$file`" /qn /norestart" -PassThru }
+          else { Log "Cai $([IO.Path]::GetFileName($file)) $a"; $p = Start-Process $file -ArgumentList $a -PassThru }
+          $code = Wait-Proc $p $s.detect
+          $ok = $code -in 0, 3010
+          if ($ok) { break }
+          Log "bo cai tra ma $code (lan $try)"
+          if ($try -eq 1 -and $code -lt 0 -and (Left-Sec) -gt 60) { Start-Sleep 15 } else { break }
+        }
       }
       'Portable' {
         $zip = Get-File $s
