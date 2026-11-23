@@ -76,7 +76,10 @@ namespace ITHelpdeskTool.Reinstall
         {
             // ---- Mặc định chọn ----
             new SoftwareItem { Id = "7zip.7zip", Name = "7-Zip", Default = true, Description = "Nén / giải nén zip, rar, 7z" },
-            new SoftwareItem { Id = "CocCoc.CocCoc", Name = "Cốc Cốc", Default = true, Description = "Trình duyệt Việt, tải video" },
+            // Không dùng winget: gói CocCoc.CocCoc trên winget còn bản 120 cũ, bộ cài mồi treo trên Windows mới (VM 45048174171).
+            // Bộ cài chính thức (Chromium updater): /silent /install, cài cho cả máy.
+            new SoftwareItem { Id = "CocCoc.CocCoc", Name = "Cốc Cốc", Kind = SoftwareKind.Installer, Default = true, Description = "Trình duyệt Việt, tải video",
+                Url = "https://files.coccoc.com/browser/download/vi?plat=win&arch=x64", Args = "/silent /install" },
             new SoftwareItem { Id = "evkey", Name = "EVKey", Kind = SoftwareKind.Portable, Default = true, Description = "Bộ gõ tiếng Việt (bản chạy liền)",
                 Url = @"github:lamquangminh/EVKey|^EVKey\.zip$", Exe = "EVKey64.exe" },
             new SoftwareItem { Id = "Google.Chrome", Name = "Google Chrome", Default = true, Description = "Trình duyệt" },
