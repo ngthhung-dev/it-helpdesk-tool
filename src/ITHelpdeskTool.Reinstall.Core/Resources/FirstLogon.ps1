@@ -158,16 +158,21 @@ foreach ($s in $sw) {
       }
       'Installer' {
         $file = Get-File $s
-        if ($file -like '*.msi') { $p = Start-Process msiexec.exe -ArgumentList "/i `"$file`" /qn /norestart" -PassThru }
-        else {
+        $isMsi = $file -like '*.msi'
+        if (-not $isMsi) {
           $a = if ($s.args) { $s.args } else { Get-SilentArgs $file }
           if (-not $a) { throw 'khong nhan ra kieu bo cai de cai im lang' }
-          Log "Cai $([IO.Path]::GetFileName($file)) $a"
-          $p = Start-Process $file -ArgumentList $a -PassThru
         }
-        $code = Wait-Proc $p
-        $ok = $code -in 0, 3010
-        if (-not $ok) { Log "bo cai tra ma $code" }
+        # Bo cai dung dot ngot (vd Zalo 0xC0000005 khi may vua cai xong phan mem khac) -> cho 15 giay, thu lai 1 lan
+        for ($try = 1; $try -le 2; $try++) {
+          if ($isMsi) { $p = Start-Process msiexec.exe -ArgumentList "/i `"$file`" /qn /norestart" -PassThru }
+          else { Log "Cai $([IO.Path]::GetFileName($file)) $a"; $p = Start-Process $file -ArgumentList $a -PassThru }
+          $code = Wait-Proc $p
+          $ok = $code -in 0, 3010
+          if ($ok) { break }
+          Log "bo cai tra ma $code (lan $try)"
+          if ($try -eq 1 -and $code -lt 0 -and (Left-Sec) -gt 60) { Start-Sleep 15 } else { break }
+        }
       }
       'Portable' {
         $zip = Get-File $s

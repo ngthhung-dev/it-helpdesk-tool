@@ -181,6 +181,9 @@ mkdir -p "$OUT/logs"; sudo cp /mnt/win/ith-test.log "$OUT/logs/" 2>/dev/null || 
 # Log FirstLogon ngay trên ổ Windows mới (kể cả khi chưa xong, chưa chép về ổ đệm) + log winget của itadmin
 sudo mkdir -p "$OUT/logs/win"; sudo cp /mnt/win/ProgramData/ITHReinstall/logs/* "$OUT/logs/win/" 2>/dev/null || true
 sudo cp /mnt/win/Users/itadmin/AppData/Local/Packages/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe/LocalState/DiagOutputDir/*.log "$OUT/logs/win/" 2>/dev/null || true
+# Log bộ cài trình duyệt kiểu Chromium updater (Cốc Cốc) + phần mềm đã có trong Program Files
+sudo find /mnt/win/ProgramData /mnt/win/Users/itadmin/AppData/Local "/mnt/win/Program Files (x86)" "/mnt/win/Program Files" -maxdepth 5 -iname "*updater*.log" 2>/dev/null | grep -i coccoc | while IFS= read -r f; do sudo cp "$f" "$OUT/logs/win/coccoc-$(basename "$f")" 2>/dev/null; done || true
+( ls "/mnt/win/Program Files" "/mnt/win/Program Files (x86)"; sudo find /mnt/win -maxdepth 4 -iname "*coccoc*" 2>/dev/null ) > "$OUT/logs/win/program-files.txt" 2>/dev/null || true
 sudo chown -R "$USER" "$OUT"
 
 # multi: mount mọi phân vùng theo nhãn (DATA-D, DATA-E, DATA-F, OLDEFI) để kiểm tra dữ liệu còn nguyên
