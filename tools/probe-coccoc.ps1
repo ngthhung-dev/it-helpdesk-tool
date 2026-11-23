@@ -5,7 +5,8 @@ $ProgressPreference = 'SilentlyContinue'
 $dir = Join-Path $env:TEMP 'ccprobe'; New-Item -ItemType Directory -Force $dir | Out-Null
 $exe = Join-Path $dir 'CocCocSetup.exe'
 $wc = New-Object Net.WebClient; $wc.Headers.Add('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ITHelpdeskTool')
-$wc.DownloadFile('https://files.coccoc.com/browser/download/vi?plat=win&arch=x64', $exe)
+$wc.DownloadFile('https://files1.coccoc.com/browser/x64/coccoc_standalone_vi.exe', $exe)
+"Chu ky: " + (Get-AuthenticodeSignature $exe).Status + ' ' + (Get-AuthenticodeSignature $exe).SignerCertificate.Subject.Split(',')[1]
 "Bo cai: {0:N1} MB, ban {1}" -f ((Get-Item $exe).Length / 1MB), (Get-Item $exe).VersionInfo.ProductVersion
 "IP ra ngoai: " + (Invoke-RestMethod 'https://api.ipify.org' -TimeoutSec 10)
 
@@ -16,7 +17,7 @@ function Show-State {
   "--- Tien trinh:"; Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -match 'CocCoc|ccprobe|SystemTemp' } | ForEach-Object { "  $($_.ProcessId) $($_.Name) $($_.CommandLine)" }
 }
 
-foreach ($a in '/silent /install', '--silent --install --system') {
+foreach ($a in '/silent /install', '--system-level --do-not-launch-chrome', '--silent --install --system') {
   "===== Chay: $a"
   $t = Get-Date
   $p = Start-Process $exe -ArgumentList $a -PassThru
