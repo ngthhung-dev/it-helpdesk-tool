@@ -29,6 +29,11 @@ namespace ITHelpdeskTool.Reinstall
         public bool Default { get; set; }
         /// <summary>Mô tả ngắn hiện dưới tên trong danh sách chọn.</summary>
         public string Description { get; set; } = "";
+        /// <summary>
+        /// Regex tên phần mềm trong danh sách gỡ cài đặt (Uninstall) của Windows. Có giá trị = bộ cài có thể không tự thoát
+        /// sau khi cài xong (Cốc Cốc): thấy tên xuất hiện thì coi là đã cài, đợi thêm 60 giây rồi đóng bộ cài.
+        /// </summary>
+        public string Detect { get; set; } = "";
 
         public SoftwareItem Clone() => (SoftwareItem)MemberwiseClone();
     }
@@ -76,10 +81,10 @@ namespace ITHelpdeskTool.Reinstall
         {
             // ---- Mặc định chọn ----
             new SoftwareItem { Id = "7zip.7zip", Name = "7-Zip", Default = true, Description = "Nén / giải nén zip, rar, 7z" },
-            // Không dùng winget: gói CocCoc.CocCoc trên winget còn bản 120 cũ, bộ cài mồi treo trên Windows mới (VM 45048174171).
-            // Bộ cài chính thức (Chromium updater): /silent /install, cài cho cả máy.
+            // Không dùng winget: gói CocCoc.CocCoc trên winget còn bản 120 cũ. Bộ cài chính thức (Chromium updater, /silent /install)
+            // cài xong trình duyệt trong vài giây nhưng tiến trình cài KHÔNG tự thoát (VM 45097531326) → nhận "đã cài" qua Detect.
             new SoftwareItem { Id = "CocCoc.CocCoc", Name = "Cốc Cốc", Kind = SoftwareKind.Installer, Default = true, Description = "Trình duyệt Việt, tải video",
-                Url = "https://files.coccoc.com/browser/download/vi?plat=win&arch=x64", Args = "/silent /install" },
+                Url = "https://files.coccoc.com/browser/download/vi?plat=win&arch=x64", Args = "/silent /install", Detect = @"^(Cốc Cốc|Coc ?Coc)\b(?!.*Update)" },
             new SoftwareItem { Id = "evkey", Name = "EVKey", Kind = SoftwareKind.Portable, Default = true, Description = "Bộ gõ tiếng Việt (bản chạy liền)",
                 Url = @"github:lamquangminh/EVKey|^EVKey\.zip$", Exe = "EVKey64.exe" },
             new SoftwareItem { Id = "Google.Chrome", Name = "Google Chrome", Default = true, Description = "Trình duyệt" },

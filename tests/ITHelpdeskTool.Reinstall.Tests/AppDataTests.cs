@@ -187,7 +187,14 @@ public class CatalogAndOrderTests
         // Bộ cài Inno của chính mình: tham số cố định; còn lại Args trống = FirstLogon tự nhận kiểu bộ cài
         Assert.All(Catalog.Software.Where(s => s.Id is "it-helpdesk-tool" or "pdf-editor-lite"), s => Assert.Contains("/VERYSILENT", s.Args));
         // FirstLogon có đoán tham số im lặng + User-Agent trình duyệt (zalo.me cần)
+        // Cốc Cốc: bộ cài không tự thoát → nhận "đã cài" theo tên trong Uninstall, không nhầm với bộ cập nhật
+        var cc = Catalog.Software.Single(s => s.Id == "CocCoc.CocCoc");
+        Assert.Matches(cc.Detect, "Cốc Cốc");
+        Assert.Matches(cc.Detect, "CocCoc Browser");
+        Assert.DoesNotMatch(cc.Detect, "Cốc Cốc Update");
         var ps = Templates.Load("FirstLogon.ps1");
+        Assert.Contains("function Test-Installed", ps);
+        Assert.Contains("Wait-Proc $p $s.detect", ps);
         Assert.Contains("function Get-SilentArgs", ps);
         Assert.Contains("Mozilla/5.0 (Windows NT 10.0; Win64; x64)", ps);
     }

@@ -121,7 +121,7 @@ namespace ITHelpdeskTool.Reinstall
             sb.Append($"  \"user\": {Arr(p.Tweaks.Where(t => t.Scope == TweakScope.User).SelectMany(t => t.Commands))},\r\n");
             sb.Append("  \"software\": [");
             sb.Append(string.Join(",", p.Software.Select(s =>
-                $"\r\n    {{ \"id\": {Q(s.Id)}, \"name\": {Q(s.Name)}, \"kind\": {Q(s.Kind.ToString())}, \"url\": {Q(s.Url)}, \"args\": {Q(s.Args)}, \"exe\": {Q(s.Exe)} }}")));
+                $"\r\n    {{ \"id\": {Q(s.Id)}, \"name\": {Q(s.Name)}, \"kind\": {Q(s.Kind.ToString())}, \"url\": {Q(s.Url)}, \"args\": {Q(s.Args)}, \"exe\": {Q(s.Exe)}, \"detect\": {Q(s.Detect)} }}")));
             sb.Append(p.Software.Count > 0 ? "\r\n  ],\r\n" : "],\r\n");
             var restore = p.Restore.Where(b => b.Restore != RestoreKind.None).ToList();
             sb.Append("  \"restore\": [");

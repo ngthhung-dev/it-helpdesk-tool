@@ -74,8 +74,29 @@ function New-Shortcut([string]$lnk, [string]$target) {
 $perApp = 600
 if ($cfg.softwareTimeoutSec) { $perApp = [int]$cfg.softwareTimeoutSec }
 function Left-Sec { [Math]::Max(5, [int]($deadline - (Get-Date)).TotalSeconds) }
-function Wait-Proc($p) {
+# Ten phan mem da co trong danh sach go cai dat (Uninstall) cua Windows chua
+function Test-Installed([string]$rx) {
+  foreach ($k in 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
+                 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*') {
+    foreach ($e in @(Get-ItemProperty $k -ErrorAction SilentlyContinue)) { if ($e.DisplayName -and $e.DisplayName -match $rx) { return $true } }
+  }
+  return $false
+}
+function Wait-Proc($p, [string]$detect = '') {
   [void]$p.Handle   # giu handle de doc duoc ExitCode sau khi tien trinh thoat
+  # Bo cai khong tu thoat sau khi cai xong (Coc Coc): thay ten trong Uninstall thi doi them 60 giay roi dong, coi la OK
+  if ($detect) {
+    $seen = $null
+    while (-not $p.WaitForExit(5000)) {
+      if ((Get-Date) -gt $deadline) { break }
+      if (-not $seen -and (Test-Installed $detect)) { $seen = Get-Date; Log 'da thay phan mem trong danh sach cai dat, cho bo cai tu thoat' }
+      if ($seen -and ((Get-Date) - $seen).TotalSeconds -ge 60) {
+        & taskkill.exe /T /F /PID $p.Id 2>&1 | Out-Null
+        Log 'bo cai khong tu thoat sau khi cai xong - da dong'
+        return 0
+      }
+    }
+  }
   if (-not $p.WaitForExit((Left-Sec) * 1000)) {
     & taskkill.exe /T /F /PID $p.Id 2>&1 | Out-Null
     throw ("qua {0} phut chua cai xong - da dung, bo qua" -f [Math]::Round($perApp / 60))
@@ -167,7 +188,7 @@ foreach ($s in $sw) {
         for ($try = 1; $try -le 2; $try++) {
           if ($isMsi) { $p = Start-Process msiexec.exe -ArgumentList "/i `"$file`" /qn /norestart" -PassThru }
           else { Log "Cai $([IO.Path]::GetFileName($file)) $a"; $p = Start-Process $file -ArgumentList $a -PassThru }
-          $code = Wait-Proc $p
+          $code = Wait-Proc $p $s.detect
           $ok = $code -in 0, 3010
           if ($ok) { break }
           Log "bo cai tra ma $code (lan $try)"
